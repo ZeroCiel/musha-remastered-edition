@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spriter_data scml_version="1.0" generator="BrashMonkey Spriter" generator_version="r7">
+    <folder id="0">
+        <file id="0" name="warrior_tome.png" width="128" height="128" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="1" name="rogue_tome.png" width="64" height="64" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="2" name="ranger_tome.png" width="128" height="128" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="3" name="mage_tome.png" width="128" height="128" pivot_x="0.5" pivot_y="0.5"/>
+    </folder>
+    <entity id="0" name="musha_jobbook">
+        <animation id="0" name="idle_warrior" length="1000" interval="100">
+            <mainline>
+                <key id="0">
+                    <object_ref id="0" timeline="0" key="0" z_index="0"/>
+                </key>
+            </mainline>
+            <timeline id="0" name="warrior_tome">
+                <key id="0" spin="0">
+                    <object folder="0" file="0" y="12.8" angle="0"/>
+                </key>
+            </timeline>
+        </animation>
+        <animation id="1" name="idle_rogue" length="1000" interval="100">
+            <mainline>
+                <key id="0">
+                    <object_ref id="0" timeline="0" key="0" z_index="0"/>
+                </key>
+            </mainline>
+            <timeline id="0" name="rogue_tome">
+                <key id="0" spin="0">
+                    <object folder="0" file="1" y="6.4" angle="0"/>
+                </key>
+            </timeline>
+        </animation>
+        <animation id="2" name="idle_mage" length="1000" interval="100">
+            <mainline>
+                <key id="0">
+                    <object_ref id="0" timeline="0" key="0" z_index="0"/>
+                </key>
+            </mainline>
+            <timeline id="0" name="mage_tome">
+                <key id="0" spin="0">
+                    <object folder="0" file="3" y="12.8" angle="0"/>
+                </key>
+            </timeline>
+        </animation>
+        <animation id="3" name="idle_ranger" length="1000" interval="100">
+            <mainline>
+                <key id="0">
+                    <object_ref id="0" timeline="0" key="0" z_index="0"/>
+                </key>
+            </mainline>
+            <timeline id="0" name="ranger_tome">
+                <key id="0" spin="0">
+                    <object folder="0" file="2" y="6.4" angle="0"/>
+                </key>
+            </timeline>
+        </animation>
+    </entity>
+</spriter_data>
