@@ -13,7 +13,6 @@ local assets = {
 local function OnUseBook(inst, doer)
     if not doer or not doer:IsValid() then return end
 
-    -- 客户端和服务端都处理
     local pc = doer.components.musha_profession_component
     if not pc then
         if doer.components.talker then
@@ -29,48 +28,18 @@ local function OnUseBook(inst, doer)
         return
     end
 
-    -- 打开技能 UI（仅在客户端执行）
-    if not TheWorld.ismastersim then
-        if doer.components.musha_skillui then
-            -- 注册技能快捷键
-            local kh = doer.components.musha_keyhandler
-            if kh then
-                -- 获取当前职业的技能列表
-                local pc = doer.components.musha_profession_component
-                if pc then
-                    local job_to_check = pc.mydata.carrer_base
-                    if pc.mydata.carrer_special then
-                        job_to_check = pc.mydata.carrer_special
-                    end
-                    local skill_list = GetJobSkillList(job_to_check)
-                    for i, entry in ipairs(skill_list) do
-                        local action_id = "skill_" .. i
-                        kh:RegisterAction(action_id, function(inst_player, player)
-                            -- 发送 RPC 升级技能
-                            SendModRPCToServer(
-                                GetModRPCIndex("musha_skill_upgrade"),
-                                entry.id
-                            )
-                        end)
-                    end
+    -- 服务端：通过 net_bool 通知客户端打开职业面板
+    -- （客户端 mushapanelchanged 监听 → PushEvent("musha_open_skill_panel") → panel ShowPanel）
+    if TheWorld.ismastersim and doer._musha_panel_net then
+        doer._musha_panel_net:set(true)
+        -- 下一帧复位，保证下次右键还能触发 dirty
+        if not doer._musha_panel_reset_task then
+            doer._musha_panel_reset_task = doer:DoTaskInTime(0, function()
+                doer._musha_panel_reset_task = nil
+                if doer._musha_panel_net then
+                    doer._musha_panel_net:set(false)
                 end
-
-                -- 注册打开技能书快捷键
-                kh:RegisterAction("open_skillbook", function(inst_player, player)
-                    SendModRPCToServer(
-                        GetModRPCIndex("musha_request_skill_data")
-                    )
-                    if player.components.musha_skillui then
-                        player.components.musha_skillui:OpenUI()
-                    end
-                end)
-            end
-
-            -- 先请求服务端数据
-            SendModRPCToServer(
-                GetModRPCIndex("musha_request_skill_data")
-            )
-            doer.components.musha_skillui:OpenUI()
+            end)
         end
     end
 end
@@ -89,6 +58,8 @@ local function fn()
     inst.AnimState:PlayAnimation("idle")
 
     inst:AddTag("musha_skillbook")
+    -- 右键动作 tag：INVENTORY ComponentAction 按 tag 路由到 MUSHA_OPEN_PANEL
+    inst:AddTag("musha_panel")
 
     inst.entity:SetPristine()
 

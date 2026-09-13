@@ -1,0 +1,4 @@
+session=88ddecea
+failedAt=2026-09-12T01:51:12.833Z
+backend=tmux-codex
+reason=backend send 失败: Codex thread was not recorded within 30000ms (cwd=/mnt/d/SteamLibrary/steamapps/common/Don't Starve Together/mods/musha)

@@ -46,4 +46,15 @@ configuration_options = {
         },
         default = false,
     },
+    {
+        name = "musha_daily_quest_count",
+        label = "每日任务数量",
+        hover = "每天发放的日常任务数（3=悠闲，4=标准，5=充实）",
+        options = {
+            { description = "悠闲 (3)", data = 3 },
+            { description = "标准 (4)", data = 4 },
+            { description = "充实 (5)", data = 5 },
+        },
+        default = 4,
+    },
 }

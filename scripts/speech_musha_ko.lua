@@ -5,254 +5,254 @@ return {
 	{
         REPAIR =
         {
-            WRONGPIECE = "이게 아닌 모양이야",
+            WRONGPIECE = "어? 이건 아닌데!",
         },
         BUILD =
         {
-            MOUNTED = "뮤샤는 물건을 쌓아올리는 재주는 없어",
-            HASPET = "똑같은 펫을 여러마리 키우면 안돼",
+            MOUNTED = "뮤샤는 비팔로 타고는 못 쌓아!",
+            HASPET = "똑같은 펫은 한 마리만 키우는거야!",
         },
 		SHAVE =
 		{
-			AWAKEBEEFALO = "깨어있는 동물한테 칼을 대면 큰일나",
-			GENERIC = "뮤샤는 이런 털은 모아도 쓸데가 없다고 생각해",
-			NOBITS = "이 이상 털을 밀면 부끄러워 죽어버릴지도 몰라",
+			AWAKEBEEFALO = "얼른! 깨어있는 비팔로는 건드리면 안 돼!",
+			GENERIC = "이런 털은 모아도 쓸 데가 없어!",
+			NOBITS = "더 밀면 부끄러워서 죽어버릴지도 몰라!",
 		},
 		STORE =
 		{
-			GENERIC = "더 이상은 안들어가",
-			NOTALLOWED = "이건 뮤샤가 손을 대면 안돼",
-			INUSE = "뮤샤의 차례는 좀 더 기다려야해",
+			GENERIC = "더는 안 들어가!",
+			NOTALLOWED = "이건 뮤샤가 만지면 안 된대!",
+			INUSE = "뮤샤 차례는 조금만 더 기다려야 해!",
 		},
 		RUMMAGE =
 		{	
-			GENERIC = "이건 아니야",
-			INUSE = "뮤샤가 지금 손을 대도 바뀌는건 없을거야",
+			GENERIC = "어? 이게 아니야!",
+			INUSE = "뮤샤가 만져도 아무것도 안 바뀌어!",
 		},
 		USEKLAUSSACKKEY =
         {
-        	WRONGKEY = "뮤샤가 보기엔 다른게 필요해",
-        	KLAUS = "뮤샤는 제정신으로 돌아왔다!",
-			QUAGMIRE_WRONGKEY = "뮤샤가 보기엔 다른게 필요해",
+        	WRONGKEY = "뮤샤가 보기엔 다른 게 필요해!",
+        	KLAUS = "히히, 뮤샤 제정신으로 돌아왔어!",
+			QUAGMIRE_WRONGKEY = "뮤샤가 보기엔 다른 게 필요해!",
         },
 		ACTIVATE = 
 		{
-			LOCKED_GATE = "잠겨있어",
+			LOCKED_GATE = "어? 잠겨있잖아!",
 		},
         COOK =
         {
-            GENERIC = "뮤샤는 음식은 요리해서 먹는걸 좋아해",
-            INUSE = "뮤샤가 생각하는 그 요리일까?.",
-            TOOFAR = "뮤샤는 음식은 요리해서 먹는걸 좋아해",
+            GENERIC = "뮤샤는 요리해서 먹는 게 좋아!",
+            INUSE = "어? 뮤샤가 생각한 그 요리 맞을까?",
+            TOOFAR = "뮤샤는 요리해서 먹는 게 좋아!",
         },
 		GIVE =
         {
-            GENERIC = "뮤샤는 이걸 어떻게 줘야할 지 모르겠어",
-            DEAD = "받을 손이 없어서 줄 수 없어",
-            SLEEPING = "몰래 가방에 넣는거는 하면 안돼",
-            BUSY = "지금은 받을 수 없는 모양이야",
-            ABIGAILHEART = "이렇게 하는 것 보다 재대로 된 방법이  있을거야",
-            GHOSTHEART = "아무일도 일어나지 않아",
-            NOTGEM = "아무일도 일어나지 않아",
-            WRONGGEM = "아무일도 일어나지 않아",
-            NOTSTAFF = "아무일도 일어나지 않아",
-            MUSHROOMFARM_NEEDSSHROOM = "우선 버섯을 심어보자",
-            MUSHROOMFARM_NEEDSLOG = "버섯을 심을 통나무가 필요해",
-            SLOTFULL = "넣을 자리가 없어",
-            FOODFULL = "볼도 빵빵하고 배도 빵빵한게 더는 안들어가겠어",
-            NOTDISH = "뮤샤도 역시 이건 먹을 수 없을거라고 봐",
-            DUPLICATE = "아무일도 일어나지 않아",
-            NOTSCULPTABLE = "아무일도 일어나지 않아",
-            NOTATRIUMKEY = "아무일도 일어나지 않아",
-            CANTSHADOWREVIVE = "아무일도 일어나지 않아",
-            WRONGSHADOWFORM = "아무일도 일어나지 않아",
+            GENERIC = "뮤샤 이걸 어떻게 줘야 할지 모르겠어!",
+            DEAD = "받아줄 손이 없네!",
+            SLEEPING = "자고 있을 때 몰래 넣으면 안 돼!",
+            BUSY = "지금은 못 받는 모양이야!",
+            ABIGAILHEART = "이렇게 말고 더 좋은 방법이 있을 거야!",
+            GHOSTHEART = "어? 아무 일도 안 일어나!",
+            NOTGEM = "어? 아무 일도 안 일어나!",
+            WRONGGEM = "어? 아무 일도 안 일어나!",
+            NOTSTAFF = "어? 아무 일도 안 일어나!",
+            MUSHROOMFARM_NEEDSSHROOM = "먼저 버섯을 심어보자!",
+            MUSHROOMFARM_NEEDSLOG = "버섯을 심으려면 통나무가 있어야 해!",
+            SLOTFULL = "넣을 자리가 없잖아!",
+            FOODFULL = "뮤샤 배가 빵빵해~ 더는 못 먹겠어!",
+            NOTDISH = "뮤샤가 봐도 이건 못 먹겠어!",
+            DUPLICATE = "어? 아무 일도 안 일어나!",
+            NOTSCULPTABLE = "어? 아무 일도 안 일어나!",
+            NOTATRIUMKEY = "어? 아무 일도 안 일어나!",
+            CANTSHADOWREVIVE = "어? 아무 일도 안 일어나!",
+            WRONGSHADOWFORM = "어? 아무 일도 안 일어나!",
         },
         GIVETOPLAYER =
         {
-            FULL = "아무래도 이걸 넣을 만한 빈자리가 보이질 않아",
-            DEAD = "시체엔 아무것도 넣어지지 않아",
-            SLEEPING = "자고있는 동안 아이템을 넣어버리면 일어날 때 깜짝 놀랄거야",
-            BUSY = "불쑥 끼어드는건 좋지 않다고 뮤샤는 생각해",
+            FULL = "넣을 만한 빈자리가 안 보여!",
+            DEAD = "시체한테는 아무것도 못 넣어!",
+            SLEEPING = "자고 있을 때 넣어버리면 깨어나서 깜짝 놀랄걸!",
+            BUSY = "불쑥 끼어들면 안 되는거야!",
         },
         GIVEALLTOPLAYER =
         {
-            FULL = "아무래도 이걸 넣을 만한 빈자리가 보이질 않아",
-            DEAD = "시체엔 아무것도 넣어지지 않아",
-            SLEEPING = "자고있는 동안 아이템을 넣어버리면 일어날 때 깜짝 놀랄거야",
-            BUSY = "불쑥 끼어드는건 좋지 않다고 뮤샤는 생각해",
+            FULL = "넣을 만한 빈자리가 안 보여!",
+            DEAD = "시체한테는 아무것도 못 넣어!",
+            SLEEPING = "자고 있을 때 넣어버리면 깨어나서 깜짝 놀랄걸!",
+            BUSY = "불쑥 끼어들면 안 되는거야!",
         },
         WRITE =
         {
-            GENERIC = "뮤샤가 봐도 이건 잘 만든것 같아",
-            INUSE = "덧씌우기 같은건 안돼",
+            GENERIC = "히히, 뮤샤가 봐도 잘 만들었어!",
+            INUSE = "덮어쓰기는 안 돼!",
         },
         DRAW =
         {
-            NOIMAGE = "뭐가 들었는지 뭐를 준비해두었는지 표시해두면 될거야",
+            NOIMAGE = "뭐가 들었는지 표시해두면 되는거야!",
         },
         CHANGEIN =
         {
-            GENERIC = "뭔가를 바꾸어보는것도 기분이 날지도 모라",
-            BURNING = "이 상황에서 그럴 여유는 없지 않을까?",
-            INUSE = "먼저 사용중인 상대가 있어서 기다려야해",
+            GENERIC = "뭔가 바꿔보면 기분이 날지도 몰라!",
+            BURNING = "지금은 그럴 여유가 없잖아!",
+            INUSE = "누가 먼저 쓰고 있으니까 기다려야 해!",
         },
         ATTUNE =
         {
-            NOHEALTH = "뮤샤의 코가 위험을 알리고있어",
+            NOHEALTH = "뮤샤 코가 위험하다고 알려주고 있어!",
         },
         MOUNT =
         {
-            TARGETINCOMBAT = "뮤샤는 화난 비팔로를 타는건 하지 않아",
-            INUSE = "비팔로를 타면 뮤샤가 달리는거보다 훨씬 빨라",
+            TARGETINCOMBAT = "화난 비팔로는 타면 안 돼!",
+            INUSE = "비팔로를 타면 뮤샤가 뛰는 것보다 훨씬 빨라!",
         },
         SADDLE =
         {
-            TARGETINCOMBAT = "뮤샤는 화난 비팔로를 타는건 하지 않아",
+            TARGETINCOMBAT = "화난 비팔로는 타면 안 돼!",
         },
         TEACH =
         {
             --Recipes/Teacher
-            KNOWN = "뮤샤가 알고 있는 내용과 똑같네",
-            CANTLEARN = "뮤샤는 이거 하나도 모르겠어",
+            KNOWN = "어? 뮤샤가 아는 거랑 똑같잖아!",
+            CANTLEARN = "뮤샤 이거 하나도 모르겠어!",
 
             --MapRecorder/MapExplorer
-            WRONGWORLD = "이 지도 전혀 안맞잖아!",
+            WRONGWORLD = "이 지도는 하나도 안 맞잖아!",
         },
         WRAPBUNDLE =
         {
-            EMPTY = "여기에 뭔가 빠져있어",
+            EMPTY = "여기엔 뭔가가 빠졌어!",
         },
         PICKUP =
         {
-			RESTRICTION = "뮤샤의 지식엔 이걸 다루는 방법은 없었어",
-			INUSE = "지금 만지면 안된다고 뮤샤의 감이 핑핑 거리고있어",
+			RESTRICTION = "뮤샤는 이걸 다루는 법을 몰라!",
+			INUSE = "지금 만지면 안 된대! 뮤샤 머리가 핑핑 돌아!",
         },
         SLAUGHTER =
         {
-            TOOFAR = "뮤샤의 코도 놓쳐버렸어",
+            TOOFAR = "뮤샤 코도 놓쳐버렸어!",
         },
         REPLATE =
         {
-            MISMATCH = "이 요리에 이 접시는 어울리지 않아", 
-            SAMEDISH = "똑같은 접시니까 접시를 바꿀 필요는 없어", 
+            MISMATCH = "이 요리엔 이 접시가 안 어울려!", 
+            SAMEDISH = "똑같은 접시니까 안 바꿔도 돼!", 
         },
 	},
-	ACTIONFAIL_GENERIC = "무언가 뮤샤 생각대로 되지 않았어",
-	ANNOUNCE_DIG_DISEASE_WARNING = "뮤샤가 생각했던대로 움직이는게 느껴져?",
-	ANNOUNCE_PICK_DISEASE_WARNING = "뮤샤의 모험이 다시 움직일거야",
+	ACTIONFAIL_GENERIC = "어라? 뮤샤 생각대로 안 됐어!",
+	ANNOUNCE_DIG_DISEASE_WARNING = "어? 땅이 간질간질 움직여! 뮤샤가 본 그대로야!",
+	ANNOUNCE_PICK_DISEASE_WARNING = "뮤샤의 모험이 다시 쿵쿵 움직일거야!",
 --adds action end
-	ANNOUNCE_HATEFOOD = "정말 맛없어!",
-	ANNOUNCE_ADVENTUREFAIL = "뮤샤는 조금만 잘거야. 조금만.",
-	ANNOUNCE_BOOMERANG = "뮤샤를 때리지마 거미같은 나무야!",
-	ANNOUNCE_CHARLIE = "뮤샤 뒤에 뭔가 있어!",
-	ANNOUNCE_CHARLIE_ATTACK = "비겁한 녀석, 숨어서 때리지마!",
-	ANNOUNCE_COLD = "뮤샤의 손가락이 얼었어!",
-	ANNOUNCE_HOT = "이 날씨는 뮤샤에겐 너무 더워!",
-	ANNOUNCE_DUSK = "햇살이 지고있어. 뮤샤는 불을 준비해야해!",
+	ANNOUNCE_HATEFOOD = "퉤! 이건 못 먹겠어!",
+	ANNOUNCE_ADVENTUREFAIL = "뮤샤 이제 조금만 잘게… 조금만이야.",
+	ANNOUNCE_BOOMERANG = "야! 뮤샤를 때리지 말라구, 나무 주제에!",
+	ANNOUNCE_CHARLIE = "어? 뮤샤 뒤에 뭐가 있는거야!",
+	ANNOUNCE_CHARLIE_ATTACK = "으이! 숨어서 때리는 겁쟁이야!",
+	ANNOUNCE_COLD = "으앙 뮤샤 손가락이 꽁꽁 얼었어!",
+	ANNOUNCE_HOT = "아~ 더워! 뮤샤 녹아버릴 것 같아!",
+	ANNOUNCE_DUSK = "히잉 해가 지나봐! 얼른 불 피워야지!",
 	ANNOUNCE_EAT =
       {
-                GENERIC = "냠냠!",
-                PAINFUL = "딱딱한게 씹혔어!",
-                SPOILED = "썩었잖아!",
-                STALE = "물컹하고 질척해!",
-		YUCKY = "역겨워!",
+                GENERIC = "냠냠! 히히!",
+                PAINFUL = "아얏! 뭐가 딱 하고 씹혔어!",
+                SPOILED = "으엑! 썩은거잖아!",
+                STALE = "으으~ 물컹하고 끈적해서 싫어!",
+		YUCKY = "으에~ 역겨워! 못 먹겠어!",
 	},
-	ANNOUNCE_NOSLEEPONFIRE = "뮤샤는 여기에서는 잘 수 없어!\n뮤샤는 불을 먼저 피워야해!",
-	ANNOUNCE_NODANGERSIESTA = "뮤샤는 이상한 소리를 들었어!\n뮤샤는 안전을 확인 해야해!",
-	ANNOUNCE_NONIGHTSIESTA = "밤에 여기에서 쉬기에는 너무 추워!",
-	ANNOUNCE_NONIGHTSIESTA_CAVE = "바닥이 너무 차가워!",
-	ANNOUNCE_NOHUNGERSIESTA = "뮤샤는 쉬는 것보다 먹는 것을 먼저 할거야",
-	ANNOUNCE_SHELTER = "그늘 아래는 편안해.",
-	ANNOUNCE_BURNT = "이 나무의 이 부분은 사람 얼굴같지 않아?",
-	ANNOUNCE_TOOL_SLIP = "미끄러졌어!",
-	ANNOUNCE_DAMP = "비가 와! 빨리 비를 피해야해!",
-	ANNOUNCE_WET = "뮤샤 머리가 축축해",
-	ANNOUNCE_WETTER = "뮤샤의 옷하고 신발이 모두 축축해",
-	ANNOUNCE_SOAKED = "물에 젖은 가방이 너무 무거워! 쉬고싶어!",
-	ANNOUNCE_HOUNDS = "들었어? 하운드가 가까이 왔어",
+	ANNOUNCE_NOSLEEPONFIRE = "여기선 잘 수 없어!\n먼저 불부터 피워야 한단 말이야!",
+	ANNOUNCE_NODANGERSIESTA = "어? 이상한 소리가 들려!\n뮤샤가 확인해볼래!",
+	ANNOUNCE_NONIGHTSIESTA = "으으~ 밤에 여기서 쉬면 꽁꽁 얼어붙어!",
+	ANNOUNCE_NONIGHTSIESTA_CAVE = "으앙 바닥이 너무 차가워!",
+	ANNOUNCE_NOHUNGERSIESTA = "뮤샤는 쉬는 것보다 밥이 먼저야!",
+	ANNOUNCE_SHELTER = "그늘 아래는 포근포근해~",
+	ANNOUNCE_BURNT = "어? 나무에 사람 얼굴이 있잖아? 히히",
+	ANNOUNCE_TOOL_SLIP = "앗! 손에서 미끄러졌어!",
+	ANNOUNCE_DAMP = "비가 와! 얼른 숨어야 해!",
+	ANNOUNCE_WET = "뮤샤 머리가 축축해~ 기분이 이상해!",
+	ANNOUNCE_WETTER = "뮤샤 옷도 신발도 다 젖었잖아!",
+	ANNOUNCE_SOAKED = "으앙 가방이 물을 먹어서 무거워! 뮤샤 쉬고 싶어!",
+	ANNOUNCE_HOUNDS = "들려? 멍뭉이들이 가까이 왔어!",
 	--ANNOUNCE_HUNGRY = "Musha needs meats. Anyone?",
-	ANNOUNCE_HUNGRY = "너무 배고파",
-	ANNOUNCE_HUNT_BEAST_NEARBY = "뮤샤가 사냥감을 찾았어! 정말 커!",
-	ANNOUNCE_HUNT_LOST_TRAIL = "뮤샤는 발자국을 잃어버렸어",
-	ANNOUNCE_HUNT_LOST_TRAIL_SPRING = "진흙이 발자국을 지웠어. 뮤샤는 진흙이 싫어",
-	ANNOUNCE_ACCOMPLISHMENT= "뮤샤와 모험은 언제나 함께야!",
-	ANNOUNCE_ARROW_BATTLE = "전투를 맞이합시다!",
-	ANNOUNCE_ACCOMPLISHMENT_DONE = "뮤샤가 해냈어!",
+	ANNOUNCE_HUNGRY = "뮤샤 배고파아~ 밥 줘!",
+	ANNOUNCE_HUNT_BEAST_NEARBY = "우와! 뮤샤가 사냥감을 찾았어! 엄청 커!",
+	ANNOUNCE_HUNT_LOST_TRAIL = "어? 발자국이 사라졌어! 뮤샤가 놓쳤나 봐!",
+	ANNOUNCE_HUNT_LOST_TRAIL_SPRING = "진흙이 발자국을 다 지워버렸어! 뮤샤는 진흙이 싫단 말이야!",
+	ANNOUNCE_ACCOMPLISHMENT= "뮤샤랑 모험은 언제나 단짝이잖아!",
+	ANNOUNCE_ARROW_BATTLE = "덤벼! 뮤샤가 상대해줄게!",
+	ANNOUNCE_ACCOMPLISHMENT_DONE = "히히, 뮤샤가 해냈어!",
 	ANNOUNCE_LIGHTFIRE =
 	{
-		[1] = "빛이야!",
-		[2] = "불이야!",
-		[3] = "불을 피우면 여러가지를 할 수 있어!",
-		[4] = "불길을 휘둘러 어둠을 내쫒는거야",
-		[5] = "불을 피우면 따뜻해",
-		[6] = "좋아!",
+		[1] = "우와, 빛이야!",
+		[2] = "히히 불이 반짝반짝!",
+		[3] = "불만 있으면 못 하는 게 없어!",
+		[4] = "불을 휘휘 둘러서 어둠을 쫓아내는거야!",
+		[5] = "불 피우면 포근포근해져~",
+		[6] = "좋았어!",
 	},
-	ANNOUNCE_PECKED = "나쁜 새!",
-	ANNOUNCE_TORCH_OUT = "빛이 사라졌어!",
-	ANNOUNCE_WORMHOLE = "뮤샤는 끈적한게 싫어.",
-	ANNOUNCE_TRAP_WENT_OFF = "아! 함정을 보충해야겠어",
-	ANNOUNCE_CRAFTING_FAIL = "어라? 만든게 작동하지 않아",
-    ANNOUNCE_QUAKE = "동굴이 배탈났어!",
-    ANNOUNCE_NODANGERSLEEP = "뮤샤는 이상한 소리를 들었어!\n뮤샤는 안전을 확인 해야해",
-    ANNOUNCE_NOHUNGERSLEEP = "뮤샤는 너무 배고파!\n 뮤샤는 먼저 뭔가 먹어야 해!",
-    ANNOUNCE_FREEDOM = "뮤샤는 자유야, 아무것도 뮤샤를 막을 수 없어!",
-    ANNOUNCE_RESEARCH = "뮤샤는 그걸 알아! 뮤샤는 이걸 사용할 수 있어!",
-    ANNOUNCE_NO_TRAP = "너무 쉬워!",
-    ANNOUNCE_HIGHRESEARCH = "멋져! 뮤샤가 만든거야!",
-    ANNOUNCE_THORNS = "아야! 무례한 식물!", --읭?
-    ANNOUNCE_NODAYSLEEP_CAVE = "뮤샤는 더 놀고 싶어!\n뮤샤는 피곤하지 않아!",
-    ANNOUNCE_BEES = "붕붕붕거리는 소리가 시끄러워",
-    ANNOUNCE_KNOCKEDOUT = "어.. 작은 별들이 보여..",
-    ANNOUNCE_LOWRESEARCH = "뮤샤는 너무 많이 만들었어",
-    ANNOUNCE_DEERCLOPS = "강한 외눈은 오딘뿐이야!",
-    ANNOUNCE_MOSQUITOS = "뮤샤도 너를 물거야!",
-    ANNOUNCE_NODAYSLEEP = "졸려? 뮤샤는 더 놀고 싶어!",
-    ANNOUNCE_INSUFFICIENTFERTILIZER = "이건 식물한테 별로 안좋을거야",
-    ANNOUNCE_CANFIX = "뮤샤는 이걸 고칠 수 있어!",
-    ANNOUNCE_LIGHTNING_DAMAGE_AVOIDED = "뮤샤는 빛보다 빨라!",
+	ANNOUNCE_PECKED = "으이! 나쁜 새!",
+	ANNOUNCE_TORCH_OUT = "어? 빛이 꺼져버렸어!",
+	ANNOUNCE_WORMHOLE = "으으~ 끈적끈적한 건 싫어!",
+	ANNOUNCE_TRAP_WENT_OFF = "앗! 함정에 다시 뭘 놔야겠어!",
+	ANNOUNCE_CRAFTING_FAIL = "어라? 만든 게 안 움직여!",
+    ANNOUNCE_QUAKE = "흔들흔들! 동굴이 배탈 났어!",
+    ANNOUNCE_NODANGERSLEEP = "어? 이상한 소리가 들려!\n뮤샤가 확인해볼래!",
+    ANNOUNCE_NOHUNGERSLEEP = "으앙 배고파!\n뮤샤 먼저 뭐 좀 먹어야 해!",
+    ANNOUNCE_FREEDOM = "뮤샤는 자유야! 아무도 뮤샤를 못 막아!",
+    ANNOUNCE_RESEARCH = "뮤샤 그거 알아! 뮤샤 이거 쓸 수 있어!",
+    ANNOUNCE_NO_TRAP = "에이, 이건 너무 쉬워!",
+    ANNOUNCE_HIGHRESEARCH = "히히, 멋지지? 뮤샤가 만든거야!",
+    ANNOUNCE_THORNS = "아얏! 예의 없는 식물이야!", --읭?
+    ANNOUNCE_NODAYSLEEP_CAVE = "뮤샤는 더 놀고 싶단 말이야!\n하나도 안 피곤해!",
+    ANNOUNCE_BEES = "붕붕붕~ 시끄러워! 귀가 울려!",
+    ANNOUNCE_KNOCKEDOUT = "어… 별이 뱅뱅 돌아… 히…",
+    ANNOUNCE_LOWRESEARCH = "뮤샤는 너무 많이 만들어버렸어! 히히",
+    ANNOUNCE_DEERCLOPS = "눈이 하나뿐인 괴물은 처음 봐!",
+    ANNOUNCE_MOSQUITOS = "뮤샤도 물어버릴거야! 앙!",
+    ANNOUNCE_NODAYSLEEP = "졸려? 뮤샤는 아직 더 놀래!",
+    ANNOUNCE_INSUFFICIENTFERTILIZER = "이건 식물이 싫어할 것 같아!",
+    ANNOUNCE_CANFIX = "히히, 뮤샤가 이거 고칠 수 있어!",
+    ANNOUNCE_LIGHTNING_DAMAGE_AVOIDED = "히힛, 뮤샤는 번개보다 빨라!",
         BATTLECRY =
         {
-                GENERIC = "저 녀석을 잡는거야!",
-                PIG = "나쁜 돼지!",
-                PREY = "네가 오늘 뮤샤의 사냥감이야!",
-                SPIDER = "거미 따위 무섭지 않아!",
-                SPIDER_WARRIOR = "병정거미를 잡을거야!",
+                GENERIC = "저 녀석 잡아버릴거야!",
+                PIG = "으이! 나쁜 돼지!",
+                PREY = "오늘 네가 뮤샤의 사냥감이야!",
+                SPIDER = "거미 따위 하나도 안 무서워!",
+                SPIDER_WARRIOR = "병정거미도 잡아버릴거야!",
         },
         COMBAT_QUIT =
         {
-                GENERIC = "살아남은 자가 강한거야.",
-                PIG = "강한 돼지였어.\n 하지만 다음엔 뮤샤의 베이컨이 될거야!",
-                PREY = "다음엔 널 잡아먹을거야!",
-                SPIDER = "뮤샤도 팔이 많았으면 전부 때릴수 있었어..",
-                SPIDER_WARRIOR = "뮤샤는 병정거미가 싫어!",
+                GENERIC = "살아남는 녀석이 진짜 강한거야!",
+                PIG = "센 돼지였어!\n근데 다음엔 뮤샤의 베이컨이 될거야!",
+                PREY = "다음엔 꼭 잡아먹을거야!",
+                SPIDER = "뮤샤도 팔이 많았으면 다 때렸을 텐데…",
+                SPIDER_WARRIOR = "뮤샤는 병정거미가 제일 싫어!",
         },
 		
 --adds 4 start
-	ANNOUNCE_TOADESCAPING = "개구리 머리가 보이지 않게 되기 전에 사냥해야해",
-	ANNOUNCE_TOADESCAPED = "개구리가 보이지 않게 되어버렸어",
+	ANNOUNCE_TOADESCAPING = "두꺼비가 도망치기 전에 얼른 잡아야 해!",
+	ANNOUNCE_TOADESCAPED = "으앙 두꺼비가 도망가버렸어!",
 	
-	ANNOUNCE_BECOMEGHOST = "으므므므므므",
-	ANNOUNCE_GHOSTDRAIN = "뮤샤는 제정신이야!",
-	ANNOUNCE_PETRIFED_TREES = "뮤샤가 보기에 이건 정말 특별한 나무야!",
-	ANNOUNCE_KLAUS_ENRAGE = "뮤샤는 위험을 느꼈어!",
-	ANNOUNCE_KLAUS_UNCHAINED = "뮤샤가 보기에도 저건 필요 없어보였어",
-	ANNOUNCE_KLAUS_CALLFORHELP = "조심해! 뮤샤의 코에 다른게 느껴져!",
+	ANNOUNCE_BECOMEGHOST = "으므으므으므…",
+	ANNOUNCE_GHOSTDRAIN = "히히, 뮤샤는 멀쩡해!",
+	ANNOUNCE_PETRIFED_TREES = "우와! 뮤샤 눈엔 이게 아주 특별한 나무로 보여!",
+	ANNOUNCE_KLAUS_ENRAGE = "으으, 뮤샤 위험한 냄새가 나!",
+	ANNOUNCE_KLAUS_UNCHAINED = "뮤샤가 봐도 저건 필요 없어 보였어",
+	ANNOUNCE_KLAUS_CALLFORHELP = "조심해! 뮤샤 코가 딴 냄새를 맡았어!",
 
     --lavaarena event
-    ANNOUNCE_REVIVING_CORPSE = "뮤샤가 도와줄거야!",
-    ANNOUNCE_REVIVED_OTHER_CORPSE = "뮤샤와 함께 모험을 하는거야!",
-    ANNOUNCE_REVIVED_FROM_CORPSE = "뮤샤의 모험은 아직 끝나지 않았던거야!",
+    ANNOUNCE_REVIVING_CORPSE = "뮤샤가 도와줄게! 기다려!",
+    ANNOUNCE_REVIVED_OTHER_CORPSE = "이제 뮤샤랑 같이 모험하는거야!",
+    ANNOUNCE_REVIVED_FROM_CORPSE = "히히, 뮤샤의 모험은 아직 안 끝났어!",
     --quagmire event
-    QUAGMIRE_ANNOUNCE_NOTRECIPE = "뮤샤는 새로운 것을 시도하는 모험을 해보았어. 실패했지만",
-    QUAGMIRE_ANNOUNCE_MEALBURNT = "뮤샤의 코가 느꼈을땐, 이미 늦은 뒤였어",
-    QUAGMIRE_ANNOUNCE_LOSE = "뮤샤의 모험에 굴곡이 있다는건 알아! 낮을때도 있지!",
-    QUAGMIRE_ANNOUNCE_WIN = "뮤샤의 모험은 재미있다구!",
+    QUAGMIRE_ANNOUNCE_NOTRECIPE = "뮤샤 새로운 걸 해봤어! 실패했지만…",
+    QUAGMIRE_ANNOUNCE_MEALBURNT = "뮤샤 코가 냄새를 맡았을 땐 이미 늦었어!",
+    QUAGMIRE_ANNOUNCE_LOSE = "모험은 오르락내리락하는거야! 뮤샤도 알아!",
+    QUAGMIRE_ANNOUNCE_WIN = "뮤샤의 모험은 정말 재미있다구!",
 
     ANNOUNCE_ROYALTY =
     {
-        "뮤샤와 함께하는거야!",
-        "프린세스 뮤샤, 갑니다!",
-        "즐거운일이 가득하길!",
+        "뮤샤랑 같이 가는거야!",
+        "프린세스 뮤샤, 출발!",
+        "즐거운 일만 가득했으면 좋겠다!",
     },
 	
 --adds 4 end	
@@ -264,9 +264,9 @@ return {
 --adds 5 start (DESCRIBE)
 		ANTLION = 
 		{
-			GENERIC = "뮤샤에게 뭘 바라는거야?",
-			VERYHAPPY = "뮤샤는 잘 하고 있어!",
-			UNHAPPY = "뮤샤가 놓친게 있었던걸까?",
+			GENERIC = "뮤샤한테 뭘 바라는거야?",
+			VERYHAPPY = "히히, 뮤샤 잘하고 있지!",
+			UNHAPPY = "뮤샤가 뭘 놓친걸까?",
 		},
 		ANTLIONTRINKET = "이거 생긴거 신기해",
 		SANDSPIKE = "무언가 숨겨진게 있을 지도 몰라",
@@ -277,7 +277,7 @@ return {
 		{ 
 			GENERIC ="봉오리만 있는데 시들지 않은건 신기하네",
 			LONG = "주인이 있는 물건이지만 그것 외에 뭔가 있는 모양이야",
-			MEDIUM = "뮤샤는 누군가의 시선을 느껴",
+			MEDIUM = "어? 누가 뮤샤를 보고 있는 것 같아…",
 			SOON = "꽃봉오리가 시들지도 않고 피어났어!",
 			HAUNTED_POCKET = "웅웅 거리는것도 아닌데 뭔가 느껴져",
 			HAUNTED_GROUND = "금방이라도 이 빛나는게 튀어나올것만같아",
@@ -292,20 +292,20 @@ return {
 			GENERIC = "무엇을 해볼까?",
 		},
 
-		BERNIE_ACTIVE = "뮤샤의 친구가 점점 많아져!",
+		BERNIE_ACTIVE = "뮤샤 친구가 자꾸자꾸 늘어나!",
 
         PLAYER =
         {
             GENERIC = "%s와의 모험이 시작되었어!",
 			ATTACKER = "%s의 공격에 어울리는거야!",
-            MURDERER = "%s이 뮤샤의 모험을 방해하고있어!",
+            MURDERER = "%s이 뮤샤의 모험을 방해하고 있어!",
             REVIVER = "%s가 도움을 줬어",
-            GHOST = "%s의 모험에는 뮤샤의 도움이 필요해보여",
+            GHOST = "%s의 모험엔 뮤샤의 도움이 필요해 보여!",
             FIRESTARTER = "%s의 불꽃놀이가 시작되었어!",
         },
 		WILSON = 
 		{
-			GENERIC = "과학이 얼마나 엄청난건지는 잘 모르지만, 윌슨의 수염이 자라는건 알아",
+			GENERIC = "과학이 얼마나 대단한진 잘 모르겠지만 윌슨 수염이 자라는 건 알아!",
 			ATTACKER = "%s의 싸우는 모습이 저기서 보여",
 			MURDERER = "죽이고 부수는게 과학이 아닌거란건 알아, 그만해!",
 			REVIVER = "%s의 저 행동도 과학을 위해서인거야?",
@@ -318,14 +318,14 @@ return {
 			ATTACKER = "%s의 싸우는 모습이 저기서 보여",
 			MURDERER = "먹을것을 문제로 죽이는건 오히려 문제야!",
 			REVIVER = "%s의 행동이 도움이 될거야",
-			GHOST = "싸우다 죽거나, 굶어죽거나. %s의 죽는 이유는 대부분 그래",
+			GHOST = "싸우다 죽거나 굶어죽거나. %s가 죽는 이유는 대부분 그래",
 			FIRESTARTER = "%s의 불피우는 모습을 볼줄은 몰랐어!",
 		},
 		WAXWELL = 
 		{
 			GENERIC = "어디선가 본적이 었어, %s!",
 			ATTACKER = "%s의 싸우는 모습이 저기서 보여",
-			MURDERER =  "뮤샤는 뺐기는 것을 좋아하지 않아",
+			MURDERER =  "뮤샤는 뺏기는 건 싫어!",
 			REVIVER = "%s의 모험엔 여럿이 필요한거야",
 			GHOST = "아무리 꿍꿍이가 있대도 실수는 있는거야",
 			FIRESTARTER = "%s의 불이 더 크거나 하진 않네",
@@ -353,7 +353,7 @@ return {
 			GENERIC = "%s는 친구가 필요한거야? 아니면 자매가 필요한거야?",
 			ATTACKER = "%s의 전투는 평범하지 않아! 혼자가 아니니까! ",
 			MURDERER = "너도, 쟤도 벌을 받아야해!",
-			REVIVER = "%s의 바람은 다른 사람을 부활시키는 거겠지만, 도움을 받고있어",
+			REVIVER = "%s가 바라는 건 다른 사람을 되살리는 거겠지만 뮤샤도 도움받고 있어",
 			GHOST = "%s의 혼은 하나가 아니야. 정확히는 %s도 아니긴 해",
 			FIRESTARTER = "%s이 불을 피우는건 불꽃에 홀려서가 아닐까",
 		},
@@ -361,7 +361,7 @@ return {
 		{
 			GENERIC = "%s에게서 낮선 동물의 냄새가 나!",
 			ATTACKER = "%s의 싸우는 모습이 저기서 보여",
-			MURDERER = "뮤샤는 %s의 도끼와 너를 용서하지 않아",
+			MURDERER = "뮤샤는 %s 도끼도 너도 용서 안 해!",
 			REVIVER = "%s의 복장은 거칠어도 모두를 돕는 사람이야",
 			GHOST = "%s의 실수는 무엇이었을까? 과다벌목?",
 			BEAVER = "%s의 모습이 변해버렸어!",
@@ -373,7 +373,7 @@ return {
 			GENERIC = "책을 좋아해도 몸을 움직이는 일도 있는거야!",
 			ATTACKER = "%s의 무기는 책 모서리가 아니었어!",
 			MURDERER = "독단은 좋지 않은거야, %s!",
-			REVIVER = "%s의 생각은 잘 모르지만 뮤샤를 도와주고있어",
+			REVIVER = "%s 생각은 잘 모르겠지만 뮤샤를 도와주고 있어!",
 			GHOST = "%s의 목숨을 책 보다 소중히 해 주었으면 좋겠어",
 			FIRESTARTER = "%s의 불을 피우는 모습을 볼 줄은 몰랐어",
 		},
@@ -381,8 +381,8 @@ return {
 		{
 			GENERIC = "손짓은 잘 모르지만 반가워, %s!",
 			ATTACKER = "%s의 공격은 전혀 아플것 같지 않은데 능숙해",
-			MURDERER = "뮤샤는 풍선같은걸로 용서하지 않을거야",
-			REVIVER = "%s는 조용히 뮤샤를 돕고있어",
+			MURDERER = "풍선 같은 걸로 뮤샤를 달래지 마!",
+			REVIVER = "%s는 조용히 뮤샤를 도와주고 있어!",
 			GHOST = "%s는 살아있을때도 말을 안했는데 죽어서도 조용하네",
 			FIRESTARTER = "%s는 불을 지를때도 조용해서 모를뻔했어",
 		},
@@ -390,7 +390,7 @@ return {
 		{
 			GENERIC = "거미는 사냥감이지만 %s는 공격하지 않을거야. 지금은",
 			ATTACKER = "거미가 거미와 싸우는걸 보는 날이 있긴 해.",
-			MURDERER = "역시 뮤샤는 거미는 사냥감이야! 거기서, %s!",
+			MURDERER = "역시 거미는 뮤샤의 사냥감이야! 거기 서, %s!",
 			REVIVER = "거미가 때때론 도움을 준다는걸 %s의 행동을 보고 알게됐어",
 			GHOST = "죽은 뒤 영혼이 나오는 거미는 %s의 경우가 처음이야",
 			FIRESTARTER = "불피우는 거미는 희귀하네",
@@ -399,7 +399,7 @@ return {
 		{
 			GENERIC = "%s의 모습은 어느 지역의 전사같아! ",
 			ATTACKER = "%s의 싸우는 모습이 저기서 보여",
-			MURDERER = "아무리 뮤샤보다 세다 해도 뮤샤는 %s를 용서하지 않아!",
+			MURDERER = "뮤샤보다 세도 소용없어! %s를 용서 안 해!",
 			REVIVER = "%s의 도움은 여러가지가 있는거야",
 			GHOST = "%s의 말로는 발할라 라는게 있다고 했는데 아닌가봐",
 			FIRESTARTER = "%s가 너무 불타올랐어",
@@ -408,25 +408,25 @@ return {
         {
             GENERIC = "%s와의 모험이 시작되었어!",
 			ATTACKER = "%s의 공격에 어울리는거야!",
-            MURDERER = "%s이 뮤샤의 모험을 방해하고있어!",
+            MURDERER = "%s이 뮤샤의 모험을 방해하고 있어!",
             REVIVER = "%s가 도움을 줬어",
-            GHOST = "%s의 모험에는 뮤샤의 도움이 필요해보여",
+            GHOST = "%s의 모험엔 뮤샤의 도움이 필요해 보여!",
             FIRESTARTER = "%s의 불꽃놀이가 시작되었어!",
         },
 		 MUSHA =
         {
-            GENERIC = "쌍둥이는 없지만 %s의 모습은 뮤샤와 똑같아!",
-            ATTACKER = "%s의 싸움의 목적은 뮤샤와 같을거야",
+            GENERIC = "쌍둥이는 아니지만 %s는 뮤샤랑 똑같이 생겼어!",
+            ATTACKER = "%s도 뮤샤랑 같은 이유로 싸우는거야!",
             MURDERER = "아무리 모습이 같아도 용서하지 않을거야, %s!",
-            REVIVER = "%s의 도움은 뮤샤에게도 도움이 돼",
+            REVIVER = "%s가 도와주면 뮤샤도 힘이 나!",
             GHOST = "%s의 사고는 갑작 스러웠던 모양이야",
-            FIRESTARTER = "%s의 불은 뮤샤가 생각했던것과 같을까?",
+            FIRESTARTER = "%s의 불은 뮤샤가 생각한 그 불일까?",
         },
         MIGRATION_PORTAL = 
         {
             GENERIC = "여럿이서 함께하는 모험은 즐거운거야",
-            OPEN = "뮤샤의 모험에 따라와줄래?",
-            FULL = "뮤샤도 모험에 같이 가고 싶지만 더 이상은 받아주질 않아",
+            OPEN = "뮤샤의 모험에 같이 갈래?",
+            FULL = "뮤샤도 같이 가고 싶은데 더는 못 넣겠어!",
         },
 	
 	
@@ -434,10 +434,10 @@ return {
 
 	    MUSHA_EGG ="얌체 알이야!",
         MUSHA_EGGS1 ="함께 모험하기 충분한 얌체가 태어날거야",
-        MUSHA_EGGS2 ="뮤샤 얼굴 보다 큰 얌체 알이야!",
+        MUSHA_EGGS2 ="뮤샤 얼굴보다 큰 얌체 알이야!",
         MUSHA_EGGS3 ="엄청난 크기의 알이야!",
         MUSHA_EGG1 ="이만한 크기의 알이면 거미 걱정은 없을거야",
-        MUSHA_EGG2 ="뮤샤보다 무거운 알이야! 정말로!",
+        MUSHA_EGG2 ="뮤샤보다 무거운 알이야! 진짜로!",
         MUSHA_EGG3 ="이 얌체가 태어나면 밤에도 걱정이 없을거야",
         MUSHA_EGG8 ="거대한 얌체가 태어날거야",
         MUSHA_EGG_CRACKED = "얌체가 깨어나려고 하고있어!",
@@ -481,14 +481,14 @@ return {
 		MUSHA_TALLRRR5 = "얌체와 함께라면 아무것도 두렵지 않아\n기본값:(Z,V,B)",
 		MUSHA_TALLRRRICE = "얌체와 함께라면 아무것도 두렵지 않아\n기본값:(Z,V,B)",
 
-		MUSHA_TALL4 = "뮤샤와 얌체는 한 가족이야\n기본값:(Z,V,B)",
-		MUSHA_TALLRRRR1 = "뮤샤와 얌체는 한 가족이야\n기본값:(Z,V,B)",
-		MUSHA_TALLRRRR2 = "뮤샤와 얌체는 한 가족이야\n기본값:(Z,V,B)",
-		MUSHA_TALLRRRR3 = "뮤샤와 얌체는 한 가족이야\n기본값:(Z,V,B)",
-		MUSHA_TALLRRRR4 = "뮤샤와 얌체는 한 가족이야\n기본값:(Z,V,B)",
-		MUSHA_TALLRRRR5 = "뮤샤와 얌체는 한 가족이야\n기본값:(Z,V,B)",
-		MUSHA_TALLRRRR6 = "뮤샤와 얌체는 한 가족이야\n기본값:(Z,V,B)",
-		MUSHA_TALLRRRRICE = "뮤샤와 얌체는 한 가족이야\n기본값:(Z,V,B)",
+		MUSHA_TALL4 = "뮤샤랑 얌체는 한 가족이야!\n기본값:(Z,V,B)",
+		MUSHA_TALLRRRR1 = "뮤샤랑 얌체는 한 가족이야!\n기본값:(Z,V,B)",
+		MUSHA_TALLRRRR2 = "뮤샤랑 얌체는 한 가족이야!\n기본값:(Z,V,B)",
+		MUSHA_TALLRRRR3 = "뮤샤랑 얌체는 한 가족이야!\n기본값:(Z,V,B)",
+		MUSHA_TALLRRRR4 = "뮤샤랑 얌체는 한 가족이야!\n기본값:(Z,V,B)",
+		MUSHA_TALLRRRR5 = "뮤샤랑 얌체는 한 가족이야!\n기본값:(Z,V,B)",
+		MUSHA_TALLRRRR6 = "뮤샤랑 얌체는 한 가족이야!\n기본값:(Z,V,B)",
+		MUSHA_TALLRRRRICE = "뮤샤랑 얌체는 한 가족이야!\n기본값:(Z,V,B)",
 
 		MUSHA_TALL5 = "함께 여행하는건 정말 즐거워!\n기본값:(Z,V,B)",
 		MUSHA_TALLRRRRR1 = "함께 여행하는건 정말 즐거워!\n기본값:(Z,V,B)",
@@ -499,30 +499,30 @@ return {
 		MUSHA_TALLRRRRR6 = "함께 여행하는건 정말 즐거워!\n기본값:(Z,V,B)",
 		MUSHA_TALLRRRRRICE = "함께 여행하는건 정말 즐거워!\n기본값:(Z,V,B)",
 
-		MUSHA_RP1 = "뮤샤는 얌체를 사랑해!\n얌체는 뮤샤를 사랑해?\n기본값:(Z,V,B)",
-		MUSHA_RP2 = "뮤샤는 얌체를 사랑해!\n얌체는 뮤샤를 사랑해?\n기본값:(Z,V,B)",
-		MUSHA_RP3 = "뮤샤는 얌체를 사랑해!\n얌체는 뮤샤를 사랑해?\n기본값:(Z,V,B)",
-		MUSHA_RP4 = "뮤샤는 얌체를 사랑해!\n얌체는 뮤샤를 사랑해?\n기본값:(Z,V,B)",
-		MUSHA_RP5 = "뮤샤는 얌체를 사랑해!\n얌체는 뮤샤를 사랑해?\n기본값:(Z,V,B)",
-		MUSHA_RP6 = "뮤샤는 얌체를 사랑해!\n얌체는 뮤샤를 사랑해?\n기본값:(Z,V,B)",
-		MUSHA_RP7 = "뮤샤는 얌체를 사랑해!\n얌체는 뮤샤를 사랑해?\n기본값:(Z,V,B)",
-		MUSHA_RPICE = "뮤샤는 얌체를 사랑해!\n얌체는 뮤샤를 사랑해?\n기본값:(Z,V,B)",
+		MUSHA_RP1 = "뮤샤는 얌체가 좋아!\n얌체도 뮤샤가 좋아?\n기본값:(Z,V,B)",
+		MUSHA_RP2 = "뮤샤는 얌체가 좋아!\n얌체도 뮤샤가 좋아?\n기본값:(Z,V,B)",
+		MUSHA_RP3 = "뮤샤는 얌체가 좋아!\n얌체도 뮤샤가 좋아?\n기본값:(Z,V,B)",
+		MUSHA_RP4 = "뮤샤는 얌체가 좋아!\n얌체도 뮤샤가 좋아?\n기본값:(Z,V,B)",
+		MUSHA_RP5 = "뮤샤는 얌체가 좋아!\n얌체도 뮤샤가 좋아?\n기본값:(Z,V,B)",
+		MUSHA_RP6 = "뮤샤는 얌체가 좋아!\n얌체도 뮤샤가 좋아?\n기본값:(Z,V,B)",
+		MUSHA_RP7 = "뮤샤는 얌체가 좋아!\n얌체도 뮤샤가 좋아?\n기본값:(Z,V,B)",
+		MUSHA_RPICE = "뮤샤는 얌체가 좋아!\n얌체도 뮤샤가 좋아?\n기본값:(Z,V,B)",
 
         GHOSTHOUND = "가자 멍뭉아!",
-        GHOSTHOUND2 = "이게 뮤샤의 멍뭉이 친구야!",
-        SHADOWMUSHA = "뮤샤와 꼭 닮은 그림자야!",
+        GHOSTHOUND2 = "히히, 이게 뮤샤의 멍뭉이 친구야!",
+        SHADOWMUSHA = "우와, 뮤샤랑 꼭 닮은 그림자야!",
         --item
-        MUSHA_FLUTE = "뮤샤가 피리를 불면 얌체가 좋아해",
-		MUSHA_WEAPON_SWORD = "뮤샤의 칼이야",
+        MUSHA_FLUTE = "뮤샤가 피리를 불면 얌체가 신나!",
+		MUSHA_WEAPON_SWORD = "뮤샤의 칼이야!",
 		-- MUSHASWORD = "불의 힘이여! 뮤샤의 부름을 들으라!",
 		-- MUSHASWORD_FROST = "얼음의 힘이여! 뮤샤의 부름을 들으라!",
 		MUSHA_WEAPON_FROSTHAMMER = "혹한의 힘이 적을 무찌를거야!",
 		MUSHA_ARMOR_FROST =  "이 망치에서 바스러지는 소리가 들려",
-		MUSHA_HAT_PHOENIX = "뮤샤에겐 익숙한 투구야! 한번 써보고 싶었어!",
-		MUSHA_HAT_PRINCESS = "뮤샤가 썼던 티아라는 이것과 거의 비슷해",
+		MUSHA_HAT_PHOENIX = "뮤샤는 이 투구가 익숙해! 꼭 써보고 싶었어!",
+		MUSHA_HAT_PRINCESS = "뮤샤가 썼던 티아라랑 거의 똑같아!",
 		MUSHA_HAT_RABBIT = "수색할 시간이네",
-		MUSHA_ARMOR_PROTOTYPE = "이건 뮤샤 특제 가방이야",
-		MUSHA_ARMOR_PRINCESS = "뮤샤는 안전을 위해 보호대를 몇 개 덧댔어!",
+		MUSHA_ARMOR_PROTOTYPE = "이건 뮤샤가 만든 특제 가방이야!",
+		MUSHA_ARMOR_PRINCESS = "안전하라고 보호대를 몇 개 덧붙였어!",
 		--WIP
 		GLOWDUST ="단 맛이 나는 고운 가루야!",
 		CRISTAL = "반짝이는 캔디같아!",
@@ -544,35 +544,35 @@ return {
         },
         GLOMMERWINGS = "엄청 작아!",
         GLOMMERFUEL = "이 몽글몽글한 분홍색 좀 봐!\n먹으면 안돼? 왜?",
-        BELL = "디너벨이 왜 여기있지?\n누가 뮤샤에게 식사를 가져다주는건데?",
+        BELL = "어? 디너벨이 왜 여기 있어?\n누가 뮤샤한테 밥 갖다주는거야?",
         STATUEGLOMMER =
         {
-        	GENERIC = "뮤샤 이거 알아! 음, 뭐였지?",
-        	EMPTY = "뮤샤는 여기에 꽃이 핀 것을 본 적이 있어",
+        	GENERIC = "뮤샤 이거 알아! 음~ 뭐였더라?",
+        	EMPTY = "뮤샤는 여기에 꽃이 핀 걸 본 적 있어!",
     	},
 		WEBBERSKULL = "이 해골에는 긴 사연이 있어",
 		MOLE =
 		{
 			HELD = "이것 좀 봐! 코가 재미있게 생겼어!",
 			UNDERGROUND = "뭔가 땅 속에 숨어있나봐!\n쫒아가보자!",
-			ABOVEGROUND = "이 녀석이 뮤샤의 아이템을 훔쳐갔어!",
+			ABOVEGROUND = "으이! 이 녀석이 뮤샤 물건을 훔쳐갔어!",
 		},
-		MOLEHILL = "수상한 무더기야. 뮤샤의 코는 속일 수 없어",
+		MOLEHILL = "수상한 무더기야! 뮤샤 코는 못 속여!",
 		MOLEHAT = "이 모자에서 이상한 냄새가 나는거 같지 않아?",
 		NIGHTSTICK = "이것은 밤에 유용한 반짝이 막대야!",
 		
 --adds 6 start
-	MUSHROOMHAT = "뮤샤의 머리가 버섯이 되어버리진 않을까?",
+	MUSHROOMHAT = "뮤샤 머리가 버섯이 되어버리는 거 아니지?",
         MUSHROOM_LIGHT2 =
         {
-			ON = "뮤샤는 이런 환상적인 불빛이 나올줄 몰랐어!",
-            OFF = "뮤샤는 이런 멋진 디자인의 등불이 있는줄 몰랐어!",
+			ON = "우와! 이런 환상적인 불빛이 나올 줄 몰랐어!",
+            OFF = "이렇게 멋진 등불이 있는 줄 몰랐어!",
             BURNT = "아무리 멋져도 불타면 아무것도 남지 않네",
         },
         MUSHROOM_LIGHT =
         {
-			ON = "뮤샤는 이런 환상적인 불빛이 나올줄 몰랐어!",
-            OFF = "뮤샤는 이런 멋진 디자인의 등불이 있는줄 몰랐어!",
+			ON = "우와! 이런 환상적인 불빛이 나올 줄 몰랐어!",
+            OFF = "이렇게 멋진 등불이 있는 줄 몰랐어!",
             BURNT = "아무리 멋져도 불타면 아무것도 남지 않네",
         },
         SLEEPBOMB = "열면 안돼! 영원히 잠에 들어버릴거야",
@@ -591,7 +591,7 @@ return {
         },
         MUSHROOMSPROUT =
         {
-            GENERIC = "이게 있으면 공기가 탁해져! 뮤샤의 코가 아파!",
+            GENERIC = "이게 있으면 공기가 탁해져! 뮤샤 코가 아파!",
             BURNT = "태우기라도 하니 공기가 좀 나아!",
         },
         MUSHTREE_TALL =
@@ -634,7 +634,7 @@ return {
 		},
         BEEQUEENHIVEGROWN = "이만큼 큰 벌집이면 꿀이 엄청 많을거야!",
         BEEGUARD = "이 벌들 정말 방해돼!",
-        HIVEHAT = "누군가가 뮤샤에게 이런 말을 하는 것 같아 \"마이 프레셔스\"",
+        HIVEHAT = "누가 뮤샤한테 \"마이 프레셔스\"라고 속삭이는 것 같아",
         MINISIGN =
         {
             GENERIC = "글자 대신 그림을 그려놓은건 좋은 생각이야!",
@@ -656,7 +656,7 @@ return {
 		CANARY =
 		{
 			GENERIC = "가슴털이 복실한 노란 새야",
-			HELD = "작은 새이지만 무언가 다른 일에 쓸 수도 있을 것 같아",
+			HELD = "작은 새지만 뭔가 다른 데 쓸 수도 있을 것 같아",
 		},
         CANARY_POISONED = "살아있는 새가 살아있는 맛이 간 새가 되어버렸어",
 
@@ -668,9 +668,9 @@ return {
         CRITTER_KITTEN = "큰 귀는 위험을 듣고, 발톱은 날카롭고, 귀여워!",
         CRITTER_PERDLING = "뾰족뾰족한 털에 큰 눈망울은 정말 완벽해!",
 		
-		LAVA_POND = "뮤샤는 이 빨간 물이 식으면 검정돌이 된다는걸 알아. 그럼 이건 돌물이네!",
-		LAVAE = "뮤샤는 저 쫒아오는 불덩이들이 싫어! 더우니까!",
-		LAVAE_COCOON = "불꽃처럼 살다가 차갑게 식어버렸어. 뮤샤 멋진 말 한걸지도",
+		LAVA_POND = "뮤샤가 알기론 이 빨간 물이 식으면 검정돌이 된대. 그럼 이건 돌물이네!",
+		LAVAE = "뮤샤는 저 따라오는 불덩이들이 싫어! 뜨거우니까!",
+		LAVAE_COCOON = "불꽃처럼 살다가 차갑게 식어버렸어. 뮤샤도 멋진 말 한걸지도?",
 		LAVAE_PET = 
 		{
 			STARVING = "불꽃을 키우려면 나무를 줄텐데 얘는 어떻하지?",
@@ -696,19 +696,19 @@ return {
 			EMPTY = "뭔가 장식하면 좋지 않을까?",
 			WILTED = "영원히 파릇하지는 않아. 평범한거는 말야",
 			FRESHLIGHT = "이 신선한 향기와 빛이 좋은거야",
-			OLDLIGHT = "색이 바랜것도 뮤샤는 좋아하지만 그래도 처음의 하얀빛이 좋아", -- will be wilted soon, light radius will be very small at this point
+			OLDLIGHT = "색이 바랜것도 좋지만 뮤샤는 처음의 하얀빛이 더 좋아", -- will be wilted soon, light radius will be very small at this point
 		},
 		
 		TWIGGYTREE = 
 		{
 			BURNING = "생긴게 달라도 타버리면 결국 다 이렇게 되어버려",
 			BURNT = "이렇게 바짝 마른 나무니까 더 불이 잘 붙는거야!",
-			CHOPPED = "잔가지 정도면 금방 다시 자라지만 베어버리면 이거 밖에 남지 않아",
+			CHOPPED = "잔가지는 금방 다시 자라지만 베어버리면 이거밖에 안 남아",
 			GENERIC = "가지가 무성한 나무야. 바람소리가 들리니?",
-			DISEASED = "잎이 적어서 병에 걸린걸까 아니면 잎이 적어서 병에 잘 안걸린걸까?",
+			DISEASED = "잎이 적어서 병에 걸린 걸까, 아니면 잎이 적어서 병에 안 걸린 걸까?",
 		},
 		TWIGGY_NUT_SAPLING = "\"병충해에 강하고 척박한 땅에서도 잘 자랍니다.\" 라고해",
-        TWIGGY_OLD = "나무 껍질이 두꺼워진것 같지만 금방 털어내고 새로 자랄거야",
+        TWIGGY_OLD = "나무 껍질이 두꺼워진 것 같지만 금방 털어내고 새로 자랄 거야",
 		TWIGGY_NUT = "이 나무에도 열매는 재대로 열리는거야",
 		
 		FLOWER_WITHERED = "꽃이 병들어버렸어! 추웠던걸까? 어두웠던걸까?",
@@ -717,12 +717,12 @@ return {
         FOSSIL_STALKER =
         {
 			GENERIC = "나쁘지는 않지만 그렇다고 뭔지도 모르겠네",
-			FUNNY = "뮤샤는 이게 원래 뭐였는지는 모르지만\n수수께끼를 푸는 것 같아서 재미있어!",
-			COMPLETE = "턱이라던지 몇개는 모자르지만 이거면 뮤샤도 만족해",
+			FUNNY = "뮤샤는 이게 원래 뭐였는지 모르겠는데\n수수께끼 푸는 것 같아서 재미있어!",
+			COMPLETE = "턱이라던지 몇개는 빠졌지만 이거면 뮤샤도 만족해",
         },
-        STALKER = "소라고 하기엔 머리가 이상하고 뿔도 이상하고 다 이상해",
-        STALKER_ATRIUM = "소라고 하기엔 머리가 이상하고 뿔도 이상하고 다 이상해",
-        STALKER_MINION = "소라고 하기엔 머리가 이상하고 뿔도 이상하고 다 이상해",
+        STALKER = "소라고 하기엔 머리도 이상하고 뿔도 이상하고 다 이상해",
+        STALKER_ATRIUM = "소라고 하기엔 머리도 이상하고 뿔도 이상하고 다 이상해",
+        STALKER_MINION = "소라고 하기엔 머리도 이상하고 뿔도 이상하고 다 이상해",
         THURIBLE = "죽은이들의 소리가 들려. 선명하게",
         ATRIUM_OVERGROWTH = "무언가가 끌려들어가고, 나오는걸 반복 하고있어",
 		
@@ -733,7 +733,7 @@ return {
 		OASISLAKE = "여러가지가 비치는 물 웅덩이야",
 		
 		PINECONE_SAPLING = "나무는 이 세상을 무서워하지도 않고 마구 자라",
-        LUMPY_SAPLING = "뮤샤는 나무가 포기하지 않고 자라는것을 보면서 희망을 키워",
+        LUMPY_SAPLING = "나무가 포기하지 않고 자라는 걸 보면 뮤샤도 힘이 나!",
 		
 --adds 6 end
 		
@@ -748,7 +748,7 @@ return {
 		BEARGER = "뮤샤도 꿀을 먹으면 키가 커질까?",
 		BEARGERVEST = "복실복실한 옷이야",
 		ICEPACK = "휴대용 냉장고야",
-		BEARGER_FUR = "이 털가죽이 있으면 뮤샤가 새로운 것을 만들 수 있어",
+		BEARGER_FUR = "이 털가죽만 있으면 뮤샤가 뭔가 새로 만들 수 있어!",
 		FURTUFT = "콜록! 뮤샤 입에 털뭉치가 들어갔어!",
 		BIGFOOT = "어마어마하게 커다란 발자국이야!",
 		BONESHARD = "뼈 무더기도 쓸데가 있어",
@@ -774,7 +774,7 @@ return {
 		CATCOONDEN =
 		{
 			GENERIC = "냐옹이의 집은 냐옹이보다 중요할까?",
-			EMPTY = "아무도 살지 않는 집은 뮤샤의 흥미를 끌 수 없어",
+			EMPTY = "아무도 안 사는 집은 뮤샤는 관심 없어!",
 		},
 		CATCOONHAT = "도끼를 들어야 할 것 같은 느낌이야",
 		COONTAIL = "냐옹이에게서 건진 유일한 아이템이야",
@@ -783,10 +783,10 @@ return {
 			COOKING_LONG = "이렇게 오래 걸리는게 맞는거야?",
 			COOKING_SHORT = "만들어봐요♬ 만들어봐요♬\n어디어디 무엇이 만들어질까♬",
 			DONE = "요리가 완성됐어!",
-			EMPTY = "이제 아무도 사용하지 않나봐.\n드디어 뮤샤의 실력을 발휘할 때야",
+			EMPTY = "이제 아무도 안 쓰나봐.\n드디어 뮤샤의 실력을 보여줄 때야!",
 			BURNT = "왜 아무도 신경쓰지 않은겨야?",
 		},
-		EYEBRELLAHAT =	"비도 막아주고, 열도 막아주고,\n눈도 막아주는데, 무겁네.",
+		EYEBRELLAHAT =	"비도 막아주고 열도 막아주고\n눈도 막아주는데... 무겁네.",
 		ARMORDRAGONFLY = "살짝만 대어봐도 데어버릴 것 같아",
 		DRAGON_SCALES = "멋져! 그리고 화끈해!",
 		DRAGONFLYCHEST = "불보다 더 화끈한 상자야!",
@@ -826,7 +826,7 @@ return {
 		LIGHTNINGGOAT =
 		{
 			GENERIC = "베베꼬인 뿔을 가진 염소야",
-			CHARGED = "찌릿한 염소야! 근데 뮤샤에게 착할 것 같진 않아",
+			CHARGED = "찌릿찌릿한 염소야! 근데 뮤샤한테 착할 것 같진 않아",
 		},
 		LIGHTNINGGOATHORN = "기가 드릴 브-\n웅? 안된다구? 왜?",
 		GOATMILK = "염소젖이야!",
@@ -835,8 +835,8 @@ return {
 			DONE = "언제 회수하는거야? 이미 바싹 마른 것 같은데",
 			DRYING = "뮤샤는 고기를 더욱 맛있게 만들고 있어",
 			DRYINGINRAIN = "말리다 젖고 다시 마른 고기는 맛이 괜찮을까?",
-			GENERIC = "뮤샤는 이것으로 육포를 만들거야. 육포는 맛있어.",
-			BURNT = "뮤샤는 고기를 말리려고 했지 나무를 태울 생각은 없었어",
+			GENERIC = "뮤샤는 이걸로 육포를 만들거야. 육포는 맛있거든!",
+			BURNT = "뮤샤는 고기를 말리려던 거지 나무를 태울 생각은 없었어",
 		},
 		MERMHEAD =
 		{
@@ -879,7 +879,7 @@ return {
 			BURNT = "비가 올 확률은 N/A 입니- 어?",
 		},
 		RAINCOAT = "이제 젖을 걱정이 없을거야 그치?",
-		RAINHAT = "뮤샤는 물을 마시는건 좋아하지만\n머리에 붓는게 마시는건 아니잖아",
+		RAINHAT = "뮤샤는 물 마시는 건 좋아하는데\n머리에 붓는 건 마시는 게 아니잖아",
 		RESEARCHLAB =
 		{
 			GENERIC = "생존기술을 배울 수 있는 기계라고 해",
@@ -887,12 +887,12 @@ return {
 		},
 		RESEARCHLAB2 =
 		{
-			GENERIC = "이 세계의 모든 지식의 정수가 담겨있-\n지 않네. 몇갠 없어.",
+			GENERIC = "온 세상 지식이 다 담겨있-\n지는 않네. 몇 개 없어.",
 			BURNT = "타버린 책은 아무것도 읽을 수 없잖아\n이것도 마찬가지야",
 		},
 		RESEARCHLAB3 =
 		{
-			GENERIC = "뮤샤가 마법을 부릴 수 있게 해줘. 기적이던가.",
+			GENERIC = "뮤샤도 마법을 쓸 수 있게 해줘. 기적이라도 좋아!",
 			BURNT = "마법도 기적도 불 앞에서는 손을 쓸 수 없었어",
 		},
 		RESEARCHLAB4 =
@@ -938,7 +938,7 @@ return {
 		TRANSISTOR = "이거야말로 마법이야!",
 		TREASURECHEST =
 		{
-			GENERIC = "뮤샤에겐 많은게 필요하고,\n여기엔 그중에 몇몇개가 들어있어",
+			GENERIC = "뮤샤한테 필요한 게 많아서\n여기엔 그중에 몇개가 들어있어",
 			BURNT = "모두 다 타버렸어!",
 		},
 		TUMBLEWEED = "멈춰! 그만 좀 굴러가!",
@@ -946,7 +946,7 @@ return {
 		UNIMPLEMENTED = "재대로 작동을 하는거야?",
 		WALL_HAY =
 		{
-			GENERIC = "간단히 만들수는 있어도 임시니까 조심해야해. 불도 조심해야해",
+			GENERIC = "간단히 만들 수 있지만 임시라서 조심해야 해. 불도 조심하고!",
 			BURNT = "뮤샤가 얘기했잖아, 불을 조심해야한다니까",
 		},
 		WALL_WOOD =
@@ -991,9 +991,9 @@ return {
 		UNAGI = "솥에 재료를 넣고 흔들었는데 우나기가 완성되었어!",
 		EYETURRET = "이 돌탑이 모든걸 쏴버릴거야",
 		EYETURRET_ITEM = "이건 쉽게 구할 수 있는게 아니니까 신중하게 지어야해",
-		MINOTAURHORN = "이게 바로 뮤샤가 위대한 모험을 해냈다는 증거야",
+		MINOTAURHORN = "이게 바로 뮤샤가 위대한 모험을 해냈다는 증거야!",
 		MINOTAURCHEST = "이 커다란 보물상자에는 무엇이 들어있을까?",
-		THULECITE_PIECES = "흔하지 않은 재료지만\n뮤샤는 이걸로 무엇을 만들 수 있는지 알고있어",
+		THULECITE_PIECES = "흔하지 않은 재료지만\n뮤샤는 이걸로 뭘 만들 수 있는지 알아!",
 		POND = "낚시를 하자!",
 		POND_ALGAE = "뭔가 이상한게 물속에서 헤엄치고있어",
 		GREENSTAFF = "뭐든지 분해할 수 있는 지팡이야\n살아있는 것에는 쓰면 안돼",
@@ -1007,7 +1007,7 @@ return {
 		{
 		CALM = "아무것도 없고, 아무 문제도 없어",	--Calm phase
 		WARN = "조금 더워진거 같아",	--Before nightmare
-		WAXING = "뮤샤의 생각이지만 여긴 더 이상 안전하지 않은 것 같아", --Nightmare Phase first 33%
+		WAXING = "뮤샤 생각엔 여긴 더 이상 안전하지 않은 것 같아", --Nightmare Phase first 33%
 		STEADY = "이 이상은 나빠지지 않을 줄 알았는데!", --Nightmare 33% - 66%
 		WANING = "여긴 지금 엄청나게 위험해!", --Nightmare 66% +
 		DAWN = "조금만 더 버티면 될것같아!", --After nightmare
@@ -1052,9 +1052,9 @@ return {
         ANCIENT_ALTAR =
         {
         	WORKING = "이것도 뮤샤와 관련이 있는걸까?",
-        	BROKEN = "재대로 움직이게 하려면 뭔가 더 필요할 것 같아",
+        	BROKEN = "제대로 움직이게 하려면 뭔가 더 필요할 것 같아",
         },
-        ANCIENT_ALTAR_BROKEN = "재대로 움직이게 하려면 뭔가 더 필요할 것 같아",
+        ANCIENT_ALTAR_BROKEN = "제대로 움직이게 하려면 뭔가 더 필요할 것 같아",
 
         ANCIENT_STATUE = "이것도 뮤샤와 관련이 있는걸까?",
 
@@ -1069,7 +1069,7 @@ return {
         BLUEAMULET = "차가운 목걸이야",
 		PURPLEAMULET = "뮤샤는 죽은자가 보여",
 		TELESTAFF = "뿅! 뿅! 뿅!",
-		MINERHAT = "뮤샤는 광부는 아니지만, 동굴 속에서 이 모자는 유용해",
+		MINERHAT = "뮤샤는 광부는 아니지만 동굴에선 이 모자가 유용해",
 		MONKEY = "저 녀석이 뮤샤의 아이템을 훔쳐갔어",
 		MONKEYBARREL = "저 속에 희귀한 아이템이 숨겨져 있을 지도 몰라",
 
@@ -1077,7 +1077,7 @@ return {
 		ARMORSNURTLESHELL="투구가 더 낫겠지만 이건 이것대로 좋아",
 		BAT="나쁜 박쥐!",
 		BATBAT = "뮤샤의 사냥감으로 뮤샤의 사냥감을 잡는거야",
-		BATWING="이걸로 뮤샤는 여러가지를 해볼 수 있을 것 같아",
+		BATWING="이걸로 뮤샤는 여러가지 해볼 수 있을 것 같아",
 		BATWING_COOKED="바삭바삭해",
 		BEDROLL_FURRY="이제 편하게 잘 수 있겠어",
 		BUNNYMAN="조심해야해, 쟤들은 고기 냄새를 싫어해",
@@ -1085,13 +1085,13 @@ return {
 		FLOWER_CAVE_DOUBLE="햇살 대신 동굴에서 중요한 빛이야",
 		FLOWER_CAVE_TRIPLE="햇살 대신 동굴에서 중요한 빛이야",
 		GUANO="뭘 먹었길래 이렇게 나오는거야?",
-		LANTERN="손에 들고있어도 빛이 나오고 손에 떼고있어도 빛이 나와!",
+		LANTERN="손에 들고 있어도 빛나고 손에서 떼도 빛이 나와!",
 		LIGHTBULB="빛나는 열매야!",
 		MANRABBIT_TAIL="주먹만한 털뭉치야!",
 		MUSHTREE_TALL="파란 버섯나무야",
 		MUSHTREE_MEDIUM="빨간 버섯나무야",
 		MUSHTREE_SMALL="녹색 버섯나무야",
-		SLURTLE="이 단단한 껍질을 짊어지고 다니기엔 너무 작은거 아닐까?",
+		SLURTLE="이 단단한 껍질을 둘러메고 다니기엔 너무 작은 거 아닐까?",
 		SLURTLE_SHELLPIECES="열번찍으면 부셔지네",
 		SLURTLEHAT="이 모자 나쁘지 않아!",
 		SLURTLEHOLE="커다란 선인장같아",
@@ -1103,11 +1103,11 @@ return {
 		STALAGMITE="돌이 하늘로 자라고 있었나봐",
 		STALAGMITE_FULL="돌이 나무처럼 크게크게 자랐어! 그리고 안쪽이 뭔가 있어!",
 		STALAGMITE_LOW="이 돌은 쓸만할 것 같아",
-		STALAGMITE_MED="돌이 하늘로 자라는 것 같아.\n잠깐, 뮤샤 전에도 이 말 한 것 같아.",
+		STALAGMITE_MED="돌이 하늘로 자라는 것 같아.\n잠깐, 뮤샤 전에도 이 말 했던 것 같아?",
 		STALAGMITE_TALL="돌이 하늘로 자라고 있었나봐",
 		STALAGMITE_TALL_FULL="돌이 나무처럼 크게크게 자랐어! 그리고 안쪽이 뭔가 있어!",
 		STALAGMITE_TALL_LOW="이 돌은 쓸만할 것 같아",
-		STALAGMITE_TALL_MED="돌이 하늘로 자라는 것 같아.\n잠깐, 뮤샤 전에도 이 말 한 것 같아.",
+		STALAGMITE_TALL_MED="돌이 하늘로 자라는 것 같아.\n잠깐, 뮤샤 전에도 이 말 했던 것 같아?",
 
 		TURF_CARPETFLOOR = "푹신푹신해",
 		TURF_CHECKERFLOOR = "알록달록하고 푹신푹신해",
@@ -1115,7 +1115,7 @@ return {
 		TURF_FOREST = "이끼가 굉장히 많아",
 		TURF_GRASS = "푸른 초원의 기분을 낼 수 있어",
 		TURF_MARSH = "나뭇잎이 많아!",
-		TURF_ROAD = "바닥이 딱딱하면 뮤샤는 더 빠르게 달릴 수 있어",
+		TURF_ROAD = "바닥이 딱딱하면 뮤샤는 더 빨리 달릴 수 있어!",
 		TURF_ROCKY = "돌바닥은 쓸모가 있어",
 		TURF_SAVANNA = "이거 무슨 냄새나지 않아? 비팔로의-",
 		TURF_WOODFLOOR = "뮤샤는 삐걱거리는 소리도 좋아해",
@@ -1127,7 +1127,7 @@ return {
 		TURF_MUD="이 진흙 어떻게 사용할 수 없을까?",
 
 		TURKEYDINNER = "칠면조 요리야!",
-		TWIGS = "나뭇가지는 항상 많은게 좋아.\n여러군데 쓸 수 있으니까",
+		TWIGS = "나뭇가지는 많을수록 좋아.\n여러군데 쓸 수 있으니까",
 		POWCAKE = "MSG!",
         CAVE_ENTRANCE =
         {
@@ -1153,7 +1153,7 @@ return {
 			REMAINS_EYE_BONE = "되돌릴 수는 없어도 새로 찾을 수는 있을거야",
 			REMAINS_THINGIE = "되돌릴 수는 없어도 새로 찾을 수는 있을거야",
 		},
-		AXE = "나무로는 여러가지를 할 수 있어. 나무를 쓸려면 먼저 베어야해",
+		AXE = "나무로는 여러가지 할 수 있어. 쓰려면 먼저 베어야지!",
 		BABYBEEFALO =
 		{
 			GENERIC = "아기는 귀엽다구",
@@ -1162,7 +1162,7 @@ return {
 		BACKPACK = "가방은 모험하면서 재료를 모을땐 정말 유용해",
 		BACONEGGS = "고기도 있고 후라이도 있다니 정말 좋아!",
 		BANDAGE = "붕대 필요해?",
-		BASALT = "이건 뮤샤의 힘만으로는 어떻게 할 수 없을 것 같아",
+		BASALT = "이건 뮤샤 힘만으론 어쩔 수 없을 것 같아",
 		BEARDHAIR = "털과 수염은 무슨 차이인거야?",
 		BEDROLL_STRAW = "뮤샤는 보통 위에서 잠을 자",
 		BEE =
@@ -1179,7 +1179,7 @@ return {
 		},
 		BEEFALOHAT = "뮤샤는 아무것이나 들이받을 준비가 되었어",
 		BEEFALOWOOL = "이걸 덮으면 따뜻할 것 같아",
-		BEEHIVE = "벌들은 여기에 꿀을 쌓아놓아. 뮤샤에게 나누어 줄것 같진 않지만",
+		BEEHIVE = "벌들이 여기에 꿀을 쌓아놨어. 뮤샤한테 나눠 줄 것 같진 않지만",
 		BEEMINE = "벌은 화나면 무서워. 지금 엄청 화나있거든?",
 		BEEMINE_MAXWELL = "모기도 화나면 무서울거야. 벌만큼 찔러댈테니까",
 		BEEHAT = "벌에게서 최소한 얼굴은 안전해!",
@@ -1195,7 +1195,7 @@ return {
 		BIRDCAGE =
 		{
 			GENERIC = "새를 위한 집이 준비되었어",
-			OCCUPIED = "이 새는 밖에서 밥을 먹을 수 없으니까 뮤샤가 밥을 줘야해",
+			OCCUPIED = "이 새는 밖에서 밥을 못 먹으니까 뮤샤가 챙겨줘야 해",
 			SLEEPING = "새가 자는 동안엔 이 집이 새를 지켜줄거야",
 		},
 		BIRDTRAP = "새를 산채로 잡는 방법 가운데 하나야",
@@ -1277,12 +1277,12 @@ return {
 			GENERIC = "이게 진짜 출구를 찾아주는걸까?",
 			HOT = "뭔가 있는것 같아! 최소한 얘는 그렇게 말하고 있어!",
 			WARM = "뭔가 느껴져. 진동이",
-			WARMER = "뭔가 점점 가까워지는 모양이야. 뮤샤는 잘 모르겠지만",
+			WARMER = "뭔가 자꾸 가까워지는 모양이야. 뮤샤는 잘 모르겠지만",
 		},
 		DIVININGRODBASE =
 		{
 			GENERIC = "뭔가 꽃혀있어!",
-			READY = "이제 이것은 뮤샤것입니다. 뮤샤가 마음대로 할 수 있는 것 입니다",
+			READY = "이제 이건 뮤샤 거야. 뮤샤 마음대로 해도 되는 거야!",
 			UNLOCKED = "쓸모가 있을거야. 없을지도 모르지만",
 		},
 		DIVININGRODSTART = "이게 뮤샤를 도와줄거야",
@@ -1299,7 +1299,7 @@ return {
 		DRUMSTICK = "먹을 수 있는 다리를 구했어!",
 		DRUMSTICK_COOKED = "구운 다리야!",
 		DURIAN = "뮤샤에게도 이걸 먹는건 큰 모험이 될거야",
-		DURIAN_COOKED = "뮤샤에게 코가 없었다면 이걸 좀 더 쉽게 먹었을지도 몰라",
+		DURIAN_COOKED = "뮤샤한테 코가 없었으면 이걸 좀 더 쉽게 먹었을지도 몰라",
 		DURIAN_SEEDS = "두리안 씨앗이야",
 		EARMUFFSHAT = "토끼털로 만든 귀마개야",
 		EGGPLANT = "가지 좋아해?",
@@ -1367,13 +1367,13 @@ return {
 		FLINT = "불꽃이 튀는 돌이지만 도구를 만드는 데도 쓸 수 있어",
 		FLOWER = "색도 좋고, 냄새도 좋고, 맛은-",
 		FLOWERHAT = "화환은 색도 좋고, 냄새도 좋고, 맛은-",
-		FLOWER_EVIL = "화환의 냄새가 이상해졌어. 뮤샤의 머리에서도 이상한 냄새가 밴것같아",
+		FLOWER_EVIL = "화환 냄새가 이상해졌어. 뮤샤 머리에도 이상한 냄새가 밴 것 같아",
 		FOLIAGE = "그냥은 먹을 수 없겠어",
 		FOOTBALLHAT = "튼튼하고 앞이 잘 보여",
 		FROG =
 		{
 			DEAD = "좋은 개구리는 죽은 개구리뿐이야",
-			GENERIC = "뮤샤는 개구리를 별로 안좋아하는데 개구리도 마찬가지인가봐",
+			GENERIC = "뮤샤는 개구리를 별로 안 좋아하는데 개구리도 마찬가지인가봐",
 			SLEEPING = "쉬잇, 개구리가 자고있어",
 		},
 		FROGGLEBUNWICH = "바삭한 다리로 만든 샌드위치야",
@@ -1404,7 +1404,7 @@ return {
 			PICKED = "기둥만 봐서는 무슨 버섯인지 모르겠어",
 		},
 		GUNPOWDER = "이게 있으면 뭐든지 터트릴 수 있어!",
-		HAMBAT = "먹을것 가지고 장난치지 말라는 이야기는 있지만\n이건 장난이 아니니까 괜찮아",
+		HAMBAT = "먹을 거 가지고 장난치지 말라지만\n이건 장난이 아니니까 괜찮아",
 		HAMMER = "망치가 있으면 뭐든지 부술 수 있는거야",
 		HEALINGSALVE = "아플때 연고를 바르면 아픈게 사라져",
 		HEATROCK =
@@ -1417,10 +1417,10 @@ return {
 		},
 		HONEY = "꿀이야!",
 		HONEYCOMB = "벌집이 있으면 벌통을 만들 수 있어",
-		HONEYHAM = "입 속이 단맛으로 꽉 차고 배는 고기로 꽉 차는 요리야",
-		HONEYNUGGETS = "꿀하고 고기를 같이 먹는거 뮤샤는 괜찮다고 생각해",
+		HONEYHAM = "입은 단맛으로 꽉 차고 배는 고기로 꽉 차는 요리야!",
+		HONEYNUGGETS = "꿀하고 고기를 같이 먹는 건 뮤샤는 괜찮다고 봐",
 		HORN = "웅웅 거리는 소리가 날거야",
-		HOUND = "이곳의 늑대하고 뮤샤하고는 아무런 관련이 없어. 진짜야",
+		HOUND = "여기 늑대랑 뮤샤랑은 아무 관련 없어. 진짜야!",
 		HOUNDMOUND = "어떻게 이 좁은 무더기에서 늑대들이 끊임없이 나오는거야?",
 		HOUNDBONE = "이 상황이 되면 이건 그냥 뼈야",
 		ICEBOX = "여기에 넣으면 음식을 오래 보관할 수 있어",
@@ -1433,14 +1433,14 @@ return {
 	--adds 2 start
 		SCARECROW = 
    		{
-			GENERIC = "뮤샤가 새를 쫒아낼 수 없다면, 새가 싫어할 만한걸 만들어버리는거야",
+			GENERIC = "뮤샤가 새를 쫓아낼 수 없다면 새가 싫어할 만한 걸 만들어버리는 거야",
 			BURNING = "와, 정말로 새가 싫어할만하게 되어버렸어",
 			BURNT = "새까만 뼈만 남아버렸네",
    		},
    		SCULPTINGTABLE=
    		{
 			EMPTY = "장식할 물건을 만들 수 있대. 대리석으로",
-			BLOCK = "여기에 돌이 있어. 뮤샤는 마음대로 만들어도 돼",
+			BLOCK = "여기 돌이 있어. 뮤샤 마음대로 만들어도 돼",
 			SCULPTURE = "뮤샤의 자신작이야!",
 			BURNT = "새하얗게 불태운게 아니라 까맣게 타버렸네",
    		},
@@ -1484,7 +1484,7 @@ return {
 		KOALEFANT_WINTER = "파란 코끼리야",
 		KRAMPUS = "악마가 나타났어!",
 		KRAMPUS_SACK = "산타의 선물꾸러미가 이것보다 클까?",
-		LAVAE = "이 불덩이는 뮤샤를 좋아하는건지 싫어하는건지 모르겠어",
+		LAVAE = "이 불덩이가 뮤샤를 좋아하는 건지 싫어하는 건지 모르겠어",
 		LEIF = "나무 거인이야!",
 		LEIF_SPARSE = "나무 거인이야!",
 		LIGHTNING_ROD =
@@ -1501,7 +1501,7 @@ return {
 			GENERIC = "통나무로 할 수 있는 건 많으니까 많으면 좋아",
 		},
 		LUREPLANT = "이 식물엔 아이템이 끝없이 들어가는거 같아",
-		LUREPLANTBULB = "이 식물은 이제 뮤샤꺼입니다.\n뮤샤 마음대로 할 수 있는겁니다",
+		LUREPLANTBULB = "이 식물은 이제 뮤샤 거야.\n뮤샤 마음대로 해도 되는 거야!",
 		MALE_PUPPET = "윌슨을 기리는 동상인거야?",
 		MANDRAKE =
 		{
@@ -1538,7 +1538,7 @@ return {
 		MEAT_DRIED = "육포도 물에 불리면 다시 고기잖아?",
 		MERM = "쟤들은 뮤샤를 별로 좋아하는 것 같지 않은데",
 		MONSTERLASAGNA = "음식이긴 한데, 뮤샤는 먹고싶진 않아",
-		MONSTERMEAT = "뮤샤 입에 모래가 들어가도 이건 먹고 싶지 않아",
+		MONSTERMEAT = "뮤샤 입에 모래가 들어가도 이건 안 먹을래!",
 		MONSTERMEAT_DRIED = "말리면 나아질 줄 알았는데 아직 아니야",
 		MOSQUITO =
 		{
@@ -1568,7 +1568,7 @@ return {
 		PHLEGM = "이걸 어떻게 해야하는거야?",
 		PICKAXE = "이것저것 할려면 우선 돌을 캐야해",
 		PIGGYBACK = "이게 좀 더 큰 가방이야",
-		PIGKING = "저 돼지 왕은 기분이 좋으면 마음대로 금덩이를 뿌린다고해",
+		PIGKING = "저 돼지 왕은 기분 좋으면 아무 데나 금덩이를 뿌린대!",
 		PIGMAN =
 		{
 			DEAD = "죽고나면 결국 돼지야",
@@ -1598,7 +1598,7 @@ return {
 		POMEGRANATE_COOKED = "열매 안쪽에 또 열매가 있어",
 		POMEGRANATE_SEEDS = "석류 씨앗이야",
 		POOP = "너무 큰... 똥이야. 하지만 쓸 구석은 많아",
-		PUMPKIN = "호박이야! 뮤샤는 잭-오-랜턴의 이야기를 좋아해!",
+		PUMPKIN = "호박이야! 뮤샤는 잭-오-랜턴 이야기를 좋아해!",
 		PUMPKINCOOKIE = "호박과자!",
 		PUMPKIN_COOKED = "호박을 한번 찌면 자르기 쉬워",
 		PUMPKIN_LANTERN = "이렇게 놓고 보니까 늑대 얼굴같아",
@@ -1612,7 +1612,7 @@ return {
 		RABBITHOLE =
 		{
 			GENERIC = "토끼가 숨어있는 구멍이야",
-			SPRING = "이제는 사용하지 않는 구멍같아.\n하지만 조사해보면 뭔가 있을지도 몰라",
+			SPRING = "이제는 안 쓰는 구멍같아.\n그래도 조사해보면 뭔가 나올지도 몰라",
 		},
 		RATATOUILLE = "알록달록한 음식이야! 고기는 하나도 없어",
 		RAZOR = "뮤샤가 네 털을 몽땅 밀어버릴거야!",
@@ -1674,7 +1674,7 @@ return {
 		},
 		SEEDS = "아무튼 씨앗이야",
 		SEEDS_COOKED = "배고프면 씨낱알도 먹어야지",
-		SEWING_KIT = "옷을 수선하는데는 쓸 수 있지만 뮤샤는 다른것도 쓸 수 있어",
+		SEWING_KIT = "옷 수선하는데도 쓸 수 있지만 뮤샤는 다른 것도 쓸 수 있어",
 		SHOVEL = "삽질하는데는 삽이 필요해",
 		SILK = "거미를 계속 사냥하다보면 가장 많이 쌓이는것 같아",
 		SKELETON = "먼저 왔던 누군가의 시체인 모양이야",
@@ -1693,7 +1693,7 @@ return {
 		{
 			GENERIC = "얌체만큼이나 아주 작은 새야",
 			HUNGRY = "이 새는 지금 배고픈가봐",
-			STARVING = "잠깐만 기다려봐! 뮤샤도 네가 배고픈거 알고있어",
+			STARVING = "잠깐만 기다려봐! 뮤샤도 네가 배고픈 거 알아",
 		},
 		SMALLMEAT = "다리일 수도 있고, 팔일 수도 있고, 날개일 수도 있고",
 		SMALLMEAT_DRIED = "마르니까 더 작아졌어! 하지만 먹는데는 문제없어",
@@ -1701,14 +1701,14 @@ return {
 		SPEAR = "찌르는것 보다 때리는데 더 유용한 창이야!",
 		SPIDER =
 		{
-			DEAD = "뮤샤가 강해지는 가장 빠른 방법이 거미를 끝없이 사냥하는거야",
+			DEAD = "뮤샤가 강해지는 제일 빠른 방법은 거미를 끝없이 사냥하는 거야",
 			GENERIC = "이 세계의 모든 거미는 뮤샤의 사냥감이야",
 			SLEEPING = "거미가 자고있어",
 		},
 		SPIDERDEN = "뮤샤는 거미집을 무서워하지 않아",
-		SPIDEREGGSACK = "뮤샤의 뒷마당에 꽃아놓으면 거미가 계속 나올거야",
+		SPIDEREGGSACK = "뮤샤 뒷마당에 꽂아놓으면 거미가 계속 나올 거야",
 		SPIDERGLAND = "이걸 상처난 곳에 바르면 회복이 빨라져",
-		SPIDERHAT = "뮤샤가 모든 거미를 사냥해버렸어! 여왕거미까지 모두 다!",
+		SPIDERHAT = "뮤샤가 거미를 전부 사냥해버렸어! 여왕거미까지 다!",
 		SPIDERQUEEN = "여왕거미는 거미를 계속 낳아대니까 얌체랑 같이 공격해야해",
 		SPIDER_WARRIOR =
 		{
@@ -1745,7 +1745,7 @@ return {
 		{
 			GENERIC = "이 새는 뮤샤를 따르기는 하는데 뒤가 근질거려",
 			HUNGRY = "아직도 이 새의 밥은 뮤샤가 챙겨줘야해",
-			STARVING = "뮤샤는 네가 배가 고픈걸 알고있으니까 잠깐만 기다려",
+			STARVING = "뮤샤는 네가 배고픈 거 아니까 잠깐만 기다려",
 		},
 		TELEPORTATO_BASE =
 		{
@@ -1778,19 +1778,19 @@ return {
 		TRINKET_3 = "호루라기를 불면 누군가 나타난대. 그러니까 이름이.. 포돌이?",--Gord's Knot
 		TRINKET_4 = "꼬마 요정이 있다면 이렇게 생겼을까?",--Gnome
 		TRINKET_5 = "이 신발의 주인은 엄청난 모험을 했었을거야!", --starcraft
-		TRINKET_6 = "와이어로 암살하는 108가지 방법? 뮤샤에겐 필요없어",--Frazzled Wires
-		TRINKET_7 = "뮤샤는 이걸 어떻게 쓰는지 깨달았어! 전혀 쓸모없네!",-- Ball and Cup
-		TRINKET_8 = "뭔가를 막는데 쓰는것 같아. 자국이 있으나까 알 수 있어",-- Hardened Rubber Bung
+		TRINKET_6 = "와이어로 암살하는 108가지 방법? 뮤샤한테는 필요 없어",--Frazzled Wires
+		TRINKET_7 = "뮤샤는 이걸 어떻게 쓰는지 알아냈어! 근데 전혀 쓸모없네!",-- Ball and Cup
+		TRINKET_8 = "뭔가를 막는 데 쓰는 것 같아. 자국이 있으니까 알 수 있어",-- Hardened Rubber Bung
 		TRINKET_9 = "색이 너무 제각각이라 어디에 붙여야할지 모르겠네!",--Mismatched Buttons
 	--adds 3 start
 		TRINKET_14 = "요즘 뮤샤는 잔보다는 컵이 더 편해", --Leaky Teacup
 		TRINKET_15 = "뭔가 도구인 것 같진 않은데. 뭘까?", --Pawn
 		TRINKET_16 = "뭔가 도구인 것 같진 않은데. 뭘까?", --Pawn
-		TRINKET_17 = "이 수저는 밥을 먹는데도 쓸 수 있고 찌르는 데도 쓸 수 있겠네", --Bent Spork
-		TRINKET_18 = "실제 말을 타는것과 방법이야 다르겠지만 분위기는 낼 수 있겠네", --Trojan Horse
-		TRINKET_19 = "뮤샤는 이게 잘 돌아간다는 것 외엔 아무것도 알아내지 못했어", --Unbalanced Top
+		TRINKET_17 = "이 수저는 밥도 먹을 수 있고 찌르는 데도 쓸 수 있겠네!", --Bent Spork
+		TRINKET_18 = "진짜 말 타는 것과 방법은 다르겠지만 분위기는 낼 수 있겠네!", --Trojan Horse
+		TRINKET_19 = "뮤샤는 이게 잘 돌아간다는 것 말곤 아무것도 알아내지 못했어", --Unbalanced Top
 		TRINKET_20 = "어딘가를 긁는데는 쓸 수 있겠네", --Backscratcher
-		TRINKET_21 = "손잡이를 잡고 가운데 손잡이를 빙빙 돌리면 아래가 빙빙 돌아가", --Egg Beater
+		TRINKET_21 = "손잡이를 잡고 가운데를 빙빙 돌리면 아래도 빙빙 돌아가!", --Egg Beater
 		TRINKET_22 = "이 실뭉치로 만들면 추울 걱정은 없겠어", --Frayed Yarn
 		TRINKET_23 = "이게 안쪽으로 휘어있는 이유는 뭘까?", --Shoehorn
 		TRINKET_24 = "안에 무언가 들어있었을거야", --Lucky Cat Jar
@@ -1804,17 +1804,17 @@ return {
         TRINKET_32 = "이것도 등불이야? 아니야?", --Cubic Zirconia Ball
         TRINKET_33 = "이건 대체 어느 손가락에 끼워야 하는거야?", --Spider Ring
         TRINKET_34 = "뮤샤는 이런걸 모으는 취미는 없는걸", --Monkey Paw
-        TRINKET_35 = "무언가를 담았던 병이야. 뮤샤는 희미하지만 냄새가 나는걸 느끼니까 알아", --Empty Elixir
+        TRINKET_35 = "뭔가를 담았던 병이야. 뮤샤는 희미하게 냄새가 나는 것 같아서 알아", --Empty Elixir
         TRINKET_36 = "이건 이빨 모양 같은데 다물어지지가 않아", --Faux fangs
         TRINKET_37 = "말뚝을 반으로 쪼개놓은건 무슨 이유일까?", --Broken Stake
-        TRINKET_38 = "뮤샤는 망원경을 좋아해. 냄새가 나는 방향의 먼 곳까지 볼 수 있거든", -- Binoculars Griftlands trinket
+        TRINKET_38 = "뮤샤는 망원경이 좋아. 냄새 나는 쪽 먼 곳까지 볼 수 있거든", -- Binoculars Griftlands trinket
         TRINKET_39 = "장갑은 장갑인데 손등에 철판이 붙어있어. 때리기용일까? 손등으로?", -- Lone Glove Griftlands trinket
         TRINKET_40 = "위의 접시를 누르면 아래에 있는 바늘이 막 돌아가!", -- Snail Scale Griftlands trinket
         TRINKET_41 = "뭔가를 담았었어. 담았었어?", -- Goop Canister Hot Lava trinket
         TRINKET_42 = "머리는 남아있는데 몸통이 많이 망가진 모양이야", -- Toy Cobra Hot Lava trinket
-        TRINKET_43= "바퀴에, 모자에, 커다란 입에, 날카로운 이빨까지 있으니 뮤샤가 좋아할 건 전혀 없네!", -- Crocodile Toy Hot Lava trinket
+        TRINKET_43= "바퀴에 모자에 커다란 입에 날카로운 이빨까지... 뮤샤가 좋아할 구석이 하나도 없네!", -- Crocodile Toy Hot Lava trinket
         TRINKET_44 = "깨지지 않았다면 좀 더 예쁜 모습이었을까?", -- Broken Terrarium ONI trinket
-        TRINKET_45 = "뮤샤는 이게 뭔지 전혀 모르겠어. 눌러도 아무것도 변화가 없는걸", -- Odd Radio ONI trinket
+        TRINKET_45 = "뮤샤는 이게 뭔지 전혀 모르겠어. 눌러도 아무것도 안 변하는걸", -- Odd Radio ONI trinket
         TRINKET_46 = "이건 어떻게 사용하는 도구지?", -- Hairdryer ONI trinket
 		
 		HALLOWEENCANDY_1 = "단걸 좋아해도 매 식사를 사탕으로 한다는건 무리야",
@@ -1838,7 +1838,7 @@ return {
         DRAGONTAILHAT = "이 삐죽 나온 가죽은 꼬리인거야?",
         PERDSHRINE =
         {
-            GENERIC = "이 멍청하고 뭐든지 먹어댈거같은 새의 모습을 뮤샤는 알고있어",
+            GENERIC = "뭐든지 먹어댈 것 같은 이 멍청한 새, 뮤샤는 그 모습을 알고있어",
             EMPTY = "이것도 쓸모가 있는걸까?",
             BURNT = "응. 타버리면 결국 이렇게 되어버리는거야",
         },
@@ -1864,8 +1864,8 @@ return {
         	STATUE = "금방이라도 움직일거 같아서 뮤샤를 긴장하게 해",
         },
         HOUNDWHISTLE = "뮤샤가 이걸 불면 어떻게 될까?",
-        CHESSPIECE_CLAYHOUND = "진짜도 흙덩이고 가짜도 흙덩이니 구분을 할 수가 없어",
-        CHESSPIECE_CLAYWARG = "진짜도 흙덩이고 가짜도 흙덩이니 구분을 할 수가 없어",
+        CHESSPIECE_CLAYHOUND = "진짜도 흙덩이, 가짜도 흙덩이... 구분을 할 수가 없어",
+        CHESSPIECE_CLAYWARG = "진짜도 흙덩이, 가짜도 흙덩이... 구분을 할 수가 없어",
 
 		BISHOP_CHARGE_HIT = "으앗!",
 	--adds 3 end	
@@ -1874,7 +1874,7 @@ return {
 		TRUNK_COOKED = "한입에 들어갈 것 같진 않아. 근데 이거 먹어도 되는거야?",
 		TRUNK_SUMMER = "안이 뻥 뚫려있어!",
 		TRUNK_WINTER = "안이 뻥 뚫려있어!",
-		UMBRELLA = "뮤샤는 이 색깔이 맘에 들어! 펼쳤을 때 모양도 맘에 들어!",
+		UMBRELLA = "이 색깔 맘에 들어! 펼쳤을 때 모양도 뮤샤 맘에 들어!",
 		WAFFLES = "와플의 바삭함이 딱 좋은 상태로 요리가 됐어",
 		WALL_HAY_ITEM = "바람이 분다고 날아가지 않으면 좋겠어",
 		WALL_STONE = "이 벽이 있으면 잠깐 시간을 벌 수 있어",--0

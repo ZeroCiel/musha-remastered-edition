@@ -1,0 +1,20 @@
+[
+  {
+    "id": "input-1789176251912-scl8qxgh",
+    "session_id": "b03339cb",
+    "input_text": "【用户希望你知道，用户正在使用 desktop-pc-20260523afxp 设备访问，你现在被授权使用 aimux 连接到该远程对象，可操作远程路径 `D:\\SteamLibrary\\steamapps\\common\\Don't Starve Together\\mods\\musha`。当你的任务需要与用户桌面 PC 交互时，参考 .imac/skills/mobius-aimux/SKILL.md，建立与用户 PC 的直接连接。】",
+    "content": "【用户希望你知道，用户正在使用 desktop-pc-20260523afxp 设备访问，你现在被授权使用 aimux 连接到该远程对象，可操作远程路径 `D:\\SteamLibrary\\steamapps\\common\\Don't Starve Together\\mods\\musha`。当你的任务需要与用户桌面 PC 交互时，参考 .imac/skills/mobius-aimux/SKILL.md，建立与用户 PC 的直接连接。】",
+    "created_at": "2026-09-12T01:24:11.912Z",
+    "request_id": "send-1789176251728-lfelhils",
+    "turn_number": 2
+  },
+  {
+    "id": "input-1789177313466-rkm87193",
+    "session_id": "b03339cb",
+    "input_text": "检查一下 当前是否绑定错了路径？还是需要新建？",
+    "content": "检查一下 当前是否绑定错了路径？还是需要新建？",
+    "created_at": "2026-09-12T01:41:53.466Z",
+    "request_id": "send-1789177313382-qhminey1",
+    "turn_number": 3
+  }
+]

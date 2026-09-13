@@ -25,53 +25,54 @@ local function OnUseBook(inst, doer)
         return
     end
 
-    if pc:HasJob() then
+    local function Say(msg, t)
         if doer.components.talker then
-            doer.components.talker:Say(STRINGS.MUSHA_JOB_USE_ALREADY_HAS, 3)
+            doer.components.talker:Say(msg, t or 3)
         end
+    end
+
+    -- ==========================================================
+    -- 已有职业：这本"战士职业书"只管【一转】
+    --   ★ 2026-09-12 用户纠正：二转任务不该由职业书接 —— 那是**进阶祭坛**的事。
+    --     （之前这里会直接 AcceptAdvanceQuest，用户问"为什么原来的职业书就可以接？不需要祭坛？"）
+    --   现在：已有职业 → 只给提示，指向祭坛；不接任何任务
+    -- ==========================================================
+    if pc:HasJob() then
+        if pc:GetCarrer_base() ~= "warrior" then
+            Say("你已经是别的职业了，不能改用战士职业书（职业不可更换）。", 3)
+            return
+        end
+        if pc:GetCarrer_special() or (pc.userdata and pc.userdata.has_advanced) then
+            Say("你已经完成二转，职业书用不上了。", 3)
+            return
+        end
+        Say("你已经是战士了。二转任务要去【进阶祭坛】接取（右键祭坛）。", 4)
         return
     end
 
-    doer.components.musha_profession_component:SetCarrerBase("warrior")
-    if doer.components.talker then
-        doer.components.talker:Say(STRINGS.MUSHA_JOB_USE_WARRIOR, 4)
-    end
+    -- ==========================================================
+    -- 无职业：一转（0 级即可，无需等级）
+    -- ★ 2026-09-12 起职业书【不再消耗】—— 用户拍板：书留在手里，
+    --   5 级时右键同一本书领取二转任务（见上面那条分支）。
+    --   （旧行为：inst:Remove() 把书吃掉；已删）
+    -- ==========================================================
+    pc:SetCarrerBase("warrior")
+    Say(STRINGS.MUSHA_JOB_USE_WARRIOR, 4)
 
     -- 转职事件通知（组件监听后配送武器）
     doer:PushEvent("musha_job_changed", {
         job_id = MUSHA_JOB.WARRIOR
     })
-    -- 将职业书变成技能书（不改变物品槽位置）
-    inst:SetPrefabName("musha_skillbook")
 
-    inst.AnimState:SetBuild("musha_skillbook")
-    inst.AnimState:PlayAnimation("idle")
-
-    inst:RemoveTag("musha_jobbook")
-    -- 技能书改为打开面板 tag（显示"打开面板"右键动作）
-    inst:AddTag("musha_panel")
-
-    -- inst.components.inspectable.nameoverride = "MUSHA_SKILLBOOK" 注释掉了 名字改变在下面的函数里
-
-    inst.components.inventoryitem.imagename = "musha_skillbook"
-    inst.components.inventoryitem.atlasname = "images/inventoryimages/musha_skillbook.xml"
-    -- 重设右键动作为打开技能面板
-    inst.components.musha_action:SetFn(function(item, user)
-        if not user or not user:IsValid() then
-            return
+    -- 首次一转仍送一本技能书（和以前一致；职业书本身留下）
+    local inv = doer.components.inventory
+    if inv and not doer._musha_skillbook_given then
+        doer._musha_skillbook_given = true
+        local book = SpawnPrefab("musha_skillbook")
+        if book then
+            inv:GiveItem(book)
         end
-        local pc = user.components.musha_profession_component
-        if not pc or not pc:HasJob() then
-            if user.components.talker then
-                user.components.talker:Say(STRINGS.MUSHA_JOB_USE_NO_JOB, 3)
-            end
-            return
-        end
-        -- 服务端，PushEvent 通知客户端打开面板
-        user:PushEvent("musha_open_skill_panel")
-    end)
-
-    -- 职业书变成通用技能书，保留在背包中
+    end
 end
 
 local function displaynamefn(inst)

@@ -4,63 +4,63 @@ return {
     --adds action start
     ACTIONFAIL = {
         REPAIR = {
-            WRONGPIECE = "Musha认为那是不对的."
+            WRONGPIECE = "咦？好像不太对…Musha再想想。"
         },
         BUILD = {
-            MOUNTED = "Musha不能把它放在这么高的地方.",
+            MOUNTED = "这么高的地方放不稳啦，Musha手会抖！",
             HASPET = "我已经有一只宠物了."
         },
         SHAVE = {
-            AWAKEBEEFALO = "Musha觉得在它醒着的时候不能那么做.",
+            AWAKEBEEFALO = "醒着的牛牛可不敢碰！它会踢Musha的！",
             GENERIC = "我不能那么做！",
             NOBITS = "已经没有毛毛了~~~"
         },
         STORE = {
             GENERIC = "它已经满了，装不下啦！",
             NOTALLOWED = "我做不到.",
-            INUSE = "应该等一会，还没有轮到Musha呢."
+            INUSE = "等等呀，还没轮到Musha呢。"
         },
         RUMMAGE = {
-            GENERIC = "Musha做不到.",
+            GENERIC = "这个Musha办不到嘛。",
             INUSE = "他们还在寻找东西！"
         },
         USEKLAUSSACKKEY = {
             WRONGKEY = "哎呀！这样不对！",
-            KLAUS = "Musha做不到那样!!",
-            QUAGMIRE_WRONGKEY = "Musha需要找另一把钥匙."
+            KLAUS = "呜…Musha打不过它啦！！",
+            QUAGMIRE_WRONGKEY = "咦？钥匙不对…Musha再去翻翻别的地方！"
         },
         ACTIVATE = {
             LOCKED_GATE = "门是锁着的."
         },
         COOK = {
-            GENERIC = "Musha不能把它放进去煮.",
-            INUSE = "你也和Musha这么认为吗？",
-            TOOFAR = "对Musha来说太遥远了."
+            GENERIC = "这个不能丢进锅里啦！",
+            INUSE = "诶？你也这么想吗？",
+            TOOFAR = "太远啦，Musha的手够不着！"
         },
         GIVE = {
             GENERIC = "我做不到.",
-            DEAD = "也许Musha只能将它们留下了.",
+            DEAD = "唔…那Musha就先留着它们吧。",
             SLEEPING = "他正在睡觉，不要打扰他.",
-            BUSY = "Musha应该等一会再试一次.",
+            BUSY = "等一下下哦，Musha马上再试！",
             ABIGAILHEART = "它值得我试试.",
-            GHOSTHEART = "Musha认为这是个坏主意.",
-            NOTGEM = "Musha不能把它放进去!",
-            WRONGGEM = "Musha认为这块宝石不能放在这里.",
-            NOTSTAFF = "Musha认为它的形状不对.",
+            GHOSTHEART = "Musha觉得这是个馊主意啦。",
+            NOTGEM = "这种东西Musha才不往里塞！",
+            WRONGGEM = "这块宝石放这儿不行呢…",
+            NOTSTAFF = "咦？形状对不上呀。",
             MUSHROOMFARM_NEEDSSHROOM = "这些可能会很有用.",
             MUSHROOMFARM_NEEDSLOG = "活木可能会很有用.",
-            SLOTFULL = "Musha有东西放在了这里了.",
+            SLOTFULL = "这里Musha已经放东西啦！",
             FOODFULL = "这里已经有很多食物了.",
             NOTDISH = "它不想吃这个.",
             DUPLICATE = "我已经知道这个了.",
             NOTSCULPTABLE = "没有科学的方式,那就不能把它做成雕塑 .",
-            NOTATRIUMKEY = "Musha认为它的形状不对.",
+            NOTATRIUMKEY = "形状不对啦，Musha再找找。",
             CANTSHADOWREVIVE = "它不会复活.",
             WRONGSHADOWFORM = "它们没有放在一起."
         },
         GIVETOPLAYER = {
             FULL = "嘿!你的口袋太满了!",
-            DEAD = "也许Musha会留着这些.",
+            DEAD = "那Musha就收着啦。",
             SLEEPING = "没人关心它们。",
             BUSY = "我会再试一次."
         },
@@ -68,121 +68,121 @@ return {
             FULL = "嘿!你的口袋太满了!",
             DEAD = "也许我还是留着吧.",
             SLEEPING = "他在睡觉.",
-            BUSY = "Musha会再试一次."
+            BUSY = "Musha再试一次哦。"
         },
         WRITE = {
-            GENERIC = "Musha认为这很棒.",
+            GENERIC = "Musha觉得这样最好啦！",
             INUSE = "我们需要一个艺术家来写好它！"
         },
         DRAW = {
-            NOIMAGE = "如果把一些东西放在Musha面前，那么就容易得多了."
+            NOIMAGE = "东西摆在Musha面前的话，就好办多了嘛。"
         },
         CHANGEIN = {
-            GENERIC = "Musha现在不能这样做.",
+            GENERIC = "现在不行啦，Musha做不到。",
             BURNING = "现在太危险了！",
             INUSE = "在一个时间段里只能使用一次."
         },
         ATTUNE = {
-            NOHEALTH = "Musha感觉不太好."
+            NOHEALTH = "唔…Musha有点不舒服。"
         },
         MOUNT = {
-            TARGETINCOMBAT = "Musha认为不应该去打扰一头生气的牛!",
+            TARGETINCOMBAT = "生气的牛牛才不能去惹啦！Musha很懂事的！",
             INUSE = "需要一些东西来控制!"
         },
         SADDLE = {
-            TARGETINCOMBAT = "当它很生气的时候，它不会让Musha这么做的."
+            TARGETINCOMBAT = "它正在气头上，不让Musha碰。"
         },
         TEACH = {
             --Recipes/Teacher
-            KNOWN = "Musha已经知道它们了.",
-            CANTLEARN = "Musha学不会那些东西.",
+            KNOWN = "这个Musha早就知道啦！",
+            CANTLEARN = "这个Musha学不会嘛…",
             --MapRecorder/MapExplorer
             WRONGWORLD = "这张地图是为了满足某种需要才画的."
         },
         WRAPBUNDLE = {
-            EMPTY = "Musha需要打包才能带走它们."
+            EMPTY = "得先有东西才能包起来呀。"
         },
         PICKUP = {
-            RESTRICTION = "Musha水平还不够.",
-            INUSE = "科学上讲，必须等一会才能轮到Musha."
+            RESTRICTION = "Musha还不够厉害呢…",
+            INUSE = "科学说了，要等轮到Musha才行。"
         },
         SLAUGHTER = {
             TOOFAR = "它逃走了."
         },
         REPLATE = {
-            MISMATCH = "It needs another type of dish.",
+            MISMATCH = "咦？这口锅好像不想煮这个…换个菜谱吧！",
             SAMEDISH = ""
         }
     },
-    ACTIONFAIL_GENERIC = "Musha不能那么做.",
-    ANNOUNCE_DIG_DISEASE_WARNING = "现在看起来好多了.",
-    ANNOUNCE_PICK_DISEASE_WARNING = "呕, Musha不喜欢那种气味.",
-    ANNOUNCE_HATEFOOD = "我吃不下了！",
-    ANNOUNCE_ADVENTUREFAIL = "Musha的手动不了啦...!",
-    ANNOUNCE_BOOMERANG = "有东西砸到Musha了！ Musha要扔掉那块坏东西!",
-    ANNOUNCE_CHARLIE = "有东西跟着Musha！",
-    ANNOUNCE_CHARLIE_ATTACK = "别打Musha的头！Musha会打你的！",
-    ANNOUNCE_COLD = "啊！Musha冻僵啦！",
-    ANNOUNCE_HOT = "Musha感觉好热！",
-    ANNOUNCE_DUSK = "太阳下山啦！\nMusha得准备点个灯!",
+    ACTIONFAIL_GENERIC = "这个Musha不行啦。",
+    ANNOUNCE_DIG_DISEASE_WARNING = "嗯嗯，现在看起来精神多啦！",
+    ANNOUNCE_PICK_DISEASE_WARNING = "呕…这味道，Musha的鼻子要抗议啦！",
+    ANNOUNCE_HATEFOOD = "Musha吃不下啦，肚子要炸开了！",
+    ANNOUNCE_ADVENTUREFAIL = "呜…Musha的手怎么动不了啦！",
+    ANNOUNCE_BOOMERANG = "咚！有东西砸中Musha啦！这块坏家伙，扔了扔了！",
+    ANNOUNCE_CHARLIE = "呜哇…黑黑的东西一直跟着Musha！",
+    ANNOUNCE_CHARLIE_ATTACK = "别碰Musha的脑袋！Musha要生气了！",
+    ANNOUNCE_COLD = "冷死了冷死了！Musha的耳朵要冻掉啦！",
+    ANNOUNCE_HOT = "好烫好烫！Musha要变成烤蘑菇啦！",
+    ANNOUNCE_DUSK = "太阳溜下山啦！\nMusha得快点盏灯啦！",
     ANNOUNCE_EAT = {
-        GENERIC = "好吃，这个味道我喜欢！",
-        PAINFUL = "呕！我不喜欢吃这个！",
-        SPOILED = "这根本不是食物！我不想要吃这个QAQ！",
-        STALE = "我真的不想吃这个！！",
-        YUCKY = "不行啦！！我真的不想吃这个！"
+        GENERIC = "嗯～好吃好吃！Musha喜欢这个味道！",
+        PAINFUL = "呕！Musha的舌头在抗议啦！",
+        SPOILED = "这哪算食物呀！Musha才不要吃坏掉的！",
+        STALE = "呜…这个Musha真的吃不下啦！！",
+        YUCKY = "不行不行！Musha打死也不吃这个！"
     },
-    ANNOUNCE_NOSLEEPONFIRE = "Musha不想在这里睡觉！\n Musha会感冒的！",
-    ANNOUNCE_NODANGERSIESTA = "好像有东西在附近，Musha得去看看...",
-    ANNOUNCE_NONIGHTSIESTA = "在这睡觉太冷了！Musha要温暖的地方！",
-    ANNOUNCE_NONIGHTSIESTA_CAVE = "这里真的太冷了！",
-    ANNOUNCE_NOHUNGERSIESTA = "Musha肚子饿啦！Musha要吃东西！",
-    ANNOUNCE_SHELTER = "Musha感觉还可以.",
-    ANNOUNCE_BURNT = "好像它烧起来了...",
-    ANNOUNCE_TOOL_SLIP = "哇！？它太滑了！",
-    ANNOUNCE_DAMP = "Musha好像湿透了！",
-    ANNOUNCE_WET = "现在太难把内衣弄干了.",
-    ANNOUNCE_WETTER = "Musha已经湿透了.",
-    ANNOUNCE_SOAKED = "Musha想要换一件内衣...",
-    ANNOUNCE_HOUNDS = "你听到了吗？是猎犬的声音.",
-    ANNOUNCE_HUNGRY = "Musha要吃食物..有人有吃的吗？Musha肚子好饿..",
-    ANNOUNCE_HUNT_BEAST_NEARBY = "Musha看见它了！Musha可以抓住它吗？",
-    ANNOUNCE_HUNT_LOST_TRAIL = "Musha找不到脚印了.\n 它是什么呢？",
-    ANNOUNCE_HUNT_LOST_TRAIL_SPRING = "泥巴把足迹抹去了！Musha讨厌泥巴.",
-    ANNOUNCE_ACCOMPLISHMENT = "十分轻松！",
-	ANNOUNCE_ARROW_BATTLE = "吃我一箭！",
-    ANNOUNCE_ACCOMPLISHMENT_DONE = "Musha做到了！",
+    ANNOUNCE_NOSLEEPONFIRE = "火边上怎么睡呀…\nMusha会烤成小蘑菇干的！",
+    ANNOUNCE_NODANGERSIESTA = "咦？附近好像有动静…Musha去瞅一眼！",
+    ANNOUNCE_NONIGHTSIESTA = "晚上这里太冷啦！Musha要找个暖乎乎的地方！",
+    ANNOUNCE_NONIGHTSIESTA_CAVE = "这里冷得Musha直哆嗦！",
+    ANNOUNCE_NOHUNGERSIESTA = "肚子咕咕叫啦！Musha要吃东西！",
+    ANNOUNCE_SHELTER = "嗯，待在这儿挺舒服的。",
+    ANNOUNCE_BURNT = "呜哇…它着火啦！",
+    ANNOUNCE_TOOL_SLIP = "哇！？太滑啦，抓不住！",
+    ANNOUNCE_DAMP = "Musha有点潮乎乎的…",
+    ANNOUNCE_WET = "衣服湿哒哒的，好难受呀…",
+    ANNOUNCE_WETTER = "Musha快湿成落汤蘑菇啦！",
+    ANNOUNCE_SOAKED = "呜…Musha想换件干衣服啦…",
+    ANNOUNCE_HOUNDS = "听到了吗？是狗狗的声音…不过不太友善。",
+    ANNOUNCE_HUNGRY = "肚子好饿呀…有谁分Musha一点吃的嘛…",
+    ANNOUNCE_HUNT_BEAST_NEARBY = "看到它啦！Musha能追上去吗？",
+    ANNOUNCE_HUNT_LOST_TRAIL = "咦，脚印不见啦…\n它到底躲哪去啦？",
+    ANNOUNCE_HUNT_LOST_TRAIL_SPRING = "泥巴把脚印都糊掉啦！Musha最讨厌泥巴了。",
+    ANNOUNCE_ACCOMPLISHMENT = "嘿嘿，轻轻松松！",
+	ANNOUNCE_ARROW_BATTLE = "接Musha一箭！",
+    ANNOUNCE_ACCOMPLISHMENT_DONE = "Musha成功啦！",
     ANNOUNCE_LIGHTFIRE = {
-        [1] = "我想要光!",
-        [2] = "这是火焰！!",
-        [3] = "火是个好东西!",
-        [4] = "闪闪红光！",
-        [5] = "它不能用来做饭，但是很温暖!",
-        [6] = "耶!"
+        [1] = "Musha要亮亮的光！",
+        [2] = "火火火！烧起来啦！",
+        [3] = "火是个好东西呀～",
+        [4] = "红彤彤的，真漂亮！",
+        [5] = "虽然煮不了饭，但暖乎乎的！",
+        [6] = "耶！"
     },
-    ANNOUNCE_PECKED = "坏蛋!",
-    ANNOUNCE_TORCH_OUT = "我的另一个火把在哪？",
-    ANNOUNCE_WORMHOLE = "Musha不喜欢这样来旅行...",
-    ANNOUNCE_TRAP_WENT_OFF = "啊！!",
-    ANNOUNCE_CRAFTING_FAIL = "哇？这个不起作用。",
-    ANNOUNCE_QUAKE = "听起来像是肚子痛一样！这个世界也会生病吗？",
-    ANNOUNCE_NODANGERSLEEP = "Musha听到有声音，Musha觉得得去看看！",
-    ANNOUNCE_NOHUNGERSLEEP = "Musha肚子太饿啦！\n Musha睡不着!",
-    ANNOUNCE_FREEDOM = "Musha是自由的！没有人能困住Musha!",
-    ANNOUNCE_RESEARCH = "Musha认识它!Musha知道怎么使用它!",
-    ANNOUNCE_NO_TRAP = "对Musha来说太轻松了!",
-    ANNOUNCE_HIGHRESEARCH = "太棒了！Musha做到了！",
-    ANNOUNCE_THORNS = "啊！这植物真糟糕！",
-    ANNOUNCE_NODAYSLEEP_CAVE = "Musha想去玩！\n Musha还不困。",
-    ANNOUNCE_BEES = "有只蜜蜂在Musha耳边嗡嗡响！",
-    ANNOUNCE_KNOCKEDOUT = "噢..看呐,天上都是星星..",
-    ANNOUNCE_LOWRESEARCH = "Musha做得太多了。",
-    ANNOUNCE_DEERCLOPS = "只有神话里的奥丁才是最强的! 但你不是！",
-    ANNOUNCE_MOSQUITOS = "臭虫子，Musha要咬回去！",
-    ANNOUNCE_NODAYSLEEP = "睡觉？Musha想到处去玩！",
-    ANNOUNCE_INSUFFICIENTFERTILIZER = "Musha觉得, 这些植物好像生病了...",
-    ANNOUNCE_CANFIX = "\nMusha能够修好它！",
-    ANNOUNCE_LIGHTNING_DAMAGE_AVOIDED = "Musha能比光更快！",
+    ANNOUNCE_PECKED = "坏鸟！啄Musha的头！",
+    ANNOUNCE_TORCH_OUT = "咦？Musha的另一根火把呢…",
+    ANNOUNCE_WORMHOLE = "呜…Musha不喜欢从虫洞里钻来钻去…",
+    ANNOUNCE_TRAP_WENT_OFF = "啊呀！！",
+    ANNOUNCE_CRAFTING_FAIL = "咦？怎么一点用都没有…",
+    ANNOUNCE_QUAKE = "轰隆隆的…大地是不是肚子疼啦？",
+    ANNOUNCE_NODANGERSLEEP = "有声音耶！Musha要去看看才行！",
+    ANNOUNCE_NOHUNGERSLEEP = "肚子饿得咕咕响…\nMusha睡不着啦！",
+    ANNOUNCE_FREEDOM = "Musha自由啦！谁也关不住Musha！",
+    ANNOUNCE_RESEARCH = "Musha认得它！Musha会用哦！",
+    ANNOUNCE_NO_TRAP = "这种小陷阱…对Musha来说太简单啦！",
+    ANNOUNCE_HIGHRESEARCH = "哇！Musha全弄明白啦！",
+    ANNOUNCE_THORNS = "呜！这植物扎人，坏坏的！",
+    ANNOUNCE_NODAYSLEEP_CAVE = "Musha想去玩嘛！\n一点都不困哦。",
+    ANNOUNCE_BEES = "有蜜蜂在Musha耳边嗡嗡嗡…走开啦！",
+    ANNOUNCE_KNOCKEDOUT = "呜…眼前好多小星星在转圈圈…",
+    ANNOUNCE_LOWRESEARCH = "唔…Musha好像弄过头啦。",
+    ANNOUNCE_DEERCLOPS = "大块头神气什么…Musha才不怕你！",
+    ANNOUNCE_MOSQUITOS = "臭蚊子！叮Musha，Musha要咬回来！",
+    ANNOUNCE_NODAYSLEEP = "大白天睡什么觉呀…Musha要出去玩！",
+    ANNOUNCE_INSUFFICIENTFERTILIZER = "唔…这些植物看起来病恹恹的。",
+    ANNOUNCE_CANFIX = "\n这个Musha能修好哦！",
+    ANNOUNCE_LIGHTNING_DAMAGE_AVOIDED = "嘿嘿，Musha跑得比闪电还快！",
     BATTLECRY = {
         GENERIC = "Musha比你更强！",
         PIG = "那头猪真是坏猪猪！",
@@ -198,29 +198,29 @@ return {
         SPIDER_WARRIOR = "跳来跳去的蜘蛛！Musha最讨厌了！"
     },
     --adds 4 start
-    ANNOUNCE_TOOL_SLIP = "它太滑了!",
-    ANNOUNCE_LIGHTNING_DAMAGE_AVOIDED = "Musha并不害怕闪电！",
-    ANNOUNCE_TOADESCAPING = "它对我失去了兴趣.",
-    ANNOUNCE_TOADESCAPED = "癞蛤蟆逃走了.",
-    ANNOUNCE_BECOMEGHOST = "啊啊啊啊啊啊!!",
-    ANNOUNCE_GHOSTDRAIN = "Musha正在失去她的人性...",
-    ANNOUNCE_PETRIFED_TREES = "只有Musha才能听到它们尖叫吗？",
-    ANNOUNCE_KLAUS_ENRAGE = "现在没有办法打败它!!",
-    ANNOUNCE_KLAUS_UNCHAINED = "它的锁链掉下来了!",
-    ANNOUNCE_KLAUS_CALLFORHELP = "它在呼救，快想想办法！!",
+    ANNOUNCE_TOOL_SLIP = "太滑啦…根本握不住！",
+    ANNOUNCE_LIGHTNING_DAMAGE_AVOIDED = "闪电而已，Musha一点都不怕！",
+    ANNOUNCE_TOADESCAPING = "咦…大蛤蟆不理Musha了。",
+    ANNOUNCE_TOADESCAPED = "呜…癞蛤蟆遛走啦。",
+    ANNOUNCE_BECOMEGHOST = "哇啊啊啊啊啊！！",
+    ANNOUNCE_GHOSTDRAIN = "呜…Musha好像一点点不像自己了…",
+    ANNOUNCE_PETRIFED_TREES = "咦？是不是只有Musha听得见树在尖叫…",
+    ANNOUNCE_KLAUS_ENRAGE = "呜哇，它发狂啦…现在打不过！！",
+    ANNOUNCE_KLAUS_UNCHAINED = "哗啦！它的锁链断掉啦！",
+    ANNOUNCE_KLAUS_CALLFORHELP = "它在喊帮手…快想想办法呀！！",
     --lavaarena event
-    ANNOUNCE_REVIVING_CORPSE = "让Musha来帮你!",
-    ANNOUNCE_REVIVED_OTHER_CORPSE = "来吧，我的朋友!",
-    ANNOUNCE_REVIVED_FROM_CORPSE = "Musha感觉还不错，谢谢你。",
+    ANNOUNCE_REVIVING_CORPSE = "别动别动，Musha来救你！",
+    ANNOUNCE_REVIVED_OTHER_CORPSE = "起来啦，Musha的朋友！",
+    ANNOUNCE_REVIVED_FROM_CORPSE = "嗯…Musha缓过来啦，谢谢你。",
     --quagmire event
     QUAGMIRE_ANNOUNCE_NOTRECIPE = "这些东西什么也不能做。",
     QUAGMIRE_ANNOUNCE_MEALBURNT = "Musha和它分开的太久了.",
     QUAGMIRE_ANNOUNCE_LOSE = "Musha有一些不太好的感觉.",
     QUAGMIRE_ANNOUNCE_WIN = "是时候了!",
     ANNOUNCE_ROYALTY = {
-        "陛下.",
-        "公主殿下.",
-        "公主!"
+        "尊敬的陛下。",
+        "公主殿下～",
+        "公主！"
     },
     --adds 4 end
 
@@ -228,19 +228,19 @@ return {
         --adds 5 start (DESCRIBE)
         --MULTIPLAYER_PORTAL = "This ought to be a scientific impossibility.",
         ANTLION = {
-            GENERIC = "它想从Musha这里得到些东西.",
-            VERYHAPPY = "Musha感觉它是个很棒的朋友.",
-            UNHAPPY = "它看起来很可怕!Musha很害怕!"
+            GENERIC = "它想要Musha给它点东西呢。",
+            VERYHAPPY = "它好像把Musha当好伙伴啦！",
+            UNHAPPY = "它看起来好凶！Musha有点怕…"
         },
         ANTLIONTRINKET = "有人可能会对它们有兴趣.",
-        SANDSPIKE = "Musha不能拿起它们，Musha做不到!",
+        SANDSPIKE = "呜哇！差点被串成糖葫芦啦！",
         SANDBLOCK = "它太坚固了！",
-        GLASSSPIKE = "Memories of the time Musha wasn't skewered.",
+        GLASSSPIKE = "差点被串成糖葫芦的回忆…Musha可是记住了！",
         GLASSBLOCK = "这对你来说很科学.",
         ABIGAIL_FLOWER = {
             GENERIC = "这真是非常漂亮...",
-            LONG = "看那个东西，它会伤害Musha的灵魂.",
-            MEDIUM = "这让Musha浑身起鸡皮疙瘩.",
+            LONG = "看着它，Musha的魂都要痛啦。",
+            MEDIUM = "这东西让Musha浑身起鸡皮疙瘩。",
             SOON = "那朵花有点不对劲!",
             HAUNTED_POCKET = "Musha认为Musha不应该抓住这个.",
             HAUNTED_GROUND = "Musha会死的！"
@@ -261,12 +261,12 @@ return {
             FIRESTARTER = "燃烧？那并不科学, %s."
         },
         WILSON = {
-            GENERIC = "Stars and atoms! Are you Musha's doppelganger, %s?",
-            ATTACKER = "Yeesh. Does Musha always look that creepy?",
-            MURDERER = "Your existence is an affront to the laws of science, %s!",
-            REVIVER = "%s has expertly put our theories into practice.",
-            GHOST = "Better concoct a revival device. Can't leave another man of science floating.",
-            FIRESTARTER = "Burning that wasn't very scientific, %s."
+            GENERIC = "呜哇！%s，你是不是Musha的复制粘贴版？",
+            ATTACKER = "咦…生气的时候，看起来像实验室跑出来的怪东西。",
+            MURDERER = "%s！你干的事，连科学都看不下去啦！",
+            REVIVER = "%s把Musha的救命理论用对啦，厉害厉害！",
+            GHOST = "得赶紧调一瓶复活药水…不能让飘着的那位一直飘呀。",
+            FIRESTARTER = "%s，放火这种事…一点都不科学哦。"
         },
         WOLFGANG = {
             GENERIC = "很高兴看见你, %s!",
@@ -277,91 +277,91 @@ return {
             FIRESTARTER = '你真的不能 "fight" fire, %s!'
         },
         WAXWELL = {
-            GENERIC = "Decent day to you, %s!",
-            ATTACKER = 'Seems you\'ve gone from "dapper" to "slapper".',
-            MURDERER = "Musha will show you Logic and Reason... those're Musha's fists!",
-            REVIVER = "%s is using his powers for good.",
-            GHOST = "Don't look at Musha like that, %s! Musha is working on it!",
-            FIRESTARTER = "%s's just asking to get roasted."
+            GENERIC = "%s，今天也过得还行吧？",
+            ATTACKER = '咦？从斯文先生，变成打人先生了…',
+            MURDERER = "Musha来讲道理…用拳头讲！",
+            REVIVER = "%s把本事都用来做好事啦，不错哦。",
+            GHOST = "%s别那样瞪Musha啦！Musha在想办法了！",
+            FIRESTARTER = "%s这是…主动要求被烤熟吗？"
         },
         WX78 = {
             GENERIC = "早上好！ %s!",
-            ATTACKER = "Musha thinks Musha needs to tweak your primary directive, %s...",
-            MURDERER = "%s! You've violated the first law!",
-            REVIVER = "Musha guesses %s got that empathy module up and running.",
-            GHOST = "Musha always thought %s could use a heart. Now Musha is certain!",
-            FIRESTARTER = "You look like you're gonna melt, %s. What happened?"
+            ATTACKER = "Musha觉得，该把%s的芯片拆下来修一修…",
+            MURDERER = "%s！你违反第一条规矩啦！",
+            REVIVER = "%s的同理心小零件…好像升级成功啦。",
+            GHOST = "Musha早说%s缺一颗心嘛，现在更确定啦！",
+            FIRESTARTER = "%s，你看起来要化掉了…是踩到火了吗？"
         },
         WILLOW = {
             GENERIC = "早上好！ %s!",
-            ATTACKER = "%s is holding that lighter pretty tightly...",
-            MURDERER = "Murderer! Arsonist!",
-            REVIVER = "%s, friend of ghosts.",
-            GHOST = "Musha bets you're just burning for a heart, %s.",
+            ATTACKER = "%s把打火机攥得好紧…有点吓人哦。",
+            MURDERER = "坏蛋！纵火犯！",
+            REVIVER = "%s，是幽灵们的好朋友呢。",
+            GHOST = "%s一定是急着要一颗心，才烧起来的吧？",
             FIRESTARTER = "再来一次?"
         },
         WENDY = {
-            GENERIC = "Greetings, %s!",
-            ATTACKER = "%s doesn't have any sharp objects, does she?",
-            MURDERER = "Murderer!",
-            REVIVER = "%s treats ghosts like family.",
-            GHOST = "Musha is seeing double! I'd better concoct a heart for %s.",
-            FIRESTARTER = "Musha knows you set those flames, %s."
+            GENERIC = "嗨呀，%s！",
+            ATTACKER = "%s身上…没藏着尖尖的东西吧？",
+            MURDERER = "凶手！",
+            REVIVER = "%s把幽灵当成一家人呢，真好。",
+            GHOST = "Musha眼睛都花啦…得赶紧给%s做颗心！",
+            FIRESTARTER = "Musha知道哦，火是%s点的，别装啦。"
         },
         WOODIE = {
-            GENERIC = "Greetings, %s!",
-            ATTACKER = "%s has been a bit of a sap lately...",
-            MURDERER = "Murder! Bring Musha an axe and we'll get in the swing of things!",
-            REVIVER = "%s saved everyone's backbacon.",
-            GHOST = 'Does "universal" coverage include the void, %s?',
-            BEAVER = "%s's gone on a wood chucking rampage!",
-            BEAVERGHOST = "Will you bea-very mad if Musha doesn't revive you, %s?",
-            FIRESTARTER = "Don't burn yourself out, %s."
+            GENERIC = "哟，%s！",
+            ATTACKER = "%s最近怪怪的…像被树汁黏住了一样。",
+            MURDERER = "凶手！给Musha一把斧头，Musha要砍回去！",
+            REVIVER = "%s救了大家的培根…好厉害！",
+            GHOST = '咦？%s连掉进虚空这种事也管赔吗？',
+            BEAVER = "%s变成海狸啦，到处啃木头！",
+            BEAVERGHOST = "Musha要是先不救%s，会不会超生气呀？",
+            FIRESTARTER = "%s别把自己也烧焦啦。"
         },
         WICKERBOTTOM = {
             GENERIC = "早上好, %s!",
-            ATTACKER = "Musha thinks %s's planning to throw the book at Musha.",
-            MURDERER = "Here comes Musha's peer review!",
-            REVIVER = "Musha has deep respect for %s's practical theorems.",
-            GHOST = "This doesn't seem very scientific, does it, %s?",
-            FIRESTARTER = "Musha is sure you had a very clever reason for that fire."
+            ATTACKER = "Musha觉得，%s要拿书砸Musha了…",
+            MURDERER = "Musha的随堂小考…来啦！",
+            REVIVER = "Musha很佩服%s的道理…虽然听不太懂。",
+            GHOST = "%s这样…好像不太科学哦？",
+            FIRESTARTER = "放火肯定有个聪明的理由…Musha信了。"
         },
         WES = {
-            GENERIC = "Greetings, %s!",
-            ATTACKER = "%s is silent, but deadly...",
-            MURDERER = "Mime this!",
-            REVIVER = "%s thinks outside the invisible box.",
-            GHOST = 'How do you say "I\'ll concoct a revival device" in mime?',
-            FIRESTARTER = "Wait, don't tell Musha. You lit a fire."
+            GENERIC = "嘿，%s！",
+            ATTACKER = "%s安安静静的…但是好危险哦。",
+            MURDERER = "这个动作，你学得来吗！",
+            REVIVER = "%s的脑袋里…装了个看不见的盒子。",
+            GHOST = '「Musha要救你」这句话…用哑剧要怎么演呀？',
+            FIRESTARTER = "别说了别说了…反正火就是刚点的对吧。"
         },
         WEBBER = {
             GENERIC = "早上好, %s!",
-            ATTACKER = "Musha is gonna roll up a piece of papyrus newspaper, just in case.",
-            MURDERER = "Murderer! Musha will squash you, %s!",
-            REVIVER = "%s is playing well with others.",
-            GHOST = "%s is really buggin' me for a heart.",
-            FIRESTARTER = "We need to have a group meeting about fire safety."
+            ATTACKER = "Musha得卷个小纸棍防身…以防万一嘛。",
+            MURDERER = "凶手！Musha要把%s拍扁啦！",
+            REVIVER = "%s和其他人玩得可好啦。",
+            GHOST = "%s一直拿虫子烦Musha…好啦好啦，给你做心！",
+            FIRESTARTER = "大家得开个会啦…主题是：不许乱放火！"
         },
         WATHGRITHR = {
             GENERIC = "早上好, %s!",
-            ATTACKER = "Musha doesn't want a punch from %s, if possible.",
-            MURDERER = "%s's gone berserk!",
-            REVIVER = "%s has full command of spirits.",
-            GHOST = "Nice try. You're not escaping to Valhalla yet, %s.",
-            FIRESTARTER = "%s is really heating things up today."
+            ATTACKER = "Musha可不想被%s揍一拳…能躲就躲。",
+            MURDERER = "%s暴走啦！",
+            REVIVER = "%s把幽灵们都管得服服帖帖的。",
+            GHOST = "别想溜去英灵殿哦，%s，还早着呢～",
+            FIRESTARTER = "%s今天把气氛…烧得可旺啦。"
         },
         WINONA = {
             GENERIC = "祝你有个不错的一天, %s!",
-            ATTACKER = "%s is a safety hazard.",
-            MURDERER = "It ends here, %s!",
-            REVIVER = "You're pretty handy to have around, %s.",
-            GHOST = "Looks like someone threw a wrench into your plans.",
-            FIRESTARTER = "Things are burning up at the factory."
+            ATTACKER = "%s就是个会走路的危险警告牌。",
+            MURDERER = "%s，到此为止啦！",
+            REVIVER = "有%s在，Musha可安心多啦。",
+            GHOST = "好像有人的计划…被扳手砸坏啦。",
+            FIRESTARTER = "呜哇…工厂里都烧起来啦！"
         },
         MIGRATION_PORTAL = {
-            GENERIC = "If Musha had any friends, this could take me to them.",
-            OPEN = "If Musha would step through, will Musha still be Musha?",
-            FULL = "It seems to be popular over there."
+            GENERIC = "要是Musha有朋友的话…这玩意儿能把Musha送到他们那里吧。",
+            OPEN = "Musha要是走进去…出来的还会是Musha吗？",
+            FULL = "那边好像很热闹，挤都挤不进去。"
         },
         --adds 5 end (DESCRIBE)
 
@@ -469,7 +469,7 @@ return {
             GENERIC = "Musha认识那个！唔...那是什么？",
             EMPTY = "Musha几星期前见过花朵。"
         },
-        WEBBERSKULL = "This skull seems to have a story.",
+        WEBBERSKULL = "这个骷髅头…好像藏着一段故事哦。",
         MOLE = {
             HELD = "看！它有个有趣的鼻子！",
             UNDERGROUND = "有东西藏着这里下面。\n Musha会找出来的。",
@@ -482,7 +482,7 @@ return {
         MUSHROOMHAT = "穿起来看上去会很有趣.",
         MUSHROOM_LIGHT2 = {
             ON = "蓝色是科学的颜色！",
-            OFF = "We could make a prime light source with some primary colors.",
+            OFF = "用三原色…说不定能拼出一盏亮亮的灯！",
             BURNT = "穆沙发誓，它没有发霉."
         },
         MUSHROOM_LIGHT = {
@@ -503,8 +503,8 @@ return {
             RAGE = "它现在发疯了!"
         },
         MUSHROOMSPROUT = {
-            GENERIC = "How scientific!",
-            BURNT = "How im-morel!"
+            GENERIC = "好科学呀！",
+            BURNT = "哼，这朵蘑菇…一点都不讲道理！"
         },
         MUSHTREE_TALL = {
             GENERIC = "那个蘑菇长得太大了，对它自己没有好处.",
@@ -524,7 +524,7 @@ return {
             HELD = "它会在Musha的口袋里发光的！"
         },
         SPORE_MEDIUM = {
-            GENERIC = "Hasn't a care in the world.",
+            GENERIC = "它看起来…什么都不在乎呢。",
             HELD = "它会在Musha的口袋里发光的."
         },
         SPORE_SMALL = {
@@ -543,7 +543,7 @@ return {
             GENERIC = "Musha可以画得更好!",
             UNDRAWN = "我们应该在上面画点东西."
         },
-        MINISIGN_ITEM = "It's not much use like this. We should place it.",
+        MINISIGN_ITEM = "这样拿着没什么用…得把它放下来。",
         BERRYBUSH_JUICY = {
             BARREN = "在这个状态下，它不会生成任何浆果.",
             WITHERED = "高温使得它们脱水了!",
@@ -559,13 +559,13 @@ return {
         },
         CANARY_POISONED = "它看起来还不错.",
         CRITTERLAB = "里面有什么东西吗?",
-        CRITTER_GLOMLING = "What an aerodynamical creature!",
-        CRITTER_DRAGONLING = "It's wyrmed its way into Musha's heart.",
-        CRITTER_LAMB = "Much less mucusy than its momma.",
+        CRITTER_GLOMLING = "这小家伙…长得真会滑翔！",
+        CRITTER_DRAGONLING = "这条小飞龙…钻进Musha心里啦。",
+        CRITTER_LAMB = "比它妈妈干净多啦，黏糊糊的少多了。",
         CRITTER_PUPPY = "小怪物是很可爱的!",
-        CRITTER_KITTEN = "You'd make a good lab assistant for Musha.",
-        CRITTER_PERDLING = "My feathered friend.",
-        LAVA_POND = "Magmificent!",
+        CRITTER_KITTEN = "这只小猫…可以当Musha的小助手哦。",
+        CRITTER_PERDLING = "Musha的羽毛小伙伴！",
+        LAVA_POND = "岩浆浆…好厉害！",
         LAVAE = "太热了，没办法接触.",
         LAVAE_COCOON = "冷却下来吧！",
         LAVAE_PET = {
@@ -591,10 +591,10 @@ return {
             OLDLIGHT = "我们忘记买新灯泡了吗?" -- will be wilted soon, light radius will be very small at this point
         },
         TWIGGYTREE = {
-            BURNING = "What a waste of wood.",
+            BURNING = "木头都白白烧掉啦…好可惜。",
             BURNT = "Musha觉得Musha本可以阻止这一切.",
             CHOPPED = "大自然!",
-            GENERIC = "It's all stick-y.",
+            GENERIC = "上面全是小树枝…扎扎的。",
             DISEASED = "它看起来生病了."
         },
         TWIGGY_NUT_SAPLING = "它不需要任何帮助就能成长.",
@@ -609,7 +609,7 @@ return {
         },
         STALKER = "骨架与阴影融为一体!",
         STALKER_ATRIUM = "为什么它如此庞大?",
-        STALKER_MINION = "Anklebiters!",
+        STALKER_MINION = "脚脖子痒痒的！",
         THURIBLE = "闻起来像化学品.",
         ATRIUM_OVERGROWTH = "Musha不认识这些符号.",
         LUCY = "这把斧头比Musha用过的还要漂亮.",
@@ -907,7 +907,7 @@ return {
         ROCKY = "真大。",
         BLUEAMULET = "这护身符感觉凉凉的！",
         PURPLEAMULET = "Musha能看见死去的人...",
-        TELESTAFF = "Pop! Pop! Pop!",
+        TELESTAFF = "咚！咚！咚！",
         MINERHAT = "Musha不是矿工，不过它能让Musha在洞穴里看见东西。",
         MONKEY = "抓住他！他偷了Musha的东西！",
         MONKEYBARREL = "猴子做了个房子看着好像他们的脸。",
@@ -1438,7 +1438,7 @@ return {
             FINISHED = "现在呢?",
             READY = "我感觉里面有东西在动."
         },
-        SCULPTURE_ROOKNOSE = "Where did this come from?",
+        SCULPTURE_ROOKNOSE = "咦？这东西是从哪冒出来的？",
         SCULPTURE_ROOKBODY = {
             COVERED = "这是某种大理石雕像.",
             UNCOVERED = "这样子不是最完美的.",
@@ -1573,65 +1573,65 @@ return {
         TRINKET_12 = "这是用来做实验的.", --Dessicated Tentacle
         TRINKET_13 = "它一定是某种宗教神器.", --Gnomette
         TRINKET_14 = "现在Musha只想要喝点茶...", --Leaky Teacup
-        TRINKET_15 = "...Maxwell left his stuff out again.", --Pawn
-        TRINKET_16 = "...Maxwell left his stuff out again.", --Pawn
-        TRINKET_17 = "A horrifying utensil fusion. Maybe science *can* go too far.", --Bent Spork
-        TRINKET_18 = "Musha wonders what it's hiding?", --Trojan Horse
-        TRINKET_19 = "It doesn't spin very well.", --Unbalanced Top
-        TRINKET_20 = "Wigfrid keeps jumping out and hitting Musha with it?!", --Backscratcher
-        TRINKET_21 = "This egg beater is all bent out of shape.", --Egg Beater
-        TRINKET_22 = "Musha has a few theories about this string.", --Frayed Yarn
-        TRINKET_23 = "Musha can put Musha's shoes on without help, thanks.", --Shoehorn
-        TRINKET_24 = "Musha thinks Wickerbottom had a cat.", --Lucky Cat Jar
-        TRINKET_25 = "It smells kind of stale.", --Air Unfreshener
-        TRINKET_26 = "Food and a cup! The ultimate survival container.", --Potato Cup
-        TRINKET_27 = "If you unwound it you could poke someone from really far away.", --Coat Hanger
-        TRINKET_28 = "How Machiavellian.", --Rook
-        TRINKET_29 = "How Machiavellian.", --Rook
-        TRINKET_30 = "Honestly, he just leaves them out wherever.", --Knight
-        TRINKET_31 = "Honestly, he just leaves them out wherever.", --Knight
-        TRINKET_32 = "Musha knows someone who'd have a ball with this!", --Cubic Zirconia Ball
-        TRINKET_33 = "Musha hopes this doesn't attract spiders.", --Spider Ring
-        TRINKET_34 = "Let's make a wish. For science.", --Monkey Paw
-        TRINKET_35 = "Hard to find a good flask around here.", --Empty Elixir
-        TRINKET_36 = "Musha might need these after all that candy.", --Faux fangs
-        TRINKET_37 = "Musha doesn't believe in the supernatural.", --Broken Stake
-        TRINKET_38 = "Musha thinks it came from another world. One with grifts.", -- Binoculars Griftlands trinket
-        TRINKET_39 = "Musha wonders where the other one is?", -- Lone Glove Griftlands trinket
-        TRINKET_40 = "Holding it makes me feel like bartering.", -- Snail Scale Griftlands trinket
-        TRINKET_41 = "It's a little warm to the touch.", -- Goop Canister Hot Lava trinket
-        TRINKET_42 = "It's full of someone's childhood memories.", -- Toy Cobra Hot Lava trinket
-        TRINKET_43 = "It's not very good at jumping.", -- Crocodile Toy Hot Lava trinket
-        TRINKET_44 = "It's some sort of plant specimen.", -- Broken Terrarium ONI trinket
-        TRINKET_45 = "It's picking up frequencies from another world.", -- Odd Radio ONI trinket
-        TRINKET_46 = "Maybe a tool for testing aerodynamics?", -- Hairdryer ONI trinket
-        HALLOWEENCANDY_1 = "The cavities are probably worth it, right?",
-        HALLOWEENCANDY_2 = "What corruption of science grew these?",
-        HALLOWEENCANDY_3 = "It's... corn.",
-        HALLOWEENCANDY_4 = "They wriggle on the way down.",
-        HALLOWEENCANDY_5 = "Musha's teeth are going to have something to say about this tomorrow.",
-        HALLOWEENCANDY_6 = "Musha... doesn't think Musha will be eating those.",
-        HALLOWEENCANDY_7 = "Everyone'll be raisin' a fuss over these.",
-        HALLOWEENCANDY_8 = "Only a sucker wouldn't love this.",
-        HALLOWEENCANDY_9 = "Sticks to Musha's teeth.",
-        HALLOWEENCANDY_10 = "Only a sucker wouldn't love this.",
-        HALLOWEENCANDY_11 = "Much better tasting than the real thing.",
-        HALLOWEENCANDY_12 = "Did that candy just move?", --ONI meal lice candy
-        HALLOWEENCANDY_13 = "Oh, Musha's poor jaw.", --Griftlands themed candy
-        HALLOWEENCANDY_14 = "Musha doesn't do well with spice.", --Hot Lava pepper candy
-        CANDYBAG = "It's some sort of delicious pocket dimension for sugary treats.",
-        DRAGONHEADHAT = "So who gets to be the head?",
-        DRAGONBODYHAT = "Musha is middling on this middle piece.",
-        DRAGONTAILHAT = "Someone has to bring up the rear.",
+        TRINKET_15 = "…Maxwell又把东西乱丢啦。", --Pawn
+        TRINKET_16 = "…又是Maxwell随手扔下的东西吧。", --Pawn
+        TRINKET_17 = "餐具被熔成了怪东西…科学真的会走过头啊。", --Bent Spork
+        TRINKET_18 = "里面藏了什么呀？Musha好想知道…", --Trojan Horse
+        TRINKET_19 = "转起来歪歪扭扭的…转不太动。", --Unbalanced Top
+        TRINKET_20 = "Wigfrid老跳出来拿这个敲Musha？！", --Backscratcher
+        TRINKET_21 = "这个打蛋器…弯得不成样子啦。", --Egg Beater
+        TRINKET_22 = "这根绳子…Musha有好几种猜法哦。", --Frayed Yarn
+        TRINKET_23 = "Musha会自己穿鞋啦，谢谢关心～", --Shoehorn
+        TRINKET_24 = "Musha猜…Wickerbottom养过一只猫。", --Lucky Cat Jar
+        TRINKET_25 = "闻起来…有点旧旧的味道。", --Air Unfreshener
+        TRINKET_26 = "有吃的还有杯子！这是最厉害的求生宝盒！", --Potato Cup
+        TRINKET_27 = "把它拉直了…能戳到好远好远的地方哦。", --Coat Hanger
+        TRINKET_28 = "好坏心眼儿哦…", --Rook
+        TRINKET_29 = "这心思…弯弯绕绕的。", --Rook
+        TRINKET_30 = "说真的，他就是走到哪丢到哪。", --Knight
+        TRINKET_31 = "这个人啊…东西随手就乱放。", --Knight
+        TRINKET_32 = "Musha知道有谁…会玩这个玩到疯！", --Cubic Zirconia Ball
+        TRINKET_33 = "希望这玩意儿…别把蜘蛛招来。", --Spider Ring
+        TRINKET_34 = "来许个愿吧…为了科学！", --Monkey Paw
+        TRINKET_35 = "在这地方…想找个好瓶子真难。", --Empty Elixir
+        TRINKET_36 = "吃了那么多糖…Musha可能用得着这个。", --Faux fangs
+        TRINKET_37 = "Musha才不信什么鬼神呢…嗯，才不信。", --Broken Stake
+        TRINKET_38 = "Musha猜它来自另一个世界…那边的人爱骗人。", -- Binoculars Griftlands trinket
+        TRINKET_39 = "另一只…跑哪去啦？", -- Lone Glove Griftlands trinket
+        TRINKET_40 = "拿着它…Musha就想跟人做交易。", -- Snail Scale Griftlands trinket
+        TRINKET_41 = "摸上去…还有点温温的。", -- Goop Canister Hot Lava trinket
+        TRINKET_42 = "里面装满了一个人的小时候…", -- Toy Cobra Hot Lava trinket
+        TRINKET_43 = "它跳得…实在不怎么样。", -- Crocodile Toy Hot Lava trinket
+        TRINKET_44 = "好像是什么植物的标本。", -- Broken Terrarium ONI trinket
+        TRINKET_45 = "它在接收另一个世界的信号呢…", -- Odd Radio ONI trinket
+        TRINKET_46 = "会不会是测风的小工具呀？", -- Hairdryer ONI trinket
+        HALLOWEENCANDY_1 = "长蛀牙也值啦…大概吧？",
+        HALLOWEENCANDY_2 = "这是科学长歪了才结出来的糖吗？",
+        HALLOWEENCANDY_3 = "这是…玉米。",
+        HALLOWEENCANDY_4 = "咽下去的时候…它们还在扭来扭去。",
+        HALLOWEENCANDY_5 = "Musha的牙…明天肯定要跟Musha吵架了。",
+        HALLOWEENCANDY_6 = "这个…Musha还是不吃了吧。",
+        HALLOWEENCANDY_7 = "大家肯定都为了这个葡萄干吵起来…",
+        HALLOWEENCANDY_8 = "只有笨蛋才不喜欢这个吧！",
+        HALLOWEENCANDY_9 = "黏在Musha的牙上啦…",
+        HALLOWEENCANDY_10 = "喜欢甜的人…肯定都爱这个！",
+        HALLOWEENCANDY_11 = "比真家伙好吃多啦！",
+        HALLOWEENCANDY_12 = "咦？那颗糖…是不是动了一下？", --ONI meal lice candy
+        HALLOWEENCANDY_13 = "呜…Musha可怜的腮帮子。", --Griftlands themed candy
+        HALLOWEENCANDY_14 = "Musha可受不了辣…会喷火的！", --Hot Lava pepper candy
+        CANDYBAG = "里面是个甜食小口袋…怎么装都装不满！",
+        DRAGONHEADHAT = "那…谁来当龙头呀？",
+        DRAGONBODYHAT = "中间这一段…Musha感觉一般般啦。",
+        DRAGONTAILHAT = "总得有人来当尾巴嘛…",
         PERDSHRINE = {
-            GENERIC = "Musha feels like it wants something.",
-            EMPTY = "Musha needs to plant something there.",
-            BURNT = "That won't do at all."
+            GENERIC = "它好像…在跟Musha要东西。",
+            EMPTY = "这里得种点什么才行。",
+            BURNT = "烧成这样…可不行啦。"
         },
         REDLANTERN = "这盏灯笼感觉比其他的更独特.",
         LUCKY_GOLDNUGGET = "多么幸运的发现!",
         FIRECRACKERS = "科学方式来引爆它!",
-        PERDFAN = "It's inordinately large.",
+        PERDFAN = "这扇子…大得有点离谱哦。",
         REDPOUCH = "里面有什么东西吗?",
         WARGSHRINE = {
             GENERIC = "Musha应该做点快乐的事情~",
@@ -1648,7 +1648,7 @@ return {
         },
         HOUNDWHISTLE = "它们能让狗进不来.",
         CHESSPIECE_CLAYHOUND = "那件事是我最担心的.",
-        CHESSPIECE_CLAYWARG = "And Musha didn't even get eaten!",
+        CHESSPIECE_CLAYWARG = "而且Musha都没被吃掉…耶！",
         BISHOP_CHARGE_HIT = "哇!",
         --adds 3 end
         TRUNKVEST_SUMMER = "真是温暖的防水背心！",

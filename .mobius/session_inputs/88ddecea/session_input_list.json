@@ -1,0 +1,20 @@
+[
+  {
+    "id": "input-1789177471711-kf9ol3hg",
+    "session_id": "88ddecea",
+    "input_text": "请整理当前所有技能，并检查是否符合要求，或整理出来一个目录和位置，放进去？",
+    "content": "请整理当前所有技能，并检查是否符合要求，或整理出来一个目录和位置，放进去？",
+    "created_at": "2026-09-12T01:44:31.711Z",
+    "request_id": "send-1789177471520-ka3t7iam",
+    "turn_number": 2
+  },
+  {
+    "id": "input-1789177840775-yjr2ffat",
+    "session_id": "88ddecea",
+    "input_text": "如何？",
+    "content": "如何？",
+    "created_at": "2026-09-12T01:50:40.775Z",
+    "request_id": "send-1789177840691-r7q7x9bm",
+    "turn_number": 3
+  }
+]

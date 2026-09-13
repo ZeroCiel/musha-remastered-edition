@@ -1,13 +1,101 @@
 -- ====================================
 -- musha_rpcs.lua
 -- ModRPC 定义
--- 客户端→服务端：加点请求
--- 服务端→客户端：技能数据同步
+-- DST API：AddModRPCHandler(namespace, name, fn) / GetModRPC(namespace, name)
 -- ====================================
+
+local NS = "musha"
+
+-- ====================================
+-- 礼包领取（客户端→服务端，2026-09-12 新增）
+--   面板「礼包」页点「领取」调它；数据表在 scripts/musha_gifts.lua
+--   服务端校验：礼包存在 / enabled / 活动时间内 / 没领过 → 发物品 + 记 pc.userdata.gifts
+-- ====================================
+GLOBAL.AddModRPCHandler(NS, "musha_claim_gift", function(player, gift_id)
+    if not player or not player:IsValid() then return end
+    if not GLOBAL.TheWorld.ismastersim then return end
+    if type(gift_id) ~= "string" then return end
+
+    local function Say(msg, t)
+        if player.components.talker then
+            player.components.talker:Say(msg, t or 3)
+        end
+    end
+
+    local ok, GIFTS = pcall(GLOBAL.require, "musha_gifts")
+    if not ok or type(GIFTS) ~= "table" then
+        Say("礼包数据读取失败")
+        return
+    end
+
+    local gift = nil
+    for _, g in ipairs(GIFTS) do
+        if g.id == gift_id then
+            gift = g
+            break
+        end
+    end
+    if gift == nil then
+        Say("没有这个礼包")
+        return
+    end
+    if gift.enabled == false then
+        Say("该礼包暂未开放")
+        return
+    end
+
+    local pc = player.components.musha_profession_component
+    if not pc then
+        Say("职业系统未就绪")
+        return
+    end
+    pc.userdata.gifts = pc.userdata.gifts or {}
+    if pc.userdata.gifts[gift_id] then
+        Say("这个礼包你已经领过了")
+        return
+    end
+
+    -- 活动时间判定（预留）：现在 period 为空 = 常驻；节日活动按 start_day/end_day 判
+    local p = gift.period
+    if p and p.start_day and p.end_day then
+        local cycles = (GLOBAL.TheWorld.state and GLOBAL.TheWorld.state.cycles) or 0
+        if cycles < p.start_day or cycles > p.end_day then
+            Say("这个礼包不在活动时间内")
+            return
+        end
+    end
+
+    -- 发放
+    local inv = player.components.inventory
+    if not inv then
+        Say("背包不可用")
+        return
+    end
+    local given = 0
+    for _, it in ipairs(gift.items or {}) do
+        for _ = 1, (it.count or 1) do
+            local ent = GLOBAL.SpawnPrefab(it.prefab)
+            if ent then
+                inv:GiveItem(ent)
+                given = given + 1
+            end
+        end
+    end
+    if given <= 0 then
+        Say("礼包发放失败")
+        return
+    end
+
+    pc.userdata.gifts[gift_id] = GLOBAL.GetTime() or 0
+    -- 推一次给客机（面板据此把按钮变成"已领取"）
+    pcall(function() pc:PushSettings() end)
+
+    Say("礼包已领取：" .. tostring(gift.name) .. "（共 " .. tostring(given) .. " 件）", 4)
+end)
 
 -- 加点请求（客户端→服务端）
 -- 参数：skill_id (string)
-GLOBAL.AddModRPCHandler("musha_skill_upgrade", function(player, skill_id)
+GLOBAL.AddModRPCHandler(NS, "musha_skill_upgrade", function(player, skill_id)
     if not player or not player:IsValid() then return end
     if not GLOBAL.TheWorld.ismastersim then return end
 
@@ -30,7 +118,7 @@ GLOBAL.AddModRPCHandler("musha_skill_upgrade", function(player, skill_id)
 end)
 
 -- 服务端→客户端：发送技能数据刷新 UI
-GLOBAL.AddModRPCHandler("musha_skill_data_update", function(player, data_str)
+GLOBAL.AddModRPCHandler(NS, "musha_skill_data_update", function(player, data_str)
     if GLOBAL.TheWorld.ismastersim then return end
 
     local data = GLOBAL.json.decode(data_str)
@@ -43,7 +131,7 @@ GLOBAL.AddModRPCHandler("musha_skill_data_update", function(player, data_str)
 end)
 
 -- 请求打开技能书 UI（客户端→服务端，获取初始数据）
-GLOBAL.AddModRPCHandler("musha_request_skill_data", function(player)
+GLOBAL.AddModRPCHandler(NS, "musha_request_skill_data", function(player)
     if not player or not player:IsValid() then return end
     if not GLOBAL.TheWorld.ismastersim then return end
 
@@ -51,11 +139,11 @@ GLOBAL.AddModRPCHandler("musha_request_skill_data", function(player)
     if not pc then return end
 
     local data = {
-        skill_points = pc.mydata.skill_points or 0,
-        level = pc.mydata.level or 0,
-        exp = pc.mydata.exp or 0,
-        job = pc.mydata.carrer_base,
-        advance_job = pc.mydata.carrer_special,
+        skill_points = pc.userdata.skill_points or 0,
+        level = pc.userdata.level or 0,
+        exp = pc.userdata.exp or 0,
+        job = pc.userdata.carrer_base,
+        advance_job = pc.userdata.carrer_special,
     }
 
     local skill_info = pc:GetAllSkillLevels()
@@ -63,24 +151,51 @@ GLOBAL.AddModRPCHandler("musha_request_skill_data", function(player)
     data.skills = skill_info
 
     local json_str = GLOBAL.json.encode(data)
-    player.Network:SendModRPCToClient(
-        GLOBAL.GetModRPCIndex("musha_skill_data_update"),
-        json_str
-    )
+    player.Network:SendModRPCToClient(GLOBAL.GetModRPC(NS, "musha_skill_data_update"), json_str)
 end)
 
 -- 打开技能面板（服务端→客户端）
-GLOBAL.AddModRPCHandler("musha_open_skill_panel", function(player)
+GLOBAL.AddModRPCHandler(NS, "musha_open_skill_panel", function(player)
     if GLOBAL.TheWorld.ismastersim then return end
 
     local player_inst = GLOBAL.ThePlayer
     if not player_inst then return end
 
     -- 先请求服务端数据
-    SendModRPCToServer(GetModRPCIndex("musha_request_skill_data"))
+    SendModRPCToServer(GetModRPC(NS, "musha_request_skill_data"))
 
     -- 打开技能 UI（如果有 skillui 组件）
     if player_inst.components.musha_skillui then
         player_inst.components.musha_skillui:OpenUI()
+    end
+end)
+
+-- ====================================
+-- 局内设置（2026-09-10 新增）
+-- ====================================
+
+-- 设置：客户端→服务端
+-- 参数：scope("world"/"player"), key(string), value(number)  —— bool 用 1/0 传
+GLOBAL.AddModRPCHandler(NS, "musha_set_setting", function(player, scope, key, value)
+    if not player or not player:IsValid() then return end
+    if not GLOBAL.TheWorld.ismastersim then return end
+
+    local pc = player.components.musha_profession_component
+    if not pc then return end
+
+    local ok, reason = pc:SetMushaSetting(scope, key, value, player)
+    if not ok and reason == "no_permission" and player.components.talker then
+        player.components.talker:Say("只有房主/管理员能改世界设置", 3)
+    end
+end)
+
+-- 设置：客户端开面板时拉一次最新值（服务端→回推设置快照）
+GLOBAL.AddModRPCHandler(NS, "musha_request_settings", function(player)
+    if not player or not player:IsValid() then return end
+    if not GLOBAL.TheWorld.ismastersim then return end
+
+    local pc = player.components.musha_profession_component
+    if pc then
+        pc:PushSettings()
     end
 end)

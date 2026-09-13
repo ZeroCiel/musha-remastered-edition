@@ -9,6 +9,24 @@ local _ENV = _G
 -- 每页显示技能数（不含头部）
 local SKILLS_PER_PAGE = 5
 
+-- ===== 原图全尺寸常量（bookpage_bg.png 1232x832，1:1 显示不压缩不变形）=====
+-- 2026-09-08 用户要求按原图全尺寸显示，废弃 592x400 压缩卡
+local CARD_W = 1232
+local CARD_H = 832
+-- 整卡缩放：2026-09-08 用户要求 0.93（渲染约 1146x774）
+local PANEL_ZOOM = 0.93
+-- 内容坐标已按原图 1232x832 重新布局（旧 592x400 坐标 ×2.08）
+local LIST_X = 52
+-- 页1：列表从 y=+187 起，行距 98（5 行到底部提示不越界）
+-- 其他页：列表从 y=+302 起，行距 125
+local LIST_Y0_P1 = 187
+local LIST_Y0_PN = 302
+local LIST_STEP_P1 = 98
+local LIST_STEP_PN = 125
+-- 图内右上红叉（px≈1140,90 → 以卡中心为原点: x=1140-616=524, y=416-90=326）
+local CLOSE_X = 524
+local CLOSE_Y = 326
+
 -- 本地常量定义（避免依赖 modmain 加载时序）
 local MUSHA_JOB_NONE = 0
 local MUSHA_JOB_WARRIOR = 1
@@ -136,7 +154,7 @@ function MUSHA_SKILLUI:OpenUI()
     else
         -- 联机：通过 RPC 请求
         SendModRPCToServer(
-            GetModRPCIndex("musha_request_skill_data")
+            GetModRPC("musha", "musha_request_skill_data")
         )
     end
 
@@ -171,7 +189,7 @@ function MUSHA_SKILLUI:CreateWidget()
     self._root:SetVAnchor(ANCHOR_MIDDLE)
     self._root:SetHAnchor(ANCHOR_MIDDLE)
     self._root:SetScaleMode(SCALEMODE_PROPORTIONAL)
-    self._root:SetPosition(0, 50, 0)
+    self._root:SetPosition(0, 0, 0)  -- 2026-09-08 用户要求 UI 居中：y 50→0
 
     -- 背景遮罩（点击关闭）
     local bg = self._root:AddChild(Image("images/global.xml", "square.tex"))
@@ -238,10 +256,12 @@ function MUSHA_SKILLUI:Render()
 
     local panel = self._root:AddChild(Widget("musha_panel"))
     panel:SetClickable(false)
+    -- 整卡放大（内容/文字随 scale 等比放大）
+    panel:SetScale(PANEL_ZOOM)
 
-    -- 书页背景
+    -- 书页背景（原图 1:1 全尺寸，不压缩不变形）
     local page_bg = panel:AddChild(Image("images/bookpage_bg.xml", "bookpage_bg.tex"))
-    page_bg:SetScale(250, 340)
+    page_bg:SetSize(CARD_W, CARD_H)
     page_bg:SetPosition(0, 0, 0)
 
     -- 计算当前页的技能
@@ -249,23 +269,23 @@ function MUSHA_SKILLUI:Render()
     local end_idx = math.min(start_idx + SKILLS_PER_PAGE - 1, #self._skill_list)
 
     -- 第一页显示头像+信息
-    if self._current_page == 1 then
+    local is_p1 = (self._current_page == 1)
+    if is_p1 then
         self:RenderHeader(panel)
     end
 
-    -- 技能点行
-    local sp_y = 125
-    if self._current_page == 1 then
-        sp_y = 65
-    end
-
-    local sp_text = panel:AddChild(Text(UIFONT, 22, "技能点  " .. self._skill_points .. " 可用"))
-    sp_text:SetPosition(0, sp_y, 0)
+    -- 技能点行（每页显示，放右上 x=132 避开图右上红叉区 x>230）
+    local sp_text = panel:AddChild(Text(UIFONT, 32, "技能点  " .. self._skill_points .. " 可用"))
+    sp_text:SetPosition(280, 300, 0)
     sp_text:SetColour(0.23, 0.16, 0.10, 1)
     sp_text:SetHAlign(ANCHOR_MIDDLE)
 
-    -- 渲染技能列表
-    local skill_y = sp_y - 30
+    -- 渲染技能列表（横版：列表容器整体右移 LIST_X，行距按页型）
+    local list_root = panel:AddChild(Widget("musha_list_root"))
+    list_root:SetPosition(LIST_X, 0, 0)
+    list_root:SetClickable(false)
+    local list_y = is_p1 and LIST_Y0_P1 or LIST_Y0_PN
+    local list_step = is_p1 and LIST_STEP_P1 or LIST_STEP_PN
 
     for i = start_idx, end_idx do
         local entry = self._skill_list[i]
@@ -277,90 +297,63 @@ function MUSHA_SKILLUI:Render()
             and (not skill_def.req_lv[skill_lv + 1] or self._level >= skill_def.req_lv[skill_lv + 1])
         local is_locked = not is_learned and (skill_def.req_level and self._level < skill_def.req_level)
 
-        self:RenderSkillItem(panel, entry.id, skill_def, skill_lv, can_upgrade, is_locked, skill_y)
-        skill_y = skill_y - 55
+        self:RenderSkillItem(list_root, entry.id, skill_def, skill_lv, can_upgrade, is_locked, list_y)
+        list_y = list_y - list_step
     end
 
-    -- 分页指示
+    -- 底部提示（右键翻页 / 关闭，合一行）
+    local hint = ""
     if self._total_pages > 1 then
-        local page_text = panel:AddChild(Text(UIFONT, 18, "— 右键翻页 " .. self._current_page .. "/" .. self._total_pages .. " —"))
-        page_text:SetPosition(0, skill_y - 15, 0)
-        page_text:SetColour(0.54, 0.48, 0.38, 1)
-        page_text:SetHAlign(ANCHOR_MIDDLE)
+        hint = "— 右键翻页 " .. self._current_page .. "/" .. self._total_pages .. " · 右键关闭 —"
+    else
+        hint = "— 右键关闭 —"
     end
+    local hint_text = panel:AddChild(Text(UIFONT, 30, hint))
+    hint_text:SetPosition(0, list_y - 55, 0)
+    hint_text:SetColour(0.54, 0.48, 0.38, 1)
+    hint_text:SetHAlign(ANCHOR_MIDDLE)
 
-    -- 关闭提示
-    local close_text = panel:AddChild(Text(UIFONT, 16, "— 右键关闭 —"))
-    close_text:SetPosition(0, skill_y - 40, 0)
-    close_text:SetColour(0.54, 0.48, 0.38, 1)
-    close_text:SetHAlign(ANCHOR_MIDDLE)
+    -- 图内右上红叉 → 透明点击区（点击=关闭），挂在 root 保证可点
+    local close_hit = self._root:AddChild(Button("images/global.xml", "square.tex", nil, nil, nil, nil))
+    close_hit:SetSize(80 * PANEL_ZOOM, 80 * PANEL_ZOOM)
+    close_hit:SetPosition(CLOSE_X * PANEL_ZOOM, CLOSE_Y * PANEL_ZOOM, 0)
+    close_hit:SetNormalTint(1, 1, 1, 0)
+    close_hit:SetHoverTint(1, 1, 1, 0.15)
+    close_hit:SetOnClick(function()
+        self:CloseUI()
+    end)
 end
 
 -- ====== 渲染头部 ======
+-- 全尺寸页1 头部：名字(含Lv)左上，EXP 条右半，无假头像/假MP（原灰块头像与表演 MP 条删除）
 function MUSHA_SKILLUI:RenderHeader(parent)
     local Image = require "widgets/image"
     local Text = require "widgets/text"
 
-    -- 头像框
-    local avatar_bg = parent:AddChild(Image("images/global.xml", "square.tex"))
-    avatar_bg:SetScale(38, 38)
-    avatar_bg:SetPosition(-85, 155, 0)
-    avatar_bg:SetTint(0.78, 0.69, 0.50, 1)
-
-    -- 头像
-    local avatar_img = parent:AddChild(Image("images/global.xml", "square.tex"))
-    avatar_img:SetScale(34, 34)
-    avatar_img:SetPosition(-85, 155, 0)
-    avatar_img:SetTint(0.6, 0.5, 0.3, 1)
-
-    -- 名字
-    local name_text = parent:AddChild(Text(UIFONT, 28, self.inst.name or "???"))
-    name_text:SetPosition(-30, 163, 0)
+    -- 名字 + 等级（左对齐）
+    local name_text = parent:AddChild(Text(UIFONT, 44, (self.inst.name or "???") .. "  Lv." .. self._level))
+    name_text:SetPosition(-330, 300, 0)
     name_text:SetColour(0.23, 0.16, 0.10, 1)
     name_text:SetHAlign(ANCHOR_LEFT)
 
-    -- EXP 条背景
+    -- EXP 条（底轨 + 蓝填充，条放右半，避开左上名字与右侧技能点文字）
     local exp_bg = parent:AddChild(Image("images/global.xml", "square.tex"))
-    exp_bg:SetScale(150, 10)
-    exp_bg:SetPosition(-30, 147, 0)
+    exp_bg:SetSize(420, 16)
+    exp_bg:SetPosition(280, 236, 0)
     exp_bg:SetTint(0.85, 0.78, 0.65, 1)
 
-    -- EXP 条填充
     local exp_pct = self._exp_needed > 0 and (self._exp / self._exp_needed) or 0
     exp_pct = math.min(1, math.max(0, exp_pct))
     local exp_fill = parent:AddChild(Image("images/global.xml", "square.tex"))
-    exp_fill:SetScale(150 * exp_pct, 10)
-    exp_fill:SetPosition(-30 - 75 + (150 * exp_pct / 2), 147, 0)
+    exp_fill:SetSize(420 * exp_pct, 16)
+    exp_fill:SetPosition(70 + (420 * exp_pct / 2), 236, 0)
     exp_fill:SetTint(0.38, 0.69, 0.38, 1)
 
-    -- EXP 文字
-    local exp_text = parent:AddChild(Text(UIFONT, 14, "EXP " .. self._exp .. "/" .. self._exp_needed))
-    exp_text:SetPosition(65, 147, 0)
+    -- EXP 数字（条内右端，最后 add 保证盖在 fill 上层）
+    local exp_text = parent:AddChild(Text(UIFONT, 24, "EXP " .. self._exp .. "/" .. self._exp_needed))
+    exp_text:SetPosition(480, 236, 0)
     exp_text:SetColour(0.42, 0.35, 0.25, 1)
     exp_text:SetHAlign(ANCHOR_RIGHT)
-
-    -- MP 条背景
-    local mp_bg = parent:AddChild(Image("images/global.xml", "square.tex"))
-    mp_bg:SetScale(150, 10)
-    mp_bg:SetPosition(-30, 134, 0)
-    mp_bg:SetTint(0.85, 0.78, 0.65, 1)
-
-    -- MP 条填充（表演用）
-    local mp_fill = parent:AddChild(Image("images/global.xml", "square.tex"))
-    mp_fill:SetScale(150 * 0.42, 10)
-    mp_fill:SetPosition(-30 - 75 + (150 * 0.42 / 2), 134, 0)
-    mp_fill:SetTint(0.25, 0.41, 0.75, 1)
-
-    local mp_text = parent:AddChild(Text(UIFONT, 14, "MP 42/100"))
-    mp_text:SetPosition(65, 134, 0)
-    mp_text:SetColour(0.42, 0.35, 0.25, 1)
-    mp_text:SetHAlign(ANCHOR_RIGHT)
-
-    -- 分割线
-    local divider = parent:AddChild(Image("images/global.xml", "square.tex"))
-    divider:SetScale(220, 1)
-    divider:SetPosition(0, 125, 0)
-    divider:SetTint(0.63, 0.50, 0.31, 0.6)
 end
 
 -- ====== 渲染单个技能项 ======
@@ -374,13 +367,13 @@ function MUSHA_SKILLUI:RenderSkillItem(parent, skill_id, skill_def, level, can_u
 
     -- 图标框
     local icon_bg = parent:AddChild(Image("images/global.xml", "square.tex"))
-    icon_bg:SetScale(26, 26)
-    icon_bg:SetPosition(-95, y_pos, 0)
+    icon_bg:SetSize(54, 54)
+    icon_bg:SetPosition(-200, y_pos, 0)
     icon_bg:SetTint(0.78, 0.69, 0.50, alpha)
 
     -- 图标文字
-    local icon_text = parent:AddChild(Text(UIFONT, 20, is_locked and "?" or skill_def.icon or "?"))
-    icon_text:SetPosition(-95, y_pos, 0)
+    local icon_text = parent:AddChild(Text(UIFONT, 40, is_locked and "?" or skill_def.icon or "?"))
+    icon_text:SetPosition(-200, y_pos, 0)
     icon_text:SetColour(0.42, 0.31, 0.25, alpha)
     icon_text:SetHAlign(ANCHOR_MIDDLE)
     icon_text:SetVAlign(ANCHOR_MIDDLE)
@@ -395,8 +388,8 @@ function MUSHA_SKILLUI:RenderSkillItem(parent, skill_id, skill_def, level, can_u
         name_str = name_str .. "  Lv.0"
     end
 
-    local name_text = parent:AddChild(Text(UIFONT, 22, name_str))
-    name_text:SetPosition(-62, y_pos + 6, 0)
+    local name_text = parent:AddChild(Text(UIFONT, 44, name_str))
+    name_text:SetPosition(-130, y_pos + 12, 0)
     name_text:SetColour(0.23, 0.16, 0.10, alpha)
     name_text:SetHAlign(ANCHOR_LEFT)
 
@@ -427,24 +420,24 @@ function MUSHA_SKILLUI:RenderSkillItem(parent, skill_id, skill_def, level, can_u
         end
     end
 
-    local desc_text = parent:AddChild(Text(UIFONT, 16, desc_str))
-    desc_text:SetPosition(-62, y_pos - 10, 0)
+    local desc_text = parent:AddChild(Text(UIFONT, 32, desc_str))
+    desc_text:SetPosition(-130, y_pos - 22, 0)
     desc_text:SetColour(0.48, 0.42, 0.31, alpha)
     desc_text:SetHAlign(ANCHOR_LEFT)
 
     -- 加号按钮
     if can_upgrade and not is_locked then
         local plus_btn = parent:AddChild(Button("images/global.xml", "square.tex", nil, nil, nil, nil))
-        plus_btn:SetScale(14, 14)
-        plus_btn:SetPosition(-70, y_pos + 6, 0)
+        plus_btn:SetSize(28, 28)
+        plus_btn:SetPosition(-148, y_pos + 12, 0)
         plus_btn:SetNormalTint(0.54, 0.69, 0.25, 1)
         plus_btn:SetHoverTint(0.63, 0.82, 0.31, 1)
         plus_btn:SetOnClick(function()
             self:OnUpgradeSkill(skill_id)
         end)
 
-        local plus_text = parent:AddChild(Text(UIFONT, 18, "+"))
-        plus_text:SetPosition(-70, y_pos + 6, 0)
+        local plus_text = parent:AddChild(Text(UIFONT, 34, "+"))
+        plus_text:SetPosition(-148, y_pos + 12, 0)
         plus_text:SetColour(1, 1, 1, 1)
         plus_text:SetHAlign(ANCHOR_MIDDLE)
         plus_text:SetVAlign(ANCHOR_MIDDLE)
@@ -456,21 +449,21 @@ function MUSHA_SKILLUI:RenderSkillItem(parent, skill_id, skill_def, level, can_u
         if skill_def.req_lv and skill_def.req_lv[level + 1] then
             req_lv_str = " Lv." .. skill_def.req_lv[level + 1]
         end
-        local next_text = parent:AddChild(Text(UIFONT, 14, "→" .. req_lv_str))
-        next_text:SetPosition(80, y_pos + 6, 0)
+        local next_text = parent:AddChild(Text(UIFONT, 28, "→" .. req_lv_str))
+        next_text:SetPosition(170, y_pos + 12, 0)
         next_text:SetColour(0.54, 0.48, 0.38, alpha)
         next_text:SetHAlign(ANCHOR_RIGHT)
     elseif level >= skill_def.max_level then
-        local max_text = parent:AddChild(Text(UIFONT, 14, "MAX"))
-        max_text:SetPosition(80, y_pos + 6, 0)
+        local max_text = parent:AddChild(Text(UIFONT, 28, "MAX"))
+        max_text:SetPosition(170, y_pos + 12, 0)
         max_text:SetColour(0.63, 0.50, 0.31, alpha)
         max_text:SetHAlign(ANCHOR_RIGHT)
     end
 
     -- 等级需求（锁定状态）
     if is_locked then
-        local lock_text = parent:AddChild(Text(UIFONT, 14, "Lv." .. skill_def.req_level))
-        lock_text:SetPosition(80, y_pos + 6, 0)
+        local lock_text = parent:AddChild(Text(UIFONT, 28, "Lv." .. skill_def.req_level))
+        lock_text:SetPosition(170, y_pos + 12, 0)
         lock_text:SetColour(0.54, 0.48, 0.38, 0.5)
         lock_text:SetHAlign(ANCHOR_RIGHT)
     end
@@ -497,7 +490,7 @@ function MUSHA_SKILLUI:OnUpgradeSkill(skill_id)
     else
         -- 联机模式：发送 RPC
         SendModRPCToServer(
-            GetModRPCIndex("musha_skill_upgrade"),
+            GetModRPC("musha", "musha_skill_upgrade"),
             skill_id
         )
     end

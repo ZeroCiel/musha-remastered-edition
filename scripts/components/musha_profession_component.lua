@@ -141,31 +141,29 @@ local function NewDay(inst)
     end
 end
 
--- 战斗恢复处理
+-- ====================================
+-- 战斗恢复（战士 combat_recovery）—— 常驻回血 tick
+--   2026-09-12 用户要求："脱离战斗后回血应当一直保持，写个task"
+--   原来：OnLostTarget 里起 DoPeriodicTask、OnAttackOther/GetAttacked 里 Cancel()
+--         → 被打一下就 Cancel，而"丢目标"事件不一定再来 → 回血再也起不来（永久停）
+--   现在：组件构造时起一个**常驻 tick**（每秒），自己判断能不能回血 → 永远不会永久停
+--   条件：服务端 + 战士 + 技能等级>0 + 没死 + 未满血 + 当前没有攻击目标
+--         + 距上次交手 > REGEN_COMBAT_GRACE 秒（"还在战斗中"不回血）
+-- ====================================
+local REGEN_TICK         = 1    -- 每几秒回一次
+local REGEN_COMBAT_GRACE = 3    -- 距上次攻击/被攻击多少秒内算"还在战斗"
+
+-- ★ 2026-09-12 剑士「背水一战」参数（用户拍板：触发方式 = a 被动自动；限流 = 冷却 80 秒）
+local LAST_STAND_COOLDOWN  = 80    -- 冷却（秒）
+local LAST_STAND_THRESHOLD = 0.5   -- 触发血线（血量 ≤50%）
+
 local function OnLostTarget(inst, data)
     local self = inst.components.musha_profession_component
     if not self then
         return
     end
 
-    -- 如果是战士职业，启动战斗恢复
-    if self.userdata.carrer_base and self.userdata.carrer_base == "warrior" then
-        local heal_amount = 0
-        
-        -- 获取当前战斗恢复技能等级效果
-        local cr = self.warrior.combat_recovery
-        if cr and cr.current_level > 0 and cr.level_effects[cr.current_level] then
-            heal_amount = cr.level_effects[cr.current_level]
-        end
-        
-        if heal_amount > 0 and not self.healthtask then
-            self.healthtask = self.inst:DoPeriodicTask(1, function()
-                if self.inst.components.health and not self.inst.components.health:IsDead() then
-                    self.inst.components.health:DoDelta(heal_amount)
-                end
-            end)
-        end
-    end
+    -- 战士"战斗恢复"已改成常驻 tick（见 CombatRecoveryTick），这里不再起任务
 
     -- 只处理剑士职业
     if not self.userdata.carrer_special or self.userdata.carrer_special ~= "saber" then
@@ -202,11 +200,9 @@ local function OnAttackOther(inst, data)
         return
     end
 
-    -- 停止战斗恢复计时器
-    if self.healthtask then
-        self.healthtask:Cancel()
-        self.healthtask = nil
-    end
+    -- 交手打点：战斗恢复常驻 tick 靠它判断"还在战斗中"（2026-09-12）
+    -- 原来是 Cancel 掉回血任务，但没人再起回来 → 回血永久停
+    self.last_combat_time = GetTime()
     
     -- 处理近卫生命偷取 这个有问题 我记得改成了荆棘伤害
     if self.userdata.carrer_special and self.userdata.carrer_special == "guardian" and data and data.damage then
@@ -237,11 +233,9 @@ local function GetAttacked(inst, data)
         return
     end
     
-    -- 停止战斗恢复计时器
-    if self.healthtask then
-        self.healthtask:Cancel()
-        self.healthtask = nil
-    end
+    -- 交手打点：战斗恢复常驻 tick 靠它判断"还在战斗中"（2026-09-12）
+    -- 原来是 Cancel 掉回血任务，但没人再起回来 → 回血永久停
+    self.last_combat_time = GetTime()
 end
 
 -- ====================================
@@ -400,38 +394,31 @@ local Musha_Profession_Component = Class(function(self, inst)
     }
 
     -- 剑士技能树
+    -- ❌ 2026-09-13 用户拍板摘掉两条：
+    --   · 「命中强化」意义不存在（**DST 没有命中率，攻击必中** → +命中% 是空数值）
+    --   · 「吸血」战士/剑士不该有（跟近卫的「生命偷取 life_leech」功能重复，违反"技能不重叠"）
+    --   两条都**没有任何消费方实现**（全项目只有定义/存档引用）→ 摘掉不影响其它系统
+    --   数据留在注释里备查：
+    --   hit = { current_level = 0, max_level = 4,
+    --           level_effects = { [1]=0.10, [2]=0.20, [3]=0.30, [4]=0.40 },
+    --           unlock_requirements = { [1]=7, [2]=9, [3]=12, [4]=16 } },
+    --   stealing_life = { current_level = 0, max_level = 4,
+    --           level_effects = { [1]=0.023, [2]=0.054, [3]=0.086, [4]=0.114 },
+    --           unlock_requirements = { [1]=4, [2]=7, [3]=11, [4]=15 } },
     self.saber = {
-        hit = {
+        -- ★ 2026-09-12 新增（用户）：剑士专属「背水一战」
+        --   血量 ≤50% 被动自动回满；7 级可学、消耗 3 个技能点；冷却 80 秒（见 LastStandTick）
+        last_stand = {
             current_level = 0,
-            max_level = 4,
+            max_level = 1,
             level_effects = {
-                [1] = 0.10, -- 10%效果
-                [2] = 0.20, -- 20%效果
-                [3] = 0.30, -- 30%效果
-                [4] = 0.40  -- 40%效果
+                [1] = 1          -- 1 = 可触发（回满血）；触发限流走冷却 80 秒
             },
             unlock_requirements = {
-                [1] = 7,
-                [2] = 9,
-                [3] = 12,
-                [4] = 16
-            }
-        },
-
-        stealing_life = {
-            current_level = 0,
-            max_level = 4,
-            level_effects = {
-                [1] = 0.023, -- 2.3%吸血
-                [2] = 0.054, -- 5.4%吸血
-                [3] = 0.086, -- 8.6%吸血
-                [4] = 0.114  -- 11.4%吸血
+                [1] = 7          -- 7 级可学
             },
-            unlock_requirements = {
-                [1] = 4,
-                [2] = 7,
-                [3] = 11,
-                [4] = 15
+            skill_point_cost = {
+                [1] = 3          -- 消耗 3 技能点（GetSkillView 里 cost 就是读它）
             }
         }
     }
@@ -471,6 +458,26 @@ local Musha_Profession_Component = Class(function(self, inst)
         }
     }
     
+    -- 刺客技能树
+    self.rogue = {
+        backstab = {
+            current_level = 0,
+            max_level = 2,
+            level_effects = {
+                [1] = 2.0,  -- 2倍伤害
+                [2] = 3.0,  -- 3倍伤害
+            },
+            skill_point_cost = {
+                [1] = 2,   -- 2技能点
+                [2] = 4,   -- 4技能点
+            },
+            unlock_requirements = {
+                [1] = 1,   -- 1级可学
+                [2] = 5,   -- 5级可升2级
+            }
+        }
+    }
+
     -- 状态标记
     self.applied_status = {
         combat_growth = nil,
@@ -480,8 +487,18 @@ local Musha_Profession_Component = Class(function(self, inst)
     }
     
     -- 任务计时器
-    self.healthtask = nil
+    self.healthtask = nil        -- 战斗恢复常驻 tick 句柄（OnRemoveFromEntity 里 Cancel）
     self.task = nil
+    self.last_combat_time = nil  -- 上次攻击/被攻击时间（脱战判定用）
+    self.last_stand_cd = nil     -- 背水一战冷却结束时间（GetTime() 绝对时间，2026-09-12）
+
+    -- 战斗恢复常驻 tick（2026-09-12）：每秒自检，脱战后一直回血
+    --   注意：这里只是起任务，实际回血条件在 CombatRecoveryTick 里判断
+    --   2026-09-12 起：同一个 1 秒 tick 顺带跑剑士「背水一战」判定（LastStandTick）
+    self.healthtask = self.inst:DoPeriodicTask(REGEN_TICK, function()
+        self:CombatRecoveryTick()
+        self:LastStandTick()
+    end)
 
     -- 事件监听
     self.inst:ListenForEvent("losttarget", OnLostTarget)
@@ -502,6 +519,71 @@ end, nil, {
     saber = UpdataSaber,
     guardian = UpdataGuardian
 })
+
+-- ====================================
+-- 战斗恢复常驻 tick（必须定义在 Class 之后！Class 之前 Musha_Profession_Component 还是 nil）
+--   条件：服务端 + 战士 + 技能等级>0 + 活着 + 未满血 + 没有攻击目标 + 距上次交手 > 宽限期
+-- ====================================
+function Musha_Profession_Component:CombatRecoveryTick()
+    if not TheWorld or not TheWorld.ismastersim then return end
+    if not self.userdata or self.userdata.carrer_base ~= "warrior" then return end
+
+    local cr = self.warrior and self.warrior.combat_recovery
+    local lvl = (cr and cr.current_level) or 0
+    if lvl <= 0 then return end
+
+    local heal = (cr.level_effects and cr.level_effects[lvl]) or 0
+    if heal <= 0 then return end
+
+    -- 战斗中不回血：有攻击目标 或 刚交手过
+    local combat = self.inst.components.combat
+    if combat and combat.target then return end
+    if self.last_combat_time and (GetTime() - self.last_combat_time) < REGEN_COMBAT_GRACE then
+        return
+    end
+
+    local hp = self.inst.components.health
+    if not hp or hp:IsDead() then return end
+    if hp:GetPercent() >= 1 then return end   -- 满血不回，省掉每秒一次的 healthdelta 事件
+
+    hp:DoDelta(heal)
+end
+
+-- ====================================
+-- 剑士「背水一战」last_stand（2026-09-12）
+--   触发方式：a 被动自动（用户拍板）—— 血量 ≤50% 时服务端直接回满，玩家不用按键
+--   限流：冷却 80 秒（LAST_STAND_COOLDOWN），不是"一辈子一次"
+--   条件：服务端 + 剑士 + 技能等级>0 + 活着 + 血量 ≤50% + 冷却已好
+-- ====================================
+function Musha_Profession_Component:LastStandTick()
+    if not TheWorld or not TheWorld.ismastersim then return end
+    if not self.userdata or self.userdata.carrer_special ~= "saber" then return end
+
+    local sk = self.saber and self.saber.last_stand
+    local lvl = (sk and sk.current_level) or 0
+    if lvl <= 0 then return end
+
+    local hp = self.inst.components.health
+    if not hp or hp:IsDead() then return end
+    if hp:GetPercent() > LAST_STAND_THRESHOLD then return end   -- 没到 50% 不管
+
+    local now = GetTime()
+    if self.last_stand_cd and now < self.last_stand_cd then return end   -- 冷却中
+
+    self.last_stand_cd = now + LAST_STAND_COOLDOWN
+
+    -- 回满血
+    hp:SetPercent(1)
+
+    -- 表现：字幕 + 事件（特效/音效素材等用户画好再接，位置留在这里）
+    if self.inst.components.talker then
+        self.inst.components.talker:Say("我，活着！")
+    end
+    self.inst:PushEvent("musha_last_stand", { cooldown = LAST_STAND_COOLDOWN })
+
+    -- 把冷却推给客户端（技能冷却 UI 用）
+    self:PushSettings()
+end
 
 -- 核心：应用职业数据的统一函数
 function Musha_Profession_Component:ApplyProfessionData()
@@ -623,6 +705,7 @@ function Musha_Profession_Component:SetCarrerBase(carrer)
     end
     self.userdata.carrer_base = carrer
     self:ApplyProfessionData()  -- 应用新职业的效果
+    self:PushSettings()         -- 技能页要换树（2026-09-12）
     return true
 end
 
@@ -632,6 +715,7 @@ function Musha_Profession_Component:SetCarrerSpecial(carrer)
     end
     self.userdata.carrer_special = carrer
     self:ApplyProfessionData()  -- 应用新职业的效果
+    self:PushSettings()         -- 技能页要换树（2026-09-12）
     return true
 end
 
@@ -670,6 +754,18 @@ function Musha_Profession_Component:AddExperience(amount)
         return false
     end
 
+    -- 局内设置：经验倍率（世界级）
+    -- 注意：组件文件 env 没有 GLOBAL，strict 会报"variable 'GLOBAL' is not declared"，
+    -- 所以这里用裸 TheWorld（同 musha_skillui.lua:140 的写法）
+    local w = TheWorld
+    local ws = w and w.components and w.components.musha_world_settings
+    if ws then
+        local mult = ws:Get("exp_mult") or 1
+        if mult ~= 1 then
+            amount = math.max(1, math.floor(amount * mult + 0.5))
+        end
+    end
+
     self.userdata.exp = self.userdata.exp + amount
     self.userdata.total_exp = self.userdata.total_exp + amount
 
@@ -687,6 +783,11 @@ function Musha_Profession_Component:AddExperience(amount)
     end
 
     self:UpdateExpToNext()
+
+    -- 升级会发技能点、也可能正好跨过技能解锁等级 → 推一次面板数据（技能页要刷新）
+    if levels_gained > 0 then
+        self:PushSettings()
+    end
 
     return true, levels_gained > 0, levels_gained
 end
@@ -725,17 +826,24 @@ function Musha_Profession_Component:UpgradeSkill(skill_tree, skill_name)
 
     local skill = self[skill_tree][skill_name]
 
-    -- 检查技能点
-    if self.userdata.skill_points < 1 then
+    -- 检查技能点（支持自定义每级消耗）
+    -- 🐛 2026-09-12 修：原来这里漏了 next_level（只在上面 CanUpgradeSkill 里算过），
+    --    skill_point_cost[nil] 读出来恒 nil → 自定义消耗从来没生效（背刺 2/4 点一直按 1 点算）
+    local next_level = skill.current_level + 1
+    local cost = 1
+    if skill.skill_point_cost and skill.skill_point_cost[next_level] then
+        cost = skill.skill_point_cost[next_level]
+    end
+    if self.userdata.skill_points < cost then
         if self.inst.components.talker then
             self.inst.components.talker:Say(STRINGS.MUSHA_SKILL_NEED_SKILL_POINTS or
-                                                "技能点不足")
+                                                string.format("技能点不足 (需要%d点)", cost))
         end
         return false, "技能点不足"
     end
 
     -- 消耗技能点
-    self.userdata.skill_points = self.userdata.skill_points - 1
+    self.userdata.skill_points = self.userdata.skill_points - cost
 
     -- 升级技能
     skill.current_level = skill.current_level + 1
@@ -745,6 +853,9 @@ function Musha_Profession_Component:UpgradeSkill(skill_tree, skill_name)
 
     -- 应用新效果
     self:ApplyProfessionData()
+
+    -- 推面板（技能页等级/可加点状态要跟着变）
+    self:PushSettings()
 
     return true,
         string.format("技能 %s 已升级到等级 %d (效果: %.1f%%)", skill_name, new_level, new_effect * 100)
@@ -791,6 +902,122 @@ function Musha_Profession_Component:GetSkillInfo(skill_tree, skill_name)
     return info
 end
 
+-- ====================================
+-- 技能树 → 面板显示数据（2026-09-12 新增）
+--   技能树本身只有数字（current_level / level_effects / unlock_requirements），
+--   技能名 + 描述文本在这里补，服务端组装成字符串后随 userdata 一起推给客户端
+--   （客户端 replica 没有技能树数据，所以文案必须服务端生成）
+-- ====================================
+
+-- 显示顺序（按解锁等级排）
+local SKILL_ORDER = {
+    warrior  = { "combat_recovery", "weapon_proficiency" },
+    saber    = { "last_stand" },   -- 2026-09-13：命中强化/吸血 摘掉（见上方注释）
+    guardian = { "iron_will", "life_leech" },
+    rogue    = { "backstab" },
+}
+
+-- fmt(v) 把 level_effects 的数值翻译成人话
+local SKILL_UI = {
+    warrior = {
+        combat_recovery = {
+            name = "战斗恢复",
+            fmt  = function(v) return string.format("脱离战斗后每秒回复 %.2f 点生命", v) end,
+            tip  = "常驻生效；交手中暂停（脱战 3 秒后继续）",
+        },
+        weapon_proficiency = {
+            name = "武器精通",
+            fmt  = function(v) return string.format("武器伤害 +%.0f%%", v * 100) end,
+        },
+    },
+    saber = {
+        -- ❌ 2026-09-13 摘掉：命中强化（DST 无命中率，数值无意义）、吸血（与近卫生命偷取重复）
+        -- hit           = { name = "命中强化", fmt = function(v) return string.format("命中效果 +%.0f%%", v * 100) end },
+        -- stealing_life = { name = "吸血",     fmt = function(v) return string.format("攻击吸血 %.1f%%", v * 100) end },
+        -- ★ 2026-09-12 新增（用户）：剑士专属，血量 ≤50% 被动自动回满 / 冷却 80 秒 / 7 级 / 3 技能点
+        last_stand    = {
+            name = "我，活着",
+            fmt  = function(v) return string.format("血量低于 50%% 时被动回满生命（冷却 %d 秒）", LAST_STAND_COOLDOWN) end,
+            tip  = "7 级可学 · 消耗 3 技能点 · 无需按键，自动触发",
+        },
+    },
+    guardian = {
+        iron_will  = { name = "钢铁意志", fmt = function(v) return string.format("额外减伤 %.0f%%", v * 100) end },
+        life_leech = { name = "生命偷取", fmt = function(v) return string.format("伤害转化治疗 %.0f%%", v * 100) end },
+    },
+    rogue = {
+        backstab = { name = "背刺", fmt = function(v) return string.format("背刺造成 %.0f 倍伤害", v) end },
+    },
+}
+
+-- 组装"当前职业技能页"的数据（给客户端面板用）
+--   ★ 2026-09-12 改：原来只读 carrer_base 那一棵树 → 二转后技能页还是显示基础职业的技能；
+--     现在 **基础树 + 二转树都进面板**（用户："3全部都可"）。每条带 tree_kind 便于客户端区分。
+function Musha_Profession_Component:GetSkillView()
+    local trees = {}
+    local base = self.userdata.carrer_base
+    local spec = self.userdata.carrer_special
+    if base and self[base] then
+        table.insert(trees, { key = base, kind = "base" })
+    end
+    if spec and spec ~= "" and self[spec] and spec ~= base then
+        table.insert(trees, { key = spec, kind = "special" })
+    end
+    if #trees == 0 then return {} end
+
+    local function TreeNodeName(tree)
+        local ok, s = pcall(function() return STRINGS["MUSHA_JOB_" .. string.upper(tree or "")] end)
+        if ok and type(s) == "string" and s ~= "" then return s end
+        return tree
+    end
+
+    local out = {}
+    for _, t in ipairs(trees) do
+        local tree = t.key
+        local order = SKILL_ORDER[tree]
+        local defs = SKILL_UI[tree]
+        if order then
+            for _, key in ipairs(order) do
+                local skill = self[tree][key]
+                if skill then
+                    local info = self:GetSkillInfo(tree, key) or {}
+                    local cur = skill.current_level or 0
+                    local nxt = cur + 1
+                    local d = defs and defs[key] or nil
+                    local maxlv = skill.max_level or 0
+
+                    local cost = 1
+                    if skill.skill_point_cost and skill.skill_point_cost[nxt] then
+                        cost = skill.skill_point_cost[nxt]
+                    end
+
+                    local entry = {
+                        id     = tree .. "_" .. key,
+                        tree   = tree,
+                        kind   = t.kind,                        -- base / special
+                        tree_name = TreeNodeName(tree),         -- 显示用（战士 / 剑士 …）
+                        key    = key,
+                        name   = (d and d.name) or key,
+                        tip    = d and d.tip or nil,
+                        cur    = cur,
+                        max    = maxlv,
+                        maxed  = cur >= maxlv,
+                        req    = info.requirement or 0,
+                        cost   = cost,
+                        points = self.userdata.skill_points or 0,
+                        lv     = self.userdata.level or 0,
+                        effect = (d and d.fmt) and d.fmt(skill.level_effects and skill.level_effects[cur] or 0) or "",
+                        nextfx = (d and d.fmt) and d.fmt(skill.level_effects and skill.level_effects[nxt] or 0) or "",
+                    }
+                    entry.can = (not entry.maxed) and entry.points >= entry.cost and entry.lv >= entry.req
+                    table.insert(out, entry)
+                end
+            end
+        end
+    end
+    return out
+end
+
 -- 替换原来的 UpdataMushaData
 function Musha_Profession_Component:UpdateCharacterStats()
     self:ApplyProfessionData()
@@ -826,6 +1053,12 @@ function Musha_Profession_Component:GetAllSkillLevels()
     for name, skill in pairs(self.guardian) do
         if skill.current_level and skill.current_level > 0 then
             levels["guardian_" .. name] = skill.current_level
+        end
+    end
+    -- 刺客技能树
+    for name, skill in pairs(self.rogue) do
+        if skill.current_level and skill.current_level > 0 then
+            levels["rogue_" .. name] = skill.current_level
         end
     end
     return levels
@@ -864,12 +1097,12 @@ function Musha_Profession_Component:GetSkillPoints()
     return self.userdata.skill_points or 0
 end
 
--- 获取职业名称（需要 GLOBAL.STRINGS）
+-- 获取职业名称（需要 STRINGS）
 function Musha_Profession_Component:GetJobName()
     if not self.userdata.carrer_base then return "无职业" end
     local name_key = "MUSHA_JOB_" .. string.upper(self.userdata.carrer_base)
-    if GLOBAL.STRINGS[name_key] then
-        return GLOBAL.STRINGS[name_key]
+    if STRINGS[name_key] then
+        return STRINGS[name_key]
     end
     return self.userdata.carrer_base
 end
@@ -877,8 +1110,8 @@ end
 function Musha_Profession_Component:GetAdvanceJobName()
     if not self.userdata.carrer_special then return nil end
     local name_key = "MUSHA_JOB_" .. string.upper(self.userdata.carrer_special)
-    if GLOBAL.STRINGS[name_key] then
-        return GLOBAL.STRINGS[name_key]
+    if STRINGS[name_key] then
+        return STRINGS[name_key]
     end
     return self.userdata.carrer_special
 end
@@ -961,22 +1194,17 @@ function Musha_Profession_Component:CompleteAdvance()
     self.userdata.quests_for_advance_done = {}
     self.userdata.current_advance_target = nil
 
-    -- 给予一转基础技能书
-    local skillbook_map = {
-        swordsman = "musha_skillbook_swordsman",
-        guardian = "musha_skillbook_guardian",
-        alchemist = "musha_skillbook_alchemist",
-        elementalist = "musha_skillbook_elementalist",
-        bard = "musha_skillbook_bard",
-        moonshadow = "musha_skillbook_moonshadow",
-    }
-    local prefab_name = skillbook_map[self.userdata.carrer_special]
-    if prefab_name and SpawnPrefab then
-        local book = SpawnPrefab(prefab_name)
-        if book and self.inst.components.inventory then
-            self.inst.components.inventory:GiveItem(book)
-        end
+    -- 给予一转技能书（统一图标样式 musha_skillbook）
+    -- 原 skillbook_map 的 6 个进阶书 prefab（musha_skillbook_swordsman 等）从未注册，
+    -- SpawnPrefab 返回 nil 导致一转完成永远不发书。
+    local book = SpawnPrefab("musha_skillbook")
+    if book and self.inst.components.inventory then
+        self.inst.components.inventory:GiveItem(book)
     end
+
+    -- 推送进阶结果给客户端面板（2026-09-08 补：原来不发，面板不刷新）
+    -- 2026-09-12：改成整包推（userdata + 设置 + 技能页），走同一个 PushSettings 通道
+    pcall(function() self:PushSettings() end)
 
     if self.inst.components.talker then
         self.inst.components.talker:Say("一转进阶完成！当前职业: " .. (self:GetAdvanceJobName() or "未知"), 5)
@@ -1021,11 +1249,11 @@ function Musha_Profession_Component:OnSave()
             }
         },
         saber = {
-            hit = {
-                current_level = self.saber.hit.current_level or 0
-            },
-            stealing_life = {
-                current_level = self.saber.stealing_life.current_level or 0
+            -- 2026-09-13：hit / stealing_life 已摘除，不再存档（旧档里这两项会被忽略）
+            -- ★ 2026-09-12 新增：背水一战（不写这里会存不上档 → 重进游戏技能等级归零）
+            last_stand = {
+                current_level = self.saber.last_stand and self.saber.last_stand.current_level or 0,
+                cd_end = self.last_stand_cd or nil   -- 背水一战冷却结束时间（2026-09-12：仅1次 改 80 秒冷却）
             }
         },
         guardian = {
@@ -1034,6 +1262,11 @@ function Musha_Profession_Component:OnSave()
             },
             life_leech = {
                 current_level = self.guardian.life_leech.current_level or 0
+            }
+        },
+        rogue = {
+            backstab = {
+                current_level = self.rogue.backstab.current_level or 0
             }
         },
         class_traits = {
@@ -1058,11 +1291,15 @@ function Musha_Profession_Component:OnLoad(data)
         end
 
         if data.saber then
-            if data.saber.hit then
-                self.saber.hit.current_level = data.saber.hit.current_level or 0
-            end
-            if data.saber.stealing_life then
-                self.saber.stealing_life.current_level = data.saber.stealing_life.current_level or 0
+            -- 2026-09-13：hit / stealing_life 已摘除，旧档里的这两项直接丢掉
+            -- ★ 2026-09-12 新增：背水一战（等级 + 冷却结束时间）
+            if data.saber.last_stand then
+                if self.saber.last_stand == nil then
+                    self.saber.last_stand = { current_level = 0, max_level = 1, level_effects = { [1] = 1 }, unlock_requirements = { [1] = 7 }, skill_point_cost = { [1] = 3 } }
+                end
+                self.saber.last_stand.current_level = data.saber.last_stand.current_level or 0
+                -- 2026-09-12：冷却结束时间（GetTime() 绝对时间）；旧存档的 used 字段直接丢弃
+                self.last_stand_cd = data.saber.last_stand.cd_end or nil
             end
         end
         
@@ -1072,6 +1309,12 @@ function Musha_Profession_Component:OnLoad(data)
             end
             if data.guardian.life_leech then
                 self.guardian.life_leech.current_level = data.guardian.life_leech.current_level or 0
+            end
+        end
+
+        if data.rogue then
+            if data.rogue.backstab then
+                self.rogue.backstab.current_level = data.rogue.backstab.current_level or 0
             end
         end
 
@@ -1121,7 +1364,7 @@ function Musha_Profession_Component:GetDebugString()
     local exp_info = self:GetExpInfo()
 
     local skill_count = 0
-    for _, skill_tree in pairs({self.warrior, self.saber, self.guardian}) do
+    for _, skill_tree in pairs({self.warrior, self.saber, self.guardian, self.rogue}) do
         for skill_name, skill_data in pairs(skill_tree) do
             if skill_data.current_level and skill_data.current_level > 0 then
                 skill_count = skill_count + 1
@@ -1169,6 +1412,105 @@ function Musha_Profession_Component:ShowExperienceInfo()
             stats.total_exp
         ))
     end
+end
+
+-- ====================================
+-- 局内设置（2026-09-10 新增）
+--   世界级 → TheWorld.components.musha_world_settings（惰性补挂）
+--   玩家级 → self.inst.components.musha_player_settings
+--   同步   → 把设置快照塞进 userdata 的**副本**，复用已有的 DoUpdata 推送
+--            （不改 self.userdata，所以存档里不会多出 settings 字段）
+-- ====================================
+
+local function EnsureWorldSettings()
+    -- 组件 env 无 GLOBAL，用裸 TheWorld（strict 会拦 GLOBAL）
+    local w = TheWorld
+    if not w or not w.ismastersim then return nil end
+    if not w.components.musha_world_settings then
+        local ok = pcall(function() w:AddComponent("musha_world_settings") end)
+        if not ok then return nil end
+    end
+    return w.components.musha_world_settings
+end
+
+local function PlayerIsAdmin(player)
+    if not player or not player.Network then return false end
+    local ok, admin = pcall(function() return player.Network:IsServerAdmin() end)
+    return (ok and admin == true)
+end
+
+-- 组装给客户端的设置快照
+function Musha_Profession_Component:GetSettingsView()
+    local view = { world = {}, player = {}, can_edit = false }
+
+    local ws = EnsureWorldSettings()
+    if ws then view.world = ws:Get() end
+
+    local ps = self.inst.components.musha_player_settings
+    if ps then view.player = ps:Get() end
+
+    view.can_edit = PlayerIsAdmin(self.inst)
+    return view
+end
+
+-- 把设置快照推给客户端（复用职业数据的推送通道）
+function Musha_Profession_Component:PushSettings()
+    if not self.inst.replica or not self.inst.replica.musha_profession_component then
+        return false
+    end
+    local d = {}
+    for k, v in pairs(self.userdata) do
+        d[k] = v
+    end
+    d.settings = self:GetSettingsView()
+    d.skills   = self:GetSkillView()   -- 技能页数据（2026-09-12 新增，和设置共用一条推送通道）
+    d.gifts    = self.userdata.gifts or {}   -- 礼包页：已领过的 id 表（2026-09-12）
+
+    -- ★ 2026-09-12 技能冷却数据（给「技能冷却 UI」用）
+    --   ⚠️ remain 只是"这次推送那一刻"的剩余秒数，不是实时的：
+    --     客户端要做实时倒计时得自己按本地时间倒数（或走 RPC），别拿 remain 当每帧真值
+    d.cooldowns = {
+        last_stand = {
+            total  = LAST_STAND_COOLDOWN,
+            end_at = self.last_stand_cd or 0,
+            remain = math.max(0, (self.last_stand_cd or 0) - GetTime()),
+        },
+    }
+    local ok = pcall(function()
+        self.inst.replica.musha_profession_component:DoUpdata(d)
+    end)
+    return ok
+end
+
+-- 改一项设置。scope = "world" | "player"
+--   世界级：需要房主/管理员
+--   玩家级：改自己的，不需要权限
+function Musha_Profession_Component:SetMushaSetting(scope, key, value, player)
+    player = player or self.inst
+
+    local target
+    if scope == "world" then
+        if not PlayerIsAdmin(player) then
+            return false, "no_permission"
+        end
+        target = EnsureWorldSettings()
+    elseif scope == "player" then
+        target = self.inst.components.musha_player_settings
+    else
+        return false, "bad_scope"
+    end
+
+    if not target then
+        return false, "no_component"
+    end
+
+    local ok, reason = target:Set(key, value)
+    if not ok then
+        return false, reason
+    end
+
+    self:PushSettings()
+    return true
 end
 
 -- Musha_Profession_Component

@@ -40,6 +40,8 @@ end
 table.insert(assets, Asset("ANIM", "anim/" .. Character .. ".zip"))
 table.insert(assets, Asset("ANIM", "anim/ghost_" .. Character .. "_build.zip"))
 table.insert(assets, Asset("ATLAS", "images/names_" .. Character .. ".xml"))
+-- 能量条（2026-09-13）：bank/build = energy，动画名 = anim（badge 直接吃这个 build）
+table.insert(assets, Asset("ANIM", "anim/energy.zip"))
 
 local item = {"musha_note"}
 TUNING.GAMEMODE_STARTING_ITEMS.DEFAULT.MUSHA = {"musha_note"}
@@ -58,17 +60,20 @@ local common_postinit = function(inst)
     inst.MiniMapEntity:SetIcon(Character .. ".tex")
     -- 网络变量：服务端改值后客户端监听 mushapanelchanged 事件
     inst._musha_panel_net = net_bool(inst.GUID, "musha_panel_net", "mushapanelchanged")
-    -- 监听网络变量变化（服务端和客户端都注册，函数内过滤）
+    -- 监听网络变量变化（服务端和客户端都注册）
+    -- 服务端 set(true) → 本端+对端都触发 dirty → PushEvent("musha_open_skill_panel") → panel ShowPanel
+    -- 注意：不能过滤 TheWorld.ismastersim——单机/主机模式下玩家自己就是服务端，
+    -- set 时服务端本地也触发 dirty，过滤掉会导致主机自己打不开面板。
     inst:ListenForEvent("mushapanelchanged", function()
-        if TheWorld.ismastersim then return end
         if inst._musha_panel_net and inst._musha_panel_net:value() then
-            local p = ThePlayer
-            if p and p.components.musha_skillui and not p.components.musha_skillui._is_open then
-                SendModRPCToServer(GetModRPCIndex("musha_request_skill_data"))
-                p.components.musha_skillui:OpenUI()
-            end
+            inst:PushEvent("musha_open_skill_panel")
         end
     end)
+
+    -- 能量条数值：netvar 同步（服务端 set → 客户端 badge 直接读，不用 RPC）
+    --   2026-09-13 照「遗迹守卫」那套官方写法
+    inst.Musha_MP     = net_float(inst.GUID, "musha_mp", "musha_mp_dirty")
+    inst.Musha_MP_MAX = net_float(inst.GUID, "musha_mp_max", "musha_mp_max_dirty")
 end
 
 -- 主机执行部分
@@ -80,6 +85,7 @@ local master_postinit = function(inst, data)
 
     -- 服务端组件
     inst:AddComponent("musha_profession_component")
+    inst:AddComponent("musha_mp")          -- 能量（2026-09-13）：上限/回复读职业表
 end
 
 return MakePlayerCharacter(Character, nil, assets, common_postinit, master_postinit, item),

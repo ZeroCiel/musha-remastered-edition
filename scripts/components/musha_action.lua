@@ -36,6 +36,11 @@ function MushaAction:UseItem(doer)
     return self.onusefn(self.inst, doer)
 end
 
+-- 执行使用（SCENE 动作入口：AddAction MUSHA_QUEST_INTERACT 调用了 InteractScene）
+function MushaAction:InteractScene(doer)
+    return self:UseItem(doer)
+end
+
 -- 检查是否可以使用
 function MushaAction:CanUse(doer)
     if not self.onusefn then

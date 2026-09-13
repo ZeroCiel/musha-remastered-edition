@@ -15,9 +15,13 @@
 --   max_level = 5,
 -- }
 
--- === 战士基础技能 ===
+-- ⚠️ 本文件是**数据草案/备份区**：只被 modimport 加载，没有任何代码消费（不显示、不生效）。
+--    正式技能规则（2026-09-13 二次修订）：每职业正式 = 1 主动技 + 1 武器技能，其余全部备份。
+--    战士基调 = 走A（走位+平A）为主，不靠技能。
+
+-- === 战士基础技能（⚠️ 以下 横扫/战吼/旋风斩 全部为「备份」，不实现、不上技能页） ===
 MUSHA_SKILLS_WARRIOR = {
-    -- 技能1：横扫
+    -- 技能1：横扫  ✗【备份】2026-09-13 用户：有待考虑，或看赞助
     slash = {
         name = "横扫",
         desc = "对前方扇形范围造成 {dmg}% 伤害",
@@ -33,23 +37,8 @@ MUSHA_SKILLS_WARRIOR = {
             [5] = { dmg = 150 },
         },
     },
-    -- 技能2：铁壁
-    ironwall = {
-        name = "铁壁",
-        desc = "受到伤害减少 {pct}%，持续 5 秒",
-        icon = "🛡",
-        max_level = 5,
-        req_level = 3,
-        req_lv = { 3, 5, 8, 12, 18 },
-        levels = {
-            [1] = { pct = 15 },
-            [2] = { pct = 20 },
-            [3] = { pct = 25 },
-            [4] = { pct = 30 },
-            [5] = { pct = 40 },
-        },
-    },
-    -- 技能3：战吼
+    -- ✗ 铁壁 ironwall 已被用户删除（2026-09-12：与近卫的"钢铁意志"重复，都是减伤）
+    -- 技能3：战吼  ✗【备份】2026-09-13 无正式排期
     war_cry = {
         name = "战吼",
         desc = "提升全队 {pct}% 攻击力，持续 8 秒",
@@ -63,7 +52,7 @@ MUSHA_SKILLS_WARRIOR = {
             [3] = { pct = 20 },
         },
     },
-    -- 技能4：旋风斩
+    -- 技能4：旋风斩  ✗【备份】2026-09-13 用户：极难做（不做）
     whirlwind = {
         name = "旋风斩",
         desc = "对周围敌人造成 {dmg}% 连续伤害",
@@ -77,20 +66,25 @@ MUSHA_SKILLS_WARRIOR = {
             [3] = { dmg = 100 },
         },
     },
-    -- 技能5：狂暴
-    berserk = {
-        name = "狂暴",
-        desc = "攻击速度提升 {spd}%，持续 6 秒",
-        icon = "🔥",
+    -- 技能4：剑气斩（2026-09-12 用户：月牙飞出去、命中就有伤害；原定是"冲击波"）
+    --   ★ 效果数值/冷却都是【草案】，等主动技能框架定下来一起定
+    --   ★ 表现：挥出一枚月牙形剑气向前飞，命中即结算伤害（月牙素材待选，见状态卡的"月牙特效候选"）
+    slash_qi = {
+        name = "剑气斩",
+        desc = "向前挥出月牙剑气，命中造成 {dmg}% 伤害",
+        icon = "🌙",
         max_level = 3,
-        req_level = 12,
-        req_lv = { 12, 16, 20 },
+        req_level = 5,
+        req_lv = { 5, 10, 15 },
+        -- cd = 8,          -- 冷却秒数（待定）
+        -- cost = 1,        -- 技能点/消耗（待定）
         levels = {
-            [1] = { spd = 20 },
-            [2] = { spd = 35 },
-            [3] = { spd = 50 },
+            [1] = { dmg = 100 },
+            [2] = { dmg = 130 },
+            [3] = { dmg = 160 },
         },
     },
+    -- ✗ 狂暴 berserk 已被用户删除（"我记得没设计这个"，2026-09-12）
 }
 
 -- TODO: 其他职业技能数据
@@ -98,12 +92,29 @@ MUSHA_SKILLS_WARRIOR = {
 -- MUSHA_SKILLS_RANGER = { ... }
 -- MUSHA_SKILLS_ASSASSIN = { ... }
 
+-- === 刺客技能 ===
+MUSHA_SKILLS_ASSASSIN = {
+    backstab = {
+        name = "背刺",
+        desc = "从背后攻击造成 {mult} 倍伤害",
+        icon = "🗡",
+        max_level = 2,
+        req_level = 1,
+        req_lv = { 1, 5 },
+        cost = { 2, 4 },
+        levels = {
+            [1] = { mult = "2" },
+            [2] = { mult = "3" },
+        },
+    },
+}
+
 -- 职业 ID → 技能数据表映射
 MUSHA_SKILL_MAP = {
     [MUSHA_JOB.WARRIOR] = MUSHA_SKILLS_WARRIOR,
     -- [MUSHA_JOB.MAGE] = MUSHA_SKILLS_MAGE,
     -- [MUSHA_JOB.RANGER] = MUSHA_SKILLS_RANGER,
-    -- [MUSHA_JOB.ASSASSIN] = MUSHA_SKILLS_ASSASSIN,
+    [MUSHA_JOB.ASSASSIN] = MUSHA_SKILLS_ASSASSIN,
 }
 
 -- 根据技能 ID 和等级生成描述文本

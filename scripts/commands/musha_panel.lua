@@ -59,12 +59,12 @@ local function ShowMushaPanel(inst)
     local quest = inst.components.musha_quest
     if quest then
         local quest_text = quest:GetQuestDisplay() or ""
-        if quest.active then
+        if quest:HasActiveQuest() then
             table.insert(lines, "")
             table.insert(lines, "--- 任务进度 ---")
             table.insert(lines, quest_text)
         else
-            if not pc.mydata.has_advanced and pc:HasJob() then
+            if not (pc.userdata.has_advanced or pc:GetCarrer_special()) and pc:HasJob() then
                 table.insert(lines, "")
                 table.insert(lines, "前往进阶祭坛接取转职任务。")
             end
