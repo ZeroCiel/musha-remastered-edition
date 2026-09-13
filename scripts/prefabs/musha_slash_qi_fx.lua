@@ -10,11 +10,20 @@
 --   fx.components.complexprojectile:Launch(target_pos, attacker)
 -- ============================================================
 
-local FX_BANK  = "shadow_thrall_projectile_fx"
-local FX_BUILD = "shadow_thrall_projectile_fx"
-local ANIM_PRE = "projectile_pre"      -- 出手/蓄势
-local ANIM_FLY = "projectile_loop"     -- 飞行中
-local ANIM_HIT = "projectile_impact"   -- 命中爆开
+-- ★ 2026-09-13 新素材（即梦图抠背后的 512 版，见 exported/slash_fx/）：
+--   用法：用 DST Mod Tool 把 exported/slash_fx/slash_fx.scml 打包成 anim/slash_fx.zip，
+--         然后把下面 USE_CUSTOM_FX 改成 true（一处开关，其余自动切）
+local USE_CUSTOM_FX  = false          -- ← 打包好 zip 后改 true
+local CUSTOM_BANK    = "slash_fx"
+local CUSTOM_BUILD   = "slash_fx"
+local CUSTOM_ANIM    = "anim"         -- scml 里只有这一条单帧动画
+local CUSTOM_SCALE   = 0.30           -- 512px × 0.30 ≈ 1.5 世界单位宽（嫌大改小）
+
+local FX_BANK  = USE_CUSTOM_FX and CUSTOM_BANK  or "shadow_thrall_projectile_fx"
+local FX_BUILD = USE_CUSTOM_FX and CUSTOM_BUILD or "shadow_thrall_projectile_fx"
+local ANIM_PRE = USE_CUSTOM_FX and CUSTOM_ANIM  or "projectile_pre"      -- 出手/蓄势
+local ANIM_FLY = USE_CUSTOM_FX and CUSTOM_ANIM  or "projectile_loop"     -- 飞行中
+local ANIM_HIT = USE_CUSTOM_FX and CUSTOM_ANIM  or "projectile_impact"   -- 命中爆开
 
 local FX_SPEED     = 13                       -- 水平飞行速度
 local FX_GRAVITY   = 0                        -- 0 = 平飞（直线剑气）；要抛物线改 -30
@@ -23,15 +32,20 @@ local FX_LIFETIME  = 1.5                      -- 兜底自毁（秒），防止�
 
 local assets =
 {
-    Asset("ANIM", "anim/shadow_thrall_projectile_fx.zip"),
+    Asset("ANIM", USE_CUSTOM_FX and "anim/slash_fx.zip" or "anim/shadow_thrall_projectile_fx.zip"),
 }
 
 local function OnHit(inst)
     if inst.components.complexprojectile then
         inst:RemoveComponent("complexprojectile")
     end
-    inst.AnimState:PlayAnimation(ANIM_HIT)
-    inst:ListenForEvent("animover", inst.Remove)
+    if USE_CUSTOM_FX then
+        -- 单帧素材：没有命中动画，短暂停留就消失（要"炸开"再补第二帧/第二张图）
+        inst:DoTaskInTime(0.15, inst.Remove)
+    else
+        inst.AnimState:PlayAnimation(ANIM_HIT)
+        inst:ListenForEvent("animover", inst.Remove)
+    end
     if inst.SoundEmitter then
         inst.SoundEmitter:PlaySound("rifts2/thrall_wings/projectile")
     end
@@ -72,6 +86,9 @@ local function fn()
     inst.AnimState:SetBuild(FX_BUILD)
     inst.AnimState:PlayAnimation(ANIM_PRE)
     inst.AnimState:SetLightOverride(1)  -- 暗影系素材偏黑，提亮才看得见
+    if USE_CUSTOM_FX then
+        inst.AnimState:SetScale(CUSTOM_SCALE, CUSTOM_SCALE, CUSTOM_SCALE)
+    end
 
     inst.entity:SetPristine()
 

@@ -64,16 +64,18 @@ D:\SteamLibrary\steamapps\common\Don't Starve Together\mods\musha
 | `speech_musha_jp.lua` | **新建**（1710 行，键名与 en 100% 一致）：ANNOUNCE 78 + PLAYER 6 + MUSHA_* 77 共 165 条日文；其余保留英文待第二批 |
 | `modmain.lua` | 台词挂载修复（见上）+ 日语 id 20 支持 |
 
-### ⏭ 第二批（进行中 —— 走「抽 TSV → 只翻小文件 → 回填」管线，方案 b）
-- **管线（自建，省 token 的关键）**：`D:\wsl-dl\musha-tr\tr.py`
-  · `python tr.py export jp|zh` → 抽出待翻/待改写条目到 `D:\wsl-dl\musha-tr\tsv\<lang>_todo.tsv`（3 列：行号/键/原文）
-  · 翻译只面对这个小 tsv；写完 `python tr.py import jp|zh` → 按行号回填（键名对不上会跳过，安全）
-  · `tsv\<lang>_done.tsv` 格式：`行号<TAB>译文`（两列，省输出）
-  · ⚠️ 坑：tr.py 早期版本会把 `\n` 转义成 `\\n` → 已修（只转义引号）；已修掉 jp 208/214/216 三行
-- **进度（2026-09-13 夜）**：jp 已翻 150/1125（剩 975）｜zh 已改写 38 条（todo 列表仍有 504 条中文待改写）
-- **备份**：`C:\Users\Administrator\speech_musha_{zh,jp}.lua.batch2`、`.bak`（第一批前）、`speech_musha_jp.lua.bak`（v1）
-- luac5.1：45 个文件全过 ✓
-- 剩余批次：jp 975 条、zh 504 条、ko 长句、ru 的 DESCRIBE（待用户定）
+### ✅ 日语版已 100% 完成（2026-09-13 夜）
+- `speech_musha_jp.lua`：**1710 行 / 1060 个键**，与 en 母本键集合 **0 差异**
+- 全部文案翻成日文（自称「ムシャ」、子ども口吻「〜なの」「〜だよ」）；**1125 条英文条目全翻完**，
+  连漏网的单引号行（`FIRESTARTER`/`ATTACKER`/`GHOST`×2，值用 `'...'` 写的）也补了
+- 复验：`luac5.1` 46 文件全过 ｜ 双反斜杠转义 0 处 ｜ 活动行里纯英文残留 **0**
+- 备份链：`C:\Users\Administrator\speech_musha_jp.lua{,.bak,.batch2,.batch3,.prebatch2}`
+- 桌面副本（给用户看的）：`C:\Users\Administrator\Desktop\speech_musha_jp.lua`
+
+### ⏭ 剩下的台词活
+- zh：DESCRIBE 约 500 条中文待"灵动化"（ANNOUNCE 已做完）
+- ko：剩余长句
+- ru：整段 DESCRIBE 缺失（要不要补待定）
 
 ## 🗂 版本管理（Gitee）
 - `musha` 目录已是 git 仓库，remote = `gitee.com/ZeroCiel/musha-remastered-edition`（SSH）
