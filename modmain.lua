@@ -698,6 +698,13 @@ Safe("物品数值表加载", function()
     else
         print("[Musha] 物品数值表已加载")
     end
+    -- 追加表（食物/耐久上限/新鲜/燃料/堆叠）—— 会把字段并进上面那张表，必须在它之后
+    local ok2, err2 = pcall(require, "musha_item_stats2")
+    if not ok2 then
+        print("[Musha] 物品数值表2加载失败: " .. tostring(err2))
+    else
+        print("[Musha] 物品数值表2已加载（食物/耐久/新鲜/燃料/堆叠）")
+    end
 end)
 
 Safe("悬停信息面板", function()

@@ -48,6 +48,8 @@ local COL = {
     mp   = { 0.70, 0.90, 1.00 },        -- 能量回复 淡蓝（2026-09-12 用户：由淡青改淡蓝）
                                         -- ⚠️ 和下面 cool「隔热 淡蓝」色系撞了，靠亮度区分（能量更亮更冷）
     dim  = { 0.70, 0.68, 0.64 },        -- 灰
+    food = { 0.82, 0.94, 0.74 },        -- 食物（饥饿/理智/生命）淡绿（2026-09-13 追加）
+    armor = { 0.72, 0.86, 0.94 },       -- 护甲减伤 淡青（2026-09-13 追加）
 }
 
 local MushaItemInfo = Class(Widget, function(self)
@@ -211,6 +213,53 @@ function MushaItemInfo:BuildLines(inst)
         local mp = MushaItemStat(prefab, "mp_regen")
         if mp and mp > 0 then
             table.insert(out, { text = "能量回复 " .. Num(mp), colour = COL.mp })
+        end
+
+        -- ── 2026-09-13 追加（对齐 Show Me 的信息面）──
+        --   ⚠️ 客户端**没有** finiteuses / perishable / fueled 的 replica（已核实 components/ 里只有
+        --      builder/combat/container/equippable/health/hunger/inventory/inventoryitem/stackable 等），
+        --      所以下面是**上限/基础值**（静态表），不是"当前还剩多少"；要实时剩余值就得走服务端 RPC。
+        -- 减伤（护甲 absorb；≤1 的按比例换算成 %）
+        local absorb = MushaItemStat(prefab, "absorb")
+        if absorb and absorb > 0 then
+            local pct = absorb <= 1 and math.floor(absorb * 100 + 0.5) or math.floor(absorb * 100 + 0.5)
+            table.insert(out, { text = "减伤 " .. pct .. "%", colour = COL.armor })
+        end
+        -- 食物三项
+        local fh = MushaItemStat(prefab, "food_hunger")
+        local fs = MushaItemStat(prefab, "food_sanity")
+        local fl = MushaItemStat(prefab, "food_health")
+        if (fh and fh ~= 0) or (fs and fs ~= 0) or (fl and fl ~= 0) then
+            local seg = {}
+            if fh and fh ~= 0 then table.insert(seg, "饥饿" .. (fh > 0 and "+" or "") .. Num(fh)) end
+            if fs and fs ~= 0 then table.insert(seg, "理智" .. (fs > 0 and "+" or "") .. Num(fs)) end
+            if fl and fl ~= 0 then table.insert(seg, "生命" .. (fl > 0 and "+" or "") .. Num(fl)) end
+            table.insert(out, { text = "食物 " .. table.concat(seg, "  "), colour = COL.food })
+        end
+        -- 耐久上限
+        local uses = MushaItemStat(prefab, "uses_max")
+        if uses and uses > 0 then
+            table.insert(out, { text = "耐久 最多 " .. Num(uses) .. " 次", colour = COL.dim })
+        end
+        -- 燃料上限
+        local fuel = MushaItemStat(prefab, "fuel_max")
+        if fuel and fuel > 0 then
+            table.insert(out, { text = "燃料 上限 " .. Num(fuel), colour = COL.dim })
+        end
+        -- 新鲜时长（表里是秒 → 换算成天：DST 一天 480 秒）
+        local perish = MushaItemStat(prefab, "perish_days")
+        if perish and perish > 0 then
+            table.insert(out, { text = string.format("新鲜 %.1f 天", perish / 480), colour = COL.dim })
+        end
+        -- 堆叠：这个有 replica，可以读**实时**的
+        local st = inst.replica and inst.replica.stackable
+        if st then
+            local n, mx = nil, nil
+            pcall(function() n = st:StackSize() end)
+            pcall(function() mx = st:MaxSize() end)
+            if n and mx and mx > 1 then
+                table.insert(out, { text = string.format("堆叠 %d/%d", n, mx), colour = COL.dim })
+            end
         end
     end
 
