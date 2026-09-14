@@ -34,6 +34,9 @@ D:\SteamLibrary\steamapps\common\Don't Starve Together\mods\musha
     → 两条解法（推荐 A，30 秒）：见下「🗂 版本管理（Gitee）」
 
 ## 关键参考文档（2026-09-14 新增）
+- 🔧 **语法检查（本项目习惯）**：`wsl -d Ubuntu2204 -e bash -lc 'bash /mnt/d/wsl-dl/lua-syntax-check.sh'`
+  （脚本内部用真 `luac5.1`；`luac5.1` **只在 WSL 里**，Windows 侧没有，别在 C:/D: 盘找。
+  2026-09-14 起 musha 共 **53** 个 .lua，全过）
 - `musha-rightclick-spec.md` —— 右键点地技能的两条原版路线 + 三条硬要求（行号级查证）
 - `references/portable-structure-notes.md` —— 可移动携带建筑（portablestructure）公式 + 原版样板清单
 - `musha-weapon-skill-plan.md` —— 武器技能 v1~v9 全过程（v9 = 直线抛射体 + 本地粒子 + rechargeable 冷却）
