@@ -34,9 +34,11 @@ D:\SteamLibrary\steamapps\common\Don't Starve Together\mods\musha
    · **2026-09-14 再调**：① 放大到 **2 倍**（cyan 的 scale 0.45 → **0.90**）
      ② 用户判定"光和面倾斜"= 单图靠 3D 旋转的必然结果（对比洛克人 ZERO 的斩击后确认）；
      要**按方向各画一张**（8 面最好，至少 4 面）→ 代码里已留好开关：
-     `musha_slash_qi_fx.lua` 的 **`FX_DIRS`**（表）；写出 8/4 个动画名（如 anim_e/anim_ne/… ）即启用
-     "按方向选动画、贴图不旋转"；单项写 `{ "anim_e", true }` = 水平镜像（省一半图）。
-     `FX_DIRS = nil` → 退回现在的"单图 + 旋转"。角度口径：第 1 项 = 世界 +X，往 +Z 排（反了改 DIR_CCW）。
+     `musha_slash_qi_fx.lua` 的 **`FX_DIRS`**（表）+ **`DIR_MIRROR = true`（默认开 = 左右自动镜像）**：
+     表里只写**半圈**的图 → 另半圈代码用 `AnimState:SetScale(-1,1)` 水平镜像（原版 FX 就这么干）。
+     8 面 = 只画 4 张（anim_0/45/90/135）；4 面 = 只画 2 张（anim_0/90）。
+     写出名字即启用"按方向选动画、贴图不旋转"；`FX_DIRS = nil` → 退回现在的"单图 + 旋转"。
+     角度口径：第 1 项 = 世界 +X、往 +Z 排（反了改 DIR_CCW）；镜像轴不对改 DIR_START_DEG。
      ③ 角度美术未到之前，B/C 版（厚/双弧）依然只靠"换 -0.png 重导"切换
 7. 后摇 / 动作：现在 = `quickcastspell`（抬手 atk_pre → 挥出 atk，第 5 帧出手，16 帧解除 busy）。
    想换动作只改 `modmain.lua` 一行 `MUSHA_AOE_CAST_STATE`（注释里列了 6 个候选的观感：

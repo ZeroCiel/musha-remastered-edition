@@ -56,17 +56,21 @@ local FX_LIFETIME   = 3                       -- 兜底自毁（秒）
 local FX_ROT_OFFSET = 0                       -- 贴图朝向补偿（度）——月牙弧口不正就报"转 X 度"改这里
 local FX_COLOUR     = nil                     -- 本体染色 {r,g,b}，nil = 原色
 
--- ★★ 方向美术（2026-09-14 用户要做：8 面最好、至少 4 面）——
+-- ★★ 方向美术（2026-09-14 用户要做：8 面最好、至少 4 面；**左右自动镜像**）——
 --   为什么：单图靠"3D 旋转"摆方向 → 斜着飞时贴图被压扁（用户原话"光和面倾斜"）。
 --   洛克人 ZERO 那种利落感 = **每个方向各画一张**，按方向选图、贴图不旋转。
---   用法：一张 build 里放多个动画，动画名照下面表写；表写几项就按 360/项数 分桶选图。
---     8 面（最细，每 45°）：anim_e / anim_ne / anim_n / anim_nw / anim_w / anim_sw / anim_s / anim_se
---     4 面（够用，每 90°）：anim_e / anim_n / anim_w / anim_s
---   想"左右镜像省一半图"：某项写成 { "anim_e", true }（第二项 = 水平翻转）。
---   表 = nil → 退回现在的"单图 + 3D 旋转"。
+--   用法：一张 build 里放多个动画，动画名照下面表写。
+--   ★ **左右自动镜像（DIR_MIRROR = true，默认开）**：表里只写**半圈**的图，另半圈由代码把贴图
+--     水平镜像（原版 FX 就是这么干的：`AnimState:SetScale(-1, 1)`），所以他画一半就行：
+--       8 面 → 只画 4 张：{ "anim_0","anim_45","anim_90","anim_135" }   （每张覆盖 45°）
+--       4 面 → 只画 2 张：{ "anim_0","anim_90" }                        （每张覆盖 90°）
+--       不想镜像（老老实实每个方向一张）→ DIR_MIRROR = false，表写满 8/4 项
+--   · 单项也可以手工标镜像：{ "anim_45", true }（第二项 = 水平翻转）
+--   · 表 = nil → 退回现在的"单图 + 3D 旋转"
 --   ⚠️ 角度口径：第 1 项 = 世界 **+X**（DST 相机 45° 俯视，+X 在屏幕上偏右下），
---      往 +Z 排；要是整排反了，把 DIR_CCW 取反 或 把表倒过来写（改一行）。
+--      往 +Z 排；镜像轴 = 第 1 项那条线。整排方向反了就改 DIR_CCW，镜像轴不对就改 DIR_START_DEG。
 local FX_DIRS       = nil
+local DIR_MIRROR    = true                    -- true = 表只写半圈，另半圈自动左右镜像
 local DIR_START_DEG = 0                       -- 表里第 1 项对应的世界角度（0 = +X）
 local DIR_CCW       = true
 
@@ -79,19 +83,30 @@ local function Atan2(y, x)
     else return 0 end
 end
 
--- 按飞行方向挑方向图（返回 动画名, 是否水平翻转）；没配方向表就返回 nil
+-- 按飞行方向挑方向图（返回 动画名, 是否水平镜像）；没配方向表就返回 nil
 local function PickDirAnim(inst, tx, tz)
     if FX_DIRS == nil or #FX_DIRS == 0 then return nil, false end
     local x, _, z = inst.Transform:GetWorldPosition()
     local dx, dz = tx - x, tz - z
     if math.abs(dx) < 0.001 and math.abs(dz) < 0.001 then return nil, false end
-    local n = #FX_DIRS
-    local step = 360 / n
+
+    local n = #FX_DIRS                                  -- 表里画了几张
+    local total = DIR_MIRROR and n * 2 or n             -- 覆盖多少个方向
+    local step = 360 / total
     local deg = math.deg(Atan2(dz, dx)) * (DIR_CCW and 1 or -1) - DIR_START_DEG
-    local idx = math.floor(((deg % 360) + 360) % 360 / step) + 1
-    local entry = FX_DIRS[idx] or FX_DIRS[1]
-    if type(entry) == "table" then return entry[1], entry[2] == true end
-    return entry, false
+    local k = math.floor((((deg % 360) + 360) % 360) / step) % total   -- 0..total-1
+
+    local flip = false
+    if DIR_MIRROR and k >= n then
+        k = n - (k - n) - 1            -- 镜像轴折回：k=n→n-1, n+1→n-2 … 2n-1→0
+        flip = true
+    end
+
+    local entry = FX_DIRS[k + 1] or FX_DIRS[1]
+    if type(entry) == "table" then
+        return entry[1], (entry[2] == true) ~= flip
+    end
+    return entry, flip
 end
 
 -- ===== 命中炸开 FX（联网的那一个，整个命中只发这一个）=====
