@@ -100,9 +100,126 @@ table.insert(Assets, Asset("IMAGE", "images/musha_note_bg.tex"))
 table.insert(Assets, Asset("ATLAS", "images/bookpage_bg.xml"))
 table.insert(Assets, Asset("IMAGE", "images/bookpage_bg.tex"))
 
+-- 导航图标（2026-09-13）—— 清单在 scripts/musha_nav_icons.lua（唯一真源，两处共用）
+--   打包好 images/nav_xxx.tex + nav_xxx.xml（同 bookpage_bg 的做法）就往清单里留哪一行。
+--   缺 tex 不会崩：面板画图标时用 pcall 兜住，只在日志里打一行。
+Safe("导航图标 assets", function()
+    local NAVICON = require("musha_nav_icons")
+    for _, def in ipairs(NAVICON) do
+        table.insert(Assets, Asset("ATLAS", "images/" .. def.file .. ".xml"))
+        table.insert(Assets, Asset("IMAGE", "images/" .. def.file .. ".tex"))
+    end
+    print("[Musha] 导航图标 assets 注册: " .. #NAVICON .. " 张")
+end)
+
 -- 能量条动画（2026-09-13）—— 挂同名的 prefab assets 之外这里再声明一次，
 --   保证纯客户端（别人开 musha 角色时）也一定加载到这个 build
 table.insert(Assets, Asset("ANIM", "anim/energy.zip"))
+
+-- 剑气素材（2026-09-14）—— 全局声明，这样**每个客户端**都一定有这个 build：
+--   剑气的「本地粒子」是在客户端用 CreateEntity() 直接建的（不联网，
+--   照原版 FX 那套 `--[[Non-networked entity]]` 写法），那时不能再依赖
+--   "某个 prefab 的 assets 恰好加载过" → 所以在这里全局挂一次。
+table.insert(Assets, Asset("ANIM", "anim/slash_fx.zip"))
+-- 自己的亮青月牙（2026-09-14 用户打包）—— 同上，粒子/特效在客户端本地生成时要用到这个 build
+table.insert(Assets, Asset("ANIM", "anim/crescent_cyan.zip"))
+
+-- 武器绑定的技能（2026-09-14 v4）—— 右键点地释放改走【女武神战矛那套 AoE 格式】
+--   做法：武器 prefab 上
+--     · SetPristine **之前**加 aoetargeting（客机要读；缺它右键不进瞄准圈）
+--     · 服务端加 aoespell + SetSpellFn（技能本体）
+--   详见 scripts/prefabs/musha_sword.lua 里的注释块（那里写了三条硬要求 + 坑）。
+--   右键流程：右键按一下 → 进瞄准圈 → 再点地面 → 出现技能名 → 释放。
+--   技能数值在 scripts/musha_weapon_skill.lua 文件头（冷却 / 伤害倍率 / 命中半径 / 最大距离）。
+
+-- 技能显示名（2026-09-14 v4）—— 原版 AoE 的那套命名格式
+--   原版：ACTIONS.CASTAOE.strfn = string.upper(act.invobject.prefab)
+--         → 查 STRINGS.ACTIONS.CASTAOE[<PREFAB 大写>]（表，缺项自动回 GENERIC）
+--   所以每加一把带技能的武器，就在这里给它的 prefab 大写名加一行。
+--   （v3 那个 CASTSPELL.stroverridefn 改名的做法已废弃：那是法杖那条路线的名字）
+Safe("武器技能名(AoE)", function()
+    if type(STRINGS.ACTIONS.CASTAOE) ~= "table" then
+        STRINGS.ACTIONS.CASTAOE = {}          -- 理论上原版是表；不是就兜一层，免得报错
+        print("[Musha] 警告：STRINGS.ACTIONS.CASTAOE 不是表，已补成空表")
+    end
+    local NAMES = {                            -- 语言 id 见 constants.lua 的 LANGUAGE 表
+        [16] = { MUSHA_SWORD = "Удар ци" },    -- 俄
+        [19] = { MUSHA_SWORD = "기검참" },      -- 韩
+        [20] = { MUSHA_SWORD = "ムシャ斬り" },  -- 日
+        [21] = { MUSHA_SWORD = "劍氣斬" },      -- 繁中
+        [22] = { MUSHA_SWORD = "剑气斩" },      -- 简中
+        [23] = { MUSHA_SWORD = "剑气斩" },      -- 简中(轨道)
+    }
+    local id = Profile and Profile:GetLanguageID()
+    for k, v in pairs(NAMES[id] or NAMES[22]) do
+        STRINGS.ACTIONS.CASTAOE[k] = v
+    end
+    print("[Musha] 武器技能名(AoE) 已挂上")
+end)
+
+-- 技能动作（2026-09-14 v5；v10 2026-09-14 改成可一行切换）——
+--   问题：CAST AOE 默认落到 SGwilson 的 "castspell" 状态 →
+--         播 staff_pre + staff（举杖念咒），而且 PerformBufferedAction 压在 53 帧（≈1.8 秒）才触发，
+--         加上 69 帧才解除 busy → 手感就是"举杖举半天、技能半天不出来"。
+--   做法：原版 SGwilson 的 CASTAOE handler 是按物品 tag 选状态的：
+--           invobject:HasTag("aoeweapon_lunge") → "combat_lunge_start"
+--           否则 → "castspell"
+--         我们在 ModPostInit 后把那个 handler 的 deststate 包一层：
+--         带 musha_weapon tag 的武器 → 直接走 MUSHA_AOE_CAST_STATE（见下），其它物品照原版走。
+--   ★ 想换施法动作 = 只改下面这一行（都是 SGwilson 里的原版状态，行号级查证 2026-09-14）：
+--       "quickcastspell"     —— atk_pre（抬手举武器）→ atk（挥出）；第 5 帧就 PerformBufferedAction，
+--                               16 帧解除 busy ★ 现在用这个 = 用户要的"抬手"
+--       "combat_lunge_start" —— lunge_pre → lunge_lag（前倾低扫，第 4 帧出手，无收招段）
+--       "castspell"          —— staff_pre → staff（举杖念咒，53 帧才出手，1.8 秒：太慢）
+--       "attack"             —— 原版平A（atk_pre → atk → atk_pst），抬手劈下，带攻击音
+--       "channeling"         —— channel_loop 举手持续施法（循环，不自己结束，慎用）
+--       "powerup"            —— 单帧 powerup（双手上举蓄力）
+--   ⚠️ 想改成女武神那种**位移冲刺**：那要另外加 tag "aoeweapon_lunge" + 加 aoeweapon_lunge 组件
+--      + 技能结束时 doer:PushEvent("combat_lunge", {...})，三样齐了才会真的冲出去（SGwilson.lua:17214+）。
+--      现在故意都不加 → 只借动作，不位移。
+--   ⚠️ wilson 和 wilson_client 两条都要包，否则客机预测动作不一致。
+local MUSHA_AOE_CAST_STATE = "quickcastspell"
+Safe("技能动作(AoE→武器动作)", function()
+    local function OverrideAOEState(sg)
+        local h = sg ~= nil and sg.actionhandlers ~= nil and sg.actionhandlers[ACTIONS.CASTAOE] or nil
+        if h == nil or type(h.deststate) ~= "function" then return end
+        local oldfns = h.deststate
+        h.deststate = function(inst, action)
+            local item = action ~= nil and action.invobject or nil
+            if item ~= nil and item.HasTag ~= nil and item:HasTag("musha_weapon") then
+                return MUSHA_AOE_CAST_STATE
+            end
+            return oldfns(inst, action)
+        end
+    end
+    AddStategraphPostInit("wilson", OverrideAOEState)
+    AddStategraphPostInit("wilson_client", OverrideAOEState)
+    print("[Musha] 技能动作(AoE→" .. MUSHA_AOE_CAST_STATE .. ") 已挂上")
+end)
+
+-- 武器技能按键（2026-09-13）：按 F 放"手里武器绑定的技能"（快捷方式，可选）
+--   键位写在 scripts/musha_weapon_skill.lua 顶部 CAST_KEY（以后接 musha_keyhandler 让玩家可改）
+--   主机也走这里：ClientCast 内部判断自己是主机就直接调服务端函数，不走 RPC
+Safe("武器技能按键", function()
+    if TheNet:IsDedicated() then return end          -- 纯服务器没有客户端输入
+    AddSimPostInit(function()                        -- 等 TheInput 准备好
+        Safe("武器技能按键(延迟)", function()
+            local WS = require("musha_weapon_skill")
+            if not TheInput then return end
+            TheInput:AddKeyHandler(function(key, down)
+                if down then return end               -- 认按下后再松手（避免连发）
+                if key ~= WS.CAST_KEY then return end
+                if IsPaused() then return end
+                local scr = TheFrontEnd and TheFrontEnd:GetActiveScreen()
+                if scr and type(scr.name) == "string" and scr.name ~= "HUD" then return end
+                local p = ThePlayer
+                if not (p and p:IsValid()) then return end
+                WS.ClientCast(p)
+            end)
+            print("[Musha] 武器技能按键已挂上")
+        end)
+    end)
+end)
 
 -- 客户端加载字体（暂禁用，发布后修）
 --if TheNet:GetIsClient() then
@@ -160,7 +277,7 @@ end)
 -- 注册 Prefab
 -- =====================
 print("[Musha TRACE] 8 - PrefabFiles 前")
-PrefabFiles = {"musha_jobbook_warrior", "musha_jobbook_saber", "musha_skillbook", "musha_sword", "musha_note", "musha", "musha_advance_altar", "musha_slash_qi_fx"}
+PrefabFiles = {"musha_jobbook_warrior", "musha_jobbook_saber", "musha_skillbook", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_slash_qi_fx", "musha_skill_point"}
 -- ⚠️ "musha_jobbook_saber" = **测试专用**（右键直通二转，跳过祭坛 3 轮任务）
 --    上线前删除 3 处：这一项 + scripts/prefabs/musha_jobbook_saber.lua + STRINGS 的 MUSHA_JOBBOOK_SABER
 print("[Musha TRACE] 9 - PrefabFiles 后")

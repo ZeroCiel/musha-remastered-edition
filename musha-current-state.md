@@ -5,8 +5,69 @@ D:\SteamLibrary\steamapps\common\Don't Starve Together\mods\musha
 用户自己的 DST mod（作者 Ciel/雪儿），面板 = Screen + ScrollingGrid，5 页（主页/技能/信箱/设置/图鉴）
 进度文档：musha-backlog.md（顶部有新到旧的完整决策记录）
 
+## 📌 本轮队列（2026-09-14 · 下次开工先扫这里）
+【用户要做：打包 / 导出】→ ✅ 2026-09-14 用户已全部打包完（我这边接线也全做完）
+1. ✅ 亮青月牙：`anim/crescent_cyan.zip` 已打包（bank/build=crescent_cyan，动画名 `anim`）
+   → `musha_slash_qi_fx.lua` 的 `FX_ART` 已改成 **"cyan"** + modmain 全局声明了该 zip
+   （换 B/C 版：把 `crescent_b_thick.png` / `crescent_c_double.png` 复制成 `crescent_cyan-0.png` 再导一次）
+2. ✅ 生命树枝：`anim/musha_lifebranch.zip` + `anim/swap_lifebranch.zip` 已打包（prefab 自检测，已生效）
+   ⏳ 还缺图标：`images/inventoryimages/musha_lifebranch.{png→tex,xml}`（现在的 prefab 会走"无图标"分支，不崩）
+3. ✅ 进阶祭坛：`anim/musha_advance_altar.zip` 已打包 → altar prefab 的 `USE_CUSTOM_MODEL` 已改 `true`
+4. ✅ 导航图标 7 张全打包完（nav_* .tex/.xml 都是 87KB 真图，不是空壳）
+【进游戏要实测】
+5. 剑气斩全链路：右键第一下出瞄准圈 → 再点地面出「剑气斩」→ 角色**抬手（atk_pre→atk）** →
+   剑气（现在 = **用户自己的亮青月牙** `anim/crescent_cyan.zip`）直线飞出 → 命中掉血
+   （日志 `[Musha] 剑气斩 命中 N 个目标`）+ 炸开 + 12 个本地粒子 → 冷却 6 秒（走武器 rechargeable）
+   ★ 冷却期**右键应该完全没反应、也不弹字**（2026-09-14 新口径，见 plan 文档 v10）
+6. 月牙弧口朝向不对 → 报"转 X 度"，改 `FX_ROT_OFFSET`（现 FX_ART = cyan 自己的亮青月牙；
+   想看原版真月牙把 FX_ART 改 "crescent"）
+7. 后摇 / 动作：现在 = `quickcastspell`（抬手 atk_pre → 挥出 atk，第 5 帧出手，16 帧解除 busy）。
+   想换动作只改 `modmain.lua` 一行 `MUSHA_AOE_CAST_STATE`（注释里列了 6 个候选的观感：
+   quickcastspell / combat_lunge_start / castspell / attack / channeling / powerup）
+【本期未做，等定】
+8. ⏸ 武器技能「4 选 2」的选择 UI + 存 userdata —— **2026-09-14 用户：暂不开放，看后期**
+9. 天数奖励系统（存活天数用 `inst.components.age:GetAgeInDays()`）+ 能量水晶 / 水晶剑美术
+10. 生命树枝升级机制（满级 18~24）—— 原版样板已找到：`portablefirepit` + `portablestructure`
+    （见 `references/portable-structure-notes.md`）
+11. Gitee 推送：**实测确认**那把公钥是仓库级**只读部署公钥** →
+    `ssh -T git@gitee.com` 回 `Hi Anonymous (DeployKey)!`；`git push` 回 `DeployKey does not support push code`
+    → 两条解法（推荐 A，30 秒）：见下「🗂 版本管理（Gitee）」
+
+## 关键参考文档（2026-09-14 新增）
+- `musha-rightclick-spec.md` —— 右键点地技能的两条原版路线 + 三条硬要求（行号级查证）
+- `references/portable-structure-notes.md` —— 可移动携带建筑（portablestructure）公式 + 原版样板清单
+- `musha-weapon-skill-plan.md` —— 武器技能 v1~v9 全过程（v9 = 直线抛射体 + 本地粒子 + rechargeable 冷却）
+
 ## 已落地（能用）
-- 面板五页 + 右上三角导航 + 信箱更新日志 + 设置页（**现 6 行**）
+- 🔧 **查原版 API 的正确姿势（2026-09-13 踩坑）**：`data/databundles/scripts/` 那个解包目录是**旧版**，
+  行号和实际跑的对不上（追 traceback 会找错地方）。要看当前版本，把 `data/databundles/scripts.zip` 解出来读：
+  `unzip -o -q scripts.zip "scripts/componentactions.lua" -d /tmp/gd`
+- 🔧 **DST 组件动作（AddComponentAction）当前版本写法**：`actions` 是**数组**，要 `table.insert(actions, ACTIONS.XXX)`；
+  旧教程里的 `actions[ACTIONS.XXX].valid = true` 会报 `attempt to index field 'XXX' (a nil value)`（已踩）
+- 🎯 本期目标：写完**武器绑定的技能（剑气斩）**就能上架 Steam；**近卫**排下一期（约 3~7 天后）。
+  方案见 `musha-weapon-skill-plan.md`（现状/缺的三块/v1 做法/要顺手修的键位 bug/已拍板项）。
+- 🎯 新增：**天数奖励系统**（游戏内天数 1/3/10/16/30 送 红宝石×2 / 生命护符 / 生命树枝 / 能量水晶 / 礼包+水晶剑）
+  + **缺的美术清单**（用户去画）→ 见 `musha-dayrewards-plan.md`。
+  已定的两条：节日礼包按**现实时间**、天数奖励按**游戏内天数**；发放建议复用礼包页 + `musha_claim_gift` RPC。
+  战士技能预算修订：主战主动技只有 1 个，其余被动/耍戏；**武器绑定技能 4 选 2、不通用**。
+- 面板七页 + 右上三角导航 + 信箱更新日志 + 设置页（**现 7 行**）
+- 🆕 2026-09-13 **装备页从"图鉴"里拆出来单独一页**：原 `dex` 页（页名图鉴、内容其实是装备·属性：头/身/手三格 + 12 行属性）
+  改 key 为 `equip`、导航标签"装备"，页面内容没动；新建 `dex` = 图鉴**占位页（"内容待定"）**。
+  导航现在 **7 行**：主页 / 技能 / 装备 / 信箱 / 设置 / 礼包 / 图鉴（行距 43 不变）。
+- 🆕 2026-09-13 导航图标**七张画好**（`images/nav_{home,skill,equip,mail,set,gift,dex}.png`，底板统一：蜡黄渐变 + 深棕描边）：
+  主页=用户原图；技能=用户给的枝干线稿（抠白+缩80%+加粗+染深棕）；装备=胸甲；信箱=信封；设置=齿轮（底板薄荷绿→蜡黄、
+  齿轮按 154:143 放大对齐主页，文件名 `nav_set`）；礼包=礼物盒；图鉴=放大镜。
+  接线（**已去掉开关，改成唯一真源清单**）：`scripts/musha_nav_icons.lua` 列出七张，`modmain.lua` 按它注册 assets，
+  `musha_panel_screen.lua` 按它画图标（图标 28x28 放 x=-41、文字右移 8）；**缺 tex 时 pcall 兜住**，该行只显示文字+日志一行。
+  打包进度：nav_home / nav_mail / nav_set 已打包可用；nav_skill / nav_equip / nav_gift / nav_dex 待打包（用户整批转一次即可）。
+  步骤见 `images/nav_icons_README.txt`；总览图 `images/_nav_all7.png`、实际大小 `images/_nav_real28.png`；
+  工作文件 `images/_nav_plate_clean.png`（抹掉房子的干净底板，以后画新图标直接用）。
+  坑：用户那批工具转出来的中文名（主页/技能/信箱/设置.tex）xml 只有 15 字节=空壳，没用；已删。无代码引用的 `_fx_slash_*.tex`
+  （1.4M）也删了。`bookpage_bg V2.tex`(5.3M) 与 `bookpage_bg.tex` 内容重复，待用户定要不要删。
+- 🆕 2026-09-13 体积清理（用户：多的删了）：`images/` **39M → 20M**。
+  删：`bookpage_bg V2.tex/.xml`（与 bookpage_bg.* md5 完全相同，只是工具重名的副本）、中文名 tex 空壳、`_fx_slash_*.tex`。
+  挪出 mod（没删，发布时不该打进包）：`images/_bak/`（8.5M，旧书页三件套）→ `C:\Users\Administrator\musha-backups\images_bak_20260913\`；
+  `images/note_bg.{tex,xml,png}`（4.7M，全项目 0 引用，已被 musha_note_bg 取代）→ `C:\Users\Administrator\musha-backups\`。
 - 技能页：战士技能树 + 粉加号加点；**新增「未学习 / 已学习」两个文字项目切子页**
 - 进阶祭坛：真 prefab `musha_advance_altar`（动画占位=原版麦斯威尔雕像，移植点=文件头 3 个常量）
 - 转职任务：**5 级门槛已补**（ADVANCE_MIN_LEVEL=5，musha_quest.lua）；3 轮制，第 3 轮完成 → 进阶 + 发技能书
@@ -77,11 +138,26 @@ D:\SteamLibrary\steamapps\common\Don't Starve Together\mods\musha
 - ko：剩余长句
 - ru：整段 DESCRIBE 缺失（要不要补待定）
 
-## 🗂 版本管理（Gitee）
-- `musha` 目录已是 git 仓库，remote = `gitee.com/ZeroCiel/musha-remastered-edition`（SSH）
-- **现在推不上去**：gitee 主机密钥还没进 known_hosts（报 Host key verification failed）→ 推之前先补密钥
-- 用户 2026-09-13：**推送等下次**（他先睡/去充值）
-- 待提交：74 个文件（多为 exported/anim 的 zip 变更）
+## 🗂 版本管理（Gitee）—— 2026-09-14 实测结论
+- `musha` 目录已是 git 仓库，remote = `git@gitee.com:ZeroCiel/musha-remastered-edition.git`（SSH）
+- **根因定死了**：`~/.ssh/id_ed25519` 这把公钥在 Gitee 上是**仓库级「部署公钥」= 只读**
+  · `ssh -T git@gitee.com` → `Hi Anonymous (DeployKey)! ... DeployKey only supports pull/fetch`
+  · 真推一次 → `Auth error: DeployKey does not support push code`
+  · 用户"重复设置只提示密匙已有"= Gitee 的公钥是**全局唯一**的，同一把不能既当部署公钥又当账号公钥
+- ✅ **解法 A（推荐，30 秒，不用动本机）**：Gitee 网页 → 该仓库 → 管理 → **部署公钥** →
+  找到 `musha-gitee` 那把 → 编辑 → 勾 **「启用推送权限」** → 保存 → 我再 `git push` 验证
+- ✅ **解法 B（更干净，一把钥匙通吃所有仓库）**：
+  1. 网页 → 仓库 → 管理 → 部署公钥 → **删掉** `musha-gitee`
+  2. 头像 → 设置 → 安全设置 → **SSH 公钥** → 添加下面这把新钥匙
+     （已在本机生成好了：`~/.ssh/id_ed25519_gitee`，无口令）
+     ```
+     ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICsrfD2DBoKCrNn521OboR+y1UiFFwZbr9Wvs7Pj6FEM musha-push-2026-09
+     ```
+     ⚠️ 必须**先删部署公钥**再添加，否则还是"密匙已有"（全局唯一）
+  3. 说一声，我加 `~/.ssh/config`（Host gitee.com → IdentityFile id_ed25519_gitee, IdentitiesOnly yes）
+     并跑 `ssh -T` + 真推验一次
+- 待提交：**71 个文件**（多为 exported/anim 的 zip 变更）
+- 📌 提醒：公钥/令牌是凭据，贴过聊天建议轮换
 
 ## 📌 队列（用户 2026-09-13 指定，做完台词就回去做）
 1. **检查 Show Me 的问题**（悬停信息面板那套；`scripts/widgets/musha_item_info.lua`）

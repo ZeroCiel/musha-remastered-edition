@@ -171,6 +171,25 @@ GLOBAL.AddModRPCHandler(NS, "musha_open_skill_panel", function(player)
 end)
 
 -- ====================================
+-- 武器绑定的技能：施放（客户端→服务端，2026-09-13）
+--   客户端只发瞄点；校验/冷却/伤害全在服务端（见 scripts/musha_weapon_skill.lua）
+--   x/z = -9999 表示"客户端没瞄点"，服务端按角色面向自己推
+-- ====================================
+GLOBAL.AddModRPCHandler(NS, "musha_weapon_skill_cast", function(player, x, z)
+    if not player or not player:IsValid() then return end
+    if not GLOBAL.TheWorld.ismastersim then return end
+
+    local ok, WS = pcall(GLOBAL.require, "musha_weapon_skill")
+    if not ok or type(WS) ~= "table" then return end
+
+    local pos = nil
+    if type(x) == "number" and type(z) == "number" and x > -9000 then
+        pos = GLOBAL.Vector3(x, 0, z)
+    end
+    WS.DoCast(player, pos)
+end)
+
+-- ====================================
 -- 局内设置（2026-09-10 新增）
 -- ====================================
 

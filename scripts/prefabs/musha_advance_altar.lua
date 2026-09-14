@@ -5,29 +5,30 @@
 --          → musha_action:InteractScene(doer)
 --          → modmain 里 AddPrefabPostInit 绑定的 OnAltarInteract
 --
--- ★★★ 模型移植点（唯一需要改的地方）★★★
---   当前占位 = 复用原版麦斯威尔雕像动画（与旧版 statuemaxwell 占位视觉一致）。
---   移植新模型时只改下面 3 个常量 + assets 表里的 2 个路径，其余不用动：
---     1) 把 anim/musha_advance_altar.zip(+build) 放进 mod 的 anim/ 目录
---     2) ALTAR_BANK / ALTAR_BUILD 改成新 zip 里的 bank / build 名
---     3) assets 里两个 Asset("ANIM", ...) 换成新路径，删掉原版雕像那两行
---   （bank/build 名 = 导出时 Spriter 工程名 / 编译后 anim.bin 里的 build 名，
---     不对的话游戏会 assert "Could not find bank/build"）
--- =====================================================
+-- ★★★ 模型开关（唯一需要动的地方）★★★
+--   贴图+scml 已经做好了，在 exported/musha_advance_altar/（打包步骤见那个目录的 README.txt）：
+--     musha_advance_altar.scml             Spriter 工程（单帧 idle）
+--     musha_advance_altar-0.png            贴图帧（320x320，原点=图正中心）
+--   打包好两个 zip 放进 mods/musha/anim/ 之后，**只把下面这行改 true** 就换模型了。
+local USE_CUSTOM_MODEL = true           -- 2026-09-14 用户已打包 anim/musha_advance_altar.zip → 开
 
 -- ===== 动画绑定（空间绑定）=====
-local ALTAR_BANK  = "statue_maxwell"        -- AnimState:SetBank  —— 占位=原版雕像
-local ALTAR_BUILD = "statue_maxwell_build"  -- AnimState:SetBuild —— 占位=原版雕像贴图
-local ALTAR_ANIM  = "idle_full"             -- 默认播放的动画
+--   ⚠️ 名字对不上就 assert。本项目自己的 zip 是**一个包装齐** anim.bin+atlas+build.bin
+--      （看 anim/musha_jobbook_warrior.zip）→ bank 名 = build 名 = zip 名 ✓
+--      原版雕像那种"bank.zip + build.zip"分开的写法只在引用原版资源时用。
+local ALTAR_BANK  = USE_CUSTOM_MODEL and "musha_advance_altar" or "statue_maxwell"
+local ALTAR_BUILD = USE_CUSTOM_MODEL and "musha_advance_altar" or "statue_maxwell_build"
+local ALTAR_ANIM  = USE_CUSTOM_MODEL and "idle"              or "idle_full"
+local ALTAR_SCALE = 1.0                 -- 进游戏嫌大/嫌小就改这个（1.0=原始，0.8=缩两成）
 
-local assets =
+local assets = USE_CUSTOM_MODEL and
 {
-    -- 占位资源（原版游戏 data/anim/ 里就有，可直接引用）
+    Asset("ANIM", "anim/musha_advance_altar.zip"),
+} or
+{
+    -- 占位资源（原版游戏 data/anim/ 里就有，可直接引用）—— 这个才是分开两个包的
     Asset("ANIM", "anim/statue_maxwell.zip"),
     Asset("ANIM", "anim/statue_maxwell_build.zip"),
-    -- 移植模型后换成：
-    -- Asset("ANIM", "anim/musha_advance_altar.zip"),
-    -- Asset("ANIM", "anim/musha_advance_altar_build.zip"),
 }
 
 local prefabs = {}
@@ -50,6 +51,11 @@ local function fn()
     inst.AnimState:SetBank(ALTAR_BANK)
     inst.AnimState:SetBuild(ALTAR_BUILD)
     inst.AnimState:PlayAnimation(ALTAR_ANIM)
+
+    -- 大小微调：改文件头的 ALTAR_SCALE 就行，别动贴图（1.0 = 原始大小）
+    if ALTAR_SCALE ~= 1 then
+        inst.Transform:SetScale(ALTAR_SCALE, ALTAR_SCALE, ALTAR_SCALE)
+    end
 
     -- ★ tag 必须在 SetPristine() 之前加：客户端也要有这个 tag，
     --   否则客机右键不出 MUSHA_QUEST_INTERACT（旧版占位就吃了这个亏）

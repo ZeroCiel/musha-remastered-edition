@@ -4,6 +4,7 @@ local S = GLOBAL.STRINGS
 
 -- Item names
 S.NAMES.MUSHA_SWORD = "Sword"
+S.NAMES.MUSHA_LIFEBRANCH = "Life Branch"
 S.NAMES.MUSHA_SKILLBOOK = "Skill Book"
 S.NAMES.MUSHA_NOTE = "Note"
 S.NAMES.MUSHA_JOBBOOK = "Job Tome"
@@ -35,6 +36,7 @@ S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_SKILLBOOK_ELEMENTALIST = "Contains basic ski
 S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_SKILLBOOK_BARD = "Contains basic skills for Bards."
 S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_SKILLBOOK_MOONSHADOW = "Contains basic skills for Moonshadows."
 S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_SWORD = "A heavy job sword emitting a faint cold gleam."
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_LIFEBRANCH = "A branch that is still alive. Warm in the hand, as if it were budding."
 S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_SKILLBOOK = "A yellowed book recording your job skills."
 S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_REST_ITEM = "Right-click to toggle resting state."
 

@@ -287,14 +287,14 @@ local function MakePlusButton(parent, size, enabled, onclick)
         b:SetImageNormalColour(0.98, 0.72, 0.80, 0.98)   -- 粉色底
         b:SetImageFocusColour(1.00, 0.80, 0.86, 1)
     else
-        b:SetImageNormalColour(0.90, 0.74, 0.78, 0.85)   -- 暗一档的粉（不是灰）
-        b:SetImageFocusColour(0.90, 0.74, 0.78, 0.85)
+        b:SetImageNormalColour(0.82, 0.81, 0.79, 0.90)   -- 2026-09-13 用户：不能加点 → 灰底
+        b:SetImageFocusColour(0.82, 0.81, 0.79, 0.90)
     end
 
-    -- 粉红色框（enabled 时深粉，禁用时暗粉）
+    -- 框（enabled 时深粉，禁用时灰）
     local fr, fg, fb, fa
     if enabled then fr, fg, fb, fa = 0.92, 0.30, 0.45, 1
-    else            fr, fg, fb, fa = 0.72, 0.48, 0.54, 0.85 end
+    else            fr, fg, fb, fa = 0.62, 0.60, 0.58, 0.90 end
     for _, ln in ipairs({
         { 0, size / 2 - 2, size, 4 },
         { 0, -(size / 2 - 2), size, 4 },
@@ -641,8 +641,10 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     --   其它四页各一个容器；右上三角 点开展开 5 项列表
     --   现阶段全文字（导航图标等美术）
     -- ================================================================
-    self.page_titles = { home = "主页", skill = "技能", mail = "信箱", set = "设置", gift = "礼包", dex = "图鉴" }
-    self.page_order  = { "home", "skill", "mail", "set", "gift", "dex" }
+    -- 2026-09-13：装备页从"图鉴"里拆出来单独一页（原来页名叫图鉴、内容其实是装备·属性）
+    --   现在：equip = 装备·属性（原内容不动），dex = 图鉴（新占位页，内容待定）
+    self.page_titles = { home = "主页", skill = "技能", equip = "装备", mail = "信箱", set = "设置", gift = "礼包", dex = "图鉴" }
+    self.page_order  = { "home", "skill", "equip", "mail", "set", "gift", "dex" }
 
     self.pages = {}
     self.pages.home = {
@@ -786,14 +788,29 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                 row.t_l3_tip:SetString(data.tip or "")
             end
 
-            -- 加点按钮：技能或可用状态变了才重建（不能加时是暗粉，点了服务端回原因）
-            if row.btn_skill ~= data.id or row.btn_can ~= (data.can == true) then
-                if row.btn then row.btn:Kill() end
-                local sid = data.id
-                row.btn = MakePlusButton(row, SKILL_BTN, data.can == true, function() SendSkillUpgrade(sid) end)
-                row.btn:SetPosition(SKILL_ROW_W / 2 - 56, -6)
+            -- 2026-09-13 用户：不能加点的整行按灰色处理（已满级那档不灰，走下面"隐藏加号"）
+            local GRAY = (not data.maxed) and not (data.can == true)
+            if GRAY then
+                row.t_name:SetColour(0.55, 0.52, 0.48, 1)
+                row.t_l1:SetColour(0.60, 0.57, 0.53, 1)
+                row.t_l2:SetColour(0.60, 0.57, 0.53, 1)
+                row.t_l3_tip:SetColour(0.64, 0.61, 0.57, 1)
+                row.t_l3_next:SetColour(0.66, 0.62, 0.58, 1)
+            end
+
+            -- 加点按钮（2026-09-13 用户：不能加点 = 灰加号；已满级 = 直接隐藏加号）
+            local can_add = (data.can == true) and not data.maxed
+            local maxed   = (data.maxed == true)
+            if row.btn_skill ~= data.id or row.btn_can ~= can_add or row.btn_maxed ~= maxed then
+                if row.btn then row.btn:Kill(); row.btn = nil end
+                if not maxed then
+                    local sid = data.id
+                    row.btn = MakePlusButton(row, SKILL_BTN, can_add, function() SendSkillUpgrade(sid) end)
+                    row.btn:SetPosition(SKILL_ROW_W / 2 - 56, -6)
+                end
                 row.btn_skill = data.id
-                row.btn_can = (data.can == true)
+                row.btn_can   = can_add
+                row.btn_maxed = maxed
             end
         end
 
@@ -924,14 +941,14 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         self.mail_pagenums:SetPosition(0, PY)
     end
 
-    -- 装备 · 属性页（2026-09-13 新增；原来这里是「图鉴 · 装备表待填」占位）
+    -- 装备 · 属性页（2026-09-13 新增；原页名"图鉴"已改成 keys=equip、导航标签"装备"）
     --   左列：头/身/手 三个装备格（图标 + 名字 + 关键数值）
     --   右列：12 行属性（生命/饥饿/理智/能量/攻击力/减伤/移速/保暖/隔热/职业/等级/技能点）
     --   ⚠️ 全走客户端 API：replica.inventory / player_classified / netvar，服务端组件在这里读不到
-    self.pages.dex = NewPage()
+    self.pages.equip = NewPage()
     do
         local PAGE_W, PAGE_H = 890, 600
-        local root = self.pages.dex
+        local root = self.pages.equip
         root:SetPosition(0, -33)
 
         FrameLines(root, PAGE_W, PAGE_H, 0, 6, 1, 1, 1, 1)
@@ -1009,6 +1026,27 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
 
             self.eq_rows[i] = { label = lb, value = vl }
         end
+    end
+
+    -- 图鉴页（2026-09-13 从装备页里拆出来单独一页）：内容未定，先放占位
+    --   待用户定：放什么（生物图鉴 / 物品图鉴 / 配方解锁 / 收集进度）
+    self.pages.dex = NewPage()
+    do
+        local PAGE_W, PAGE_H = 890, 600
+        local root = self.pages.dex
+        root:SetPosition(0, -33)
+
+        FrameLines(root, PAGE_W, PAGE_H, 0, 6, 1, 1, 1, 1)
+
+        local inner = root:AddChild(Image("images/global.xml", "square.tex"))
+        inner:SetSize(PAGE_W - 34, PAGE_H - 34)
+        inner:SetTint(0.965, 0.960, 0.945, 0.97)
+
+        PageTip(root, "图鉴", 40)
+        local tip2 = root:AddChild(Text(UIFONT, 26))
+        tip2:SetString("内容待定")
+        tip2:SetColour(0.62, 0.56, 0.46, 1)
+        tip2:SetPosition(0, -48)
     end
 
     -- 设置页（行数少，直接排，不做滚动）
@@ -1125,6 +1163,17 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     self.nav_list:SetPosition(458, 266)
     self.nav_list:Hide()
     self.nav_items = {}
+
+    -- 导航图标（2026-09-13）：清单在 scripts/musha_nav_icons.lua（唯一真源）
+    --   哪张 tex 打包好了清单里就有哪一行；缺 tex 时下面的 pcall 会兜住 → 那行只显示文字
+    local NAV_ICON = {}
+    local ok_nav, NAVICON = pcall(require, "musha_nav_icons")
+    if ok_nav and type(NAVICON) == "table" then
+        for _, def in ipairs(NAVICON) do
+            NAV_ICON[def.key] = { atlas = "images/" .. def.file .. ".xml", elem = def.file .. ".tex" }
+        end
+    end
+
     for i, key in ipairs(self.page_order) do
         -- 2026-09-10：横条缩到 76%（150x52 → 114x40），行距 56 → 43；文字字号不缩
         local b = self.nav_list:AddChild(ImageButton("images/global.xml", "square.tex"))
@@ -1152,6 +1201,19 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         local t = b:AddChild(Text(UIFONT, 28))
         t:SetString(self.page_titles[key])
         t:SetColour(0.32, 0.26, 0.18, 1)          -- 淡黄底上用深色字（字号仍 28pt，不缩）
+
+        -- 导航图标（2026-09-13）：图放左边 28x28，文字整体右移 8 让"图+字"看着居中
+        --   缺 tex 时 pcall 兜住：只打一行日志，该行保持纯文字
+        if NAV_ICON[key] then
+            local ok = pcall(function()
+                local ic = b:AddChild(Image(NAV_ICON[key].atlas, NAV_ICON[key].elem))
+                ic:ScaleToSize(28, 28)
+                ic:SetPosition(-41, 0)
+                t:SetPosition(8, 0)
+            end)
+            if not ok then print("[Musha] 导航图标没加载上（tex 打包了吗？）: " .. tostring(key)) end
+        end
+
         b:SetOnClick(function() self:SetActivePage(key) end)
         table.insert(self.nav_items, { key = key, btn = b, text = t })
     end
@@ -1762,9 +1824,9 @@ function MushaPanelScreen:SetActivePage(name)
     elseif name == "gift" then
         self.default_focus = self.nav_triangle
         self:RefreshGift(self:GetUserData())
-    elseif name == "dex" then
+    elseif name == "equip" then
         self.default_focus = self.nav_triangle
-        self:RefreshEquip(self:GetUserData())    -- 装备 · 属性页（2026-09-13）
+        self:RefreshEquip(self:GetUserData())    -- 装备 · 属性页（2026-09-13 从"图鉴"改名拆出）
     else
         self.default_focus = self.nav_triangle
     end

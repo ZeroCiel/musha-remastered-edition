@@ -116,7 +116,9 @@ end
 
 -- 原始按键回调
 function KeyHandler:OnRawKey(key, down)
-    if TheWorld and TheWorld.ismastersim then return end  -- 仅客户端
+    -- 2026-09-13 修：原来这里写 `if TheWorld.ismastersim then return end`（仅客户端）
+    --   → 自己当服主时按技能键**完全没反应**。现在主机也响应，
+    --   要不要走 RPC 由注册的动作处理器自己判断。
     if down then return end  -- 只响应释放（避免连发）
     if IsPaused() then return end
 
