@@ -124,6 +124,19 @@ table.insert(Assets, Asset("ANIM", "anim/slash_fx.zip"))
 -- 自己的亮青月牙（2026-09-14 用户打包）—— 同上，粒子/特效在客户端本地生成时要用到这个 build
 table.insert(Assets, Asset("ANIM", "anim/crescent_cyan.zip"))
 
+-- ★ 方向图版月牙（2026-09-14 程序生成 exported/crescent_cyan/dirs/，等用户打包 anim/crescent_cyan8.zip）
+--   ⚠️ **不能无条件登记**：assets 里写一个不存在的文件 → RegisterPrefabs 阶段 assert → 整个 mod 被禁。
+--   所以先探一下文件在不在（softresolvefilepath 找不到只返回 nil，不 assert），在才登记。
+Safe("亮青月牙方向图 assets", function()
+    local f = softresolvefilepath
+    if f == nil then return end
+    local _, resolved = pcall(f, "anim/crescent_cyan8.zip")
+    if resolved ~= nil then
+        table.insert(Assets, Asset("ANIM", "anim/crescent_cyan8.zip"))
+        print("[Musha] 方向图月牙 assets 已登记（anim/crescent_cyan8.zip）")
+    end
+end)
+
 -- 武器绑定的技能（2026-09-14 v4）—— 右键点地释放改走【女武神战矛那套 AoE 格式】
 --   做法：武器 prefab 上
 --     · SetPristine **之前**加 aoetargeting（客机要读；缺它右键不进瞄准圈）

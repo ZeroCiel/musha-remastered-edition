@@ -43,6 +43,14 @@ local ART = ({
     cyan     = { bank = "crescent_cyan",             build = "crescent_cyan",             pre = "anim",            fly = "anim",            hit = "anim",             scale = 0.90, bloom = true },
 
     crescent = { bank = "crabking_claw_swipe_fx",    build = "crabking_claw_swipe_fx",    pre = "atk1",            fly = "atk1",            hit = "atk1",             scale = 0.30, bloom = false },
+
+    -- ★ 方向图版（2026-09-14 程序生成，见 `exported/crescent_cyan/make_dirs.py`）——
+    --   8 个方向各一张（anim_0..anim_7，世界 +X 起每 45°），按飞行方向选图、贴图不旋转
+    --   → 斜着飞不再被"地面投影"压扁（就是用户说的"光和面倾斜"）。
+    --   打包：`exported/crescent_cyan/dirs/crescent_cyan8.scml` → `anim/crescent_cyan8.zip`，
+    --   然后把最上面的 FX_ART 改成 "cyan8" 即可（表都填好了，不用改别的）。
+    cyan8    = { bank = "crescent_cyan8",            build = "crescent_cyan8",            pre = "anim_0",          fly = "anim_0",          hit = "anim_0",           scale = 0.90, bloom = true,
+                 dirs = { "anim_0", "anim_1", "anim_2", "anim_3", "anim_4", "anim_5", "anim_6", "anim_7" } },
     vanilla  = { bank = "shadow_thrall_projectile_fx", build = "shadow_thrall_projectile_fx", pre = "projectile_pre", fly = "projectile_loop", hit = "projectile_impact", scale = 1, bloom = false },
 })[FX_ART]      -- ⚠️ 外面这对括号不能省：Lua 5.1 不许「表构造后面直接跟索引」
 
@@ -69,8 +77,8 @@ local FX_COLOUR     = nil                     -- 本体染色 {r,g,b}，nil = �
 --   · 表 = nil → 退回现在的"单图 + 3D 旋转"
 --   ⚠️ 角度口径：第 1 项 = 世界 **+X**（DST 相机 45° 俯视，+X 在屏幕上偏右下），
 --      往 +Z 排；镜像轴 = 第 1 项那条线。整排方向反了就改 DIR_CCW，镜像轴不对就改 DIR_START_DEG。
-local FX_DIRS       = nil
-local DIR_MIRROR    = true                    -- true = 表只写半圈，另半圈自动左右镜像
+local FX_DIRS       = ART.dirs                -- 方向图来自 ART 项（FX_ART = "cyan8" 才有；nil = 单图 + 3D 旋转）
+local DIR_MIRROR    = ART.mirror == true      -- true = 表只写半圈、另半圈自动左右镜像（cyan8 是 8 张全量 → false）
 local DIR_START_DEG = 0                       -- 表里第 1 项对应的世界角度（0 = +X）
 local DIR_CCW       = true
 

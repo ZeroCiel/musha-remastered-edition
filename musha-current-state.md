@@ -7,8 +7,18 @@ D:\SteamLibrary\steamapps\common\Don't Starve Together\mods\musha
 
 ## 📌 本轮队列（2026-09-14 · 下次开工先扫这里）
 【用户要做：打包 / 导出】→ ✅ 2026-09-14 用户已全部打包完（我这边接线也全做完）
-1. ✅ 亮青月牙：`anim/crescent_cyan.zip` 已打包（bank/build=crescent_cyan，动画名 `anim`）
-   → `musha_slash_qi_fx.lua` 的 `FX_ART` 已改成 **"cyan"** + modmain 全局声明了该 zip
+1. **亮青月牙 · 方向图已就绪**（2026-09-14 我用程序生成，**不用即梦额度**）：
+   `exported/crescent_cyan/dirs/`（生成器 = 同目录 `make_dirs.py`，纯标准库 python 跑）
+   · `crescent_cyan8.scml` + `crescent_dir0..7.png`（8 张，世界 +X 起每 45°）+ `_preview_all8.png` + `README.txt`
+   · **打包**：DST Mod Tool 打开 `crescent_cyan8.scml` → 导出 → `anim/crescent_cyan8.zip`
+     然后把 `musha_slash_qi_fx.lua` 顶部 **`FX_ART` 从 "cyan" 改成 "cyan8"**（表已填好，含 dirs=anim_0..7）
+   · 原理：贴图是平铺地面的，直接转贴图会被"地面投影"压扁（= "光和面倾斜"）；
+     生成器在美术空间做反向补偿 `P⁻¹·R·P`，投影后画面正好是"月牙朝该方向"的样子
+   · 校准一个数就够：`PHASE_DEG`（8 张整体偏角）/ `K`（压扁程度，默认 0.5）/ 代码 `DIR_CCW`（顺序反了就取反）
+   · 代码侧已备好：`ART.cyan8`（dirs 表）+ `FX_DIRS = ART.dirs`；`DIR_MIRROR` 改成**按 ART 项开关**
+     （cyan8 = 8 张全量 → 自动 false；以后手画半圈再加 `mirror = true`）
+   · modmain 里 `anim/crescent_cyan8.zip` 的 assets 是**条件登记**（文件不在就不登记，免得整个 mod 被禁）
+   · 现状：`FX_ART` 仍是 **"cyan"**（单图，已放大 2 倍）→ 方向图打包完再改 "cyan8"
    （换 B/C 版：把 `crescent_b_thick.png` / `crescent_c_double.png` 复制成 `crescent_cyan-0.png` 再导一次）
 2. ✅ 生命树枝：`anim/musha_lifebranch.zip` + `anim/swap_lifebranch.zip` 已打包（prefab 自检测，已生效）
    ⏳ 还缺图标：`images/inventoryimages/musha_lifebranch.{png→tex,xml}`（现在的 prefab 会走"无图标"分支，不崩）
