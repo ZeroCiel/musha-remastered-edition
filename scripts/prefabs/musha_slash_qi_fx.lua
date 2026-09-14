@@ -36,11 +36,11 @@ local ART = ({
     jimeng   = { bank = "slash_fx",                  build = "slash_fx",                  pre = "anim",            fly = "anim",            hit = "anim",             scale = 0.80, bloom = false },
 
     -- ★ 自己画的亮青月牙（2026-09-14，exported/crescent_cyan/）
-    --   可见 487x389 → scale 0.45 ≈ 2.2x1.75 世界单位（正好一道大月牙）
+    --   ★ 2026-09-14 用户："放大到 2 倍" → scale 0.45 → 0.90（可见 487x389 → 约 4.4x3.5 世界单位）
     --   打包：exported/crescent_cyan/crescent_cyan.scml → anim/crescent_cyan.zip，然后把 FX_ART 改成 "cyan"
     --   换 B(厚月牙)/C(双弧)：把 exported/crescent_cyan/crescent_b_thick.png 或 _c_double.png
     --     复制成 crescent_cyan-0.png，重新导一次 scml 即可（代码不用动）
-    cyan     = { bank = "crescent_cyan",             build = "crescent_cyan",             pre = "anim",            fly = "anim",            hit = "anim",             scale = 0.45, bloom = true },
+    cyan     = { bank = "crescent_cyan",             build = "crescent_cyan",             pre = "anim",            fly = "anim",            hit = "anim",             scale = 0.90, bloom = true },
 
     crescent = { bank = "crabking_claw_swipe_fx",    build = "crabking_claw_swipe_fx",    pre = "atk1",            fly = "atk1",            hit = "atk1",             scale = 0.30, bloom = false },
     vanilla  = { bank = "shadow_thrall_projectile_fx", build = "shadow_thrall_projectile_fx", pre = "projectile_pre", fly = "projectile_loop", hit = "projectile_impact", scale = 1, bloom = false },
@@ -55,6 +55,44 @@ local FX_LAUNCH_AT  = Vector3(1.0, 1.25, 0)   -- 出手位置
 local FX_LIFETIME   = 3                       -- 兜底自毁（秒）
 local FX_ROT_OFFSET = 0                       -- 贴图朝向补偿（度）——月牙弧口不正就报"转 X 度"改这里
 local FX_COLOUR     = nil                     -- 本体染色 {r,g,b}，nil = 原色
+
+-- ★★ 方向美术（2026-09-14 用户要做：8 面最好、至少 4 面）——
+--   为什么：单图靠"3D 旋转"摆方向 → 斜着飞时贴图被压扁（用户原话"光和面倾斜"）。
+--   洛克人 ZERO 那种利落感 = **每个方向各画一张**，按方向选图、贴图不旋转。
+--   用法：一张 build 里放多个动画，动画名照下面表写；表写几项就按 360/项数 分桶选图。
+--     8 面（最细，每 45°）：anim_e / anim_ne / anim_n / anim_nw / anim_w / anim_sw / anim_s / anim_se
+--     4 面（够用，每 90°）：anim_e / anim_n / anim_w / anim_s
+--   想"左右镜像省一半图"：某项写成 { "anim_e", true }（第二项 = 水平翻转）。
+--   表 = nil → 退回现在的"单图 + 3D 旋转"。
+--   ⚠️ 角度口径：第 1 项 = 世界 **+X**（DST 相机 45° 俯视，+X 在屏幕上偏右下），
+--      往 +Z 排；要是整排反了，把 DIR_CCW 取反 或 把表倒过来写（改一行）。
+local FX_DIRS       = nil
+local DIR_START_DEG = 0                       -- 表里第 1 项对应的世界角度（0 = +X）
+local DIR_CCW       = true
+
+-- atan2 自己写（避免依赖 math.atan2 在不在）
+local function Atan2(y, x)
+    if x > 0 then return math.atan(y / x)
+    elseif x < 0 then return math.atan(y / x) + (y >= 0 and math.pi or -math.pi)
+    elseif y > 0 then return math.pi / 2
+    elseif y < 0 then return -math.pi / 2
+    else return 0 end
+end
+
+-- 按飞行方向挑方向图（返回 动画名, 是否水平翻转）；没配方向表就返回 nil
+local function PickDirAnim(inst, tx, tz)
+    if FX_DIRS == nil or #FX_DIRS == 0 then return nil, false end
+    local x, _, z = inst.Transform:GetWorldPosition()
+    local dx, dz = tx - x, tz - z
+    if math.abs(dx) < 0.001 and math.abs(dz) < 0.001 then return nil, false end
+    local n = #FX_DIRS
+    local step = 360 / n
+    local deg = math.deg(Atan2(dz, dx)) * (DIR_CCW and 1 or -1) - DIR_START_DEG
+    local idx = math.floor(((deg % 360) + 360) % 360 / step) + 1
+    local entry = FX_DIRS[idx] or FX_DIRS[1]
+    if type(entry) == "table" then return entry[1], entry[2] == true end
+    return entry, false
+end
 
 -- ===== 命中炸开 FX（联网的那一个，整个命中只发这一个）=====
 local FX_BURST        = "hitsparks_fx"        -- 备选：moonstorm_spark / dustmeringue / explode_small
@@ -190,7 +228,7 @@ local function Cleanup(inst, playimpact)
         inst.musha_marker = nil
     end
     if not inst:IsValid() then return end
-    if playimpact and ART.hit ~= ART.fly then
+    if playimpact and ART.hit ~= ART.fly and FX_DIRS == nil then
         inst.AnimState:PlayAnimation(ART.hit)
         inst:ListenForEvent("animover", function(i) FadeOutAndRemove(i) end)
     else
@@ -252,7 +290,9 @@ local function fn()
 
     inst.AnimState:SetBank(ART.bank)
     inst.AnimState:SetBuild(ART.build)
-    inst.AnimState:PlayAnimation(ART.pre)
+    if FX_DIRS == nil then
+        inst.AnimState:PlayAnimation(ART.pre)     -- 配了方向表就等出手时按方向播（见 OnThrownFn）
+    end
     inst.AnimState:SetLightOverride(1)
     if ART.scale ~= 1 then
         inst.AnimState:SetScale(ART.scale, ART.scale, ART.scale)
@@ -288,11 +328,39 @@ local function fn()
     p:SetOnMissFn(OnMiss)
     p:SetOnThrownFn(function(i, owner)
         i.owner = owner
-        -- ★ 2026-09-14：出手时把月牙摆成"朝着落点"（引擎自己算朝向，不自己凑角度）
-        --   靶子就在落点上 → FacePoint(靶子) = 沿飞行方向。弧口不正再叠 FX_ROT_OFFSET 微调。
         local m = i.musha_marker
+        local mx, mz
         if m ~= nil and m:IsValid() then
-            local mx, my, mz = m.Transform:GetWorldPosition()
+            local a, b, c = m.Transform:GetWorldPosition()
+            mx, mz = a, c
+        end
+
+        if FX_DIRS ~= nil then
+            -- ★ 方向美术：按方向选动画，**贴图不旋转**（斜飞的压扁/光面倾斜就是这么消掉的）
+            --   动画名取不到会 assert → 先 pcall 兜一层，取不到就退回"单图 + 旋转"那条路
+            local anim, flip = nil, false
+            if mx ~= nil then anim, flip = PickDirAnim(i, mx, mz) end
+            local ok = false
+            if anim ~= nil then
+                local s = ART.scale
+                ok = pcall(function()
+                    i.AnimState:SetScale(flip and -s or s, s, s)
+                    i.AnimState:PlayAnimation(anim)
+                end)
+            end
+            if not ok and mx ~= nil then
+                i.AnimState:SetScale(ART.scale, ART.scale, ART.scale)
+                i:FacePoint(mx, 0, mz)
+                if FX_ROT_OFFSET ~= 0 then
+                    i.Transform:SetRotation(i.Transform:GetRotation() + FX_ROT_OFFSET)
+                end
+            end
+            return
+        end
+
+        -- ★ 2026-09-14：单图时出手把月牙摆成"朝着落点"（引擎自己算朝向，不自己凑角度）
+        --   靶子就在落点上 → FacePoint(靶子) = 沿飞行方向。弧口不正再叠 FX_ROT_OFFSET 微调。
+        if mx ~= nil then
             i:FacePoint(mx, 0, mz)
         end
         if FX_ROT_OFFSET ~= 0 then

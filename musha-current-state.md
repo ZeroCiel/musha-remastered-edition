@@ -31,6 +31,13 @@ D:\SteamLibrary\steamapps\common\Don't Starve Together\mods\musha
      要换版本：把 `crescent_b_thick.png` 或 `crescent_c_double.png` 复制成 `crescent_cyan-0.png`，
      用 DST Mod Tool 重导一次 scml（代码不用动）
    · FX_ART 仍可切：cyan（现在）/ crescent（原版真月牙）/ jimeng（旧图）/ vanilla
+   · **2026-09-14 再调**：① 放大到 **2 倍**（cyan 的 scale 0.45 → **0.90**）
+     ② 用户判定"光和面倾斜"= 单图靠 3D 旋转的必然结果（对比洛克人 ZERO 的斩击后确认）；
+     要**按方向各画一张**（8 面最好，至少 4 面）→ 代码里已留好开关：
+     `musha_slash_qi_fx.lua` 的 **`FX_DIRS`**（表）；写出 8/4 个动画名（如 anim_e/anim_ne/… ）即启用
+     "按方向选动画、贴图不旋转"；单项写 `{ "anim_e", true }` = 水平镜像（省一半图）。
+     `FX_DIRS = nil` → 退回现在的"单图 + 旋转"。角度口径：第 1 项 = 世界 +X，往 +Z 排（反了改 DIR_CCW）。
+     ③ 角度美术未到之前，B/C 版（厚/双弧）依然只靠"换 -0.png 重导"切换
 7. 后摇 / 动作：现在 = `quickcastspell`（抬手 atk_pre → 挥出 atk，第 5 帧出手，16 帧解除 busy）。
    想换动作只改 `modmain.lua` 一行 `MUSHA_AOE_CAST_STATE`（注释里列了 6 个候选的观感：
    quickcastspell / combat_lunge_start / castspell / attack / channeling / powerup）
@@ -189,10 +196,10 @@ D:\SteamLibrary\steamapps\common\Don't Starve Together\mods\musha
 - 💡 **待议点子（2026-09-13 用户口述，原话"走远了"，先不动）**：装备那一列别做成面板里的一页，
   改成**普通常驻 UI 窗口** —— ① 放屏幕**右下角、小地图附近** ② **支持拖拽** ③ 设置面板加个小开关，按一下才显示
   ④ 攻击时窗口里还能看到**敌人数据**（"走远了"= 本次不做，只记录）
-- 礼包页位置（**最新 2026-09-14**）：标题「礼包」`gift_head` x **-3 → -223**（左移 220）、y 不变（242）；
-  下面那行提示 `gift_hint` **不再独立定位**，改成挂"标题右下角 -15,-15" → **(-206, 211)**
-  （`musha_panel_screen.lua:863` 起；常量 GIFT_HEAD_X/Y、HEAD_HALF_W/H=32/16、HINT_GAP=15）
-  · 更早的历史：标题曾 y-12、再左移 3；提示曾净 x=+161（-39+200）
+- 礼包页位置（**最新 2026-09-14 第三次调**）：标题「礼包」`gift_head` **(x=-263, y=254)**
+  （历史：-3 → 左移3 → 左移220 → 再左移40 + 上移12）；
+  提示 `gift_hint` **跟随标题**：挂"标题右下角 -15,-15"+额外右移 120 → **(-126, 223)**
+  （`musha_panel_screen.lua:862` 起；常量 GIFT_HEAD_X/Y、HEAD_HALF_W/H=32/16、HINT_GAP=15、HINT_EXTRA_X=120）
   · 礼包行容器 `gift_body` 仍是 `(0, 175)`（没动；历史：-20→180→170→175）
 - **技能改名：背水一战 → 「我，活着」**（`SKILL_UI.saber.last_stand.name` + 触发字幕 `talker:Say("我，活着！")`）
 - **悬停信息面板不再跟鼠标** → 固定钉屏幕**右下角**（`musha_item_info.lua:PinBottomRight()`，MARGIN=24；
