@@ -179,8 +179,11 @@ D:\SteamLibrary\steamapps\common\Don't Starve Together\mods\musha
 - 💡 **待议点子（2026-09-13 用户口述，原话"走远了"，先不动）**：装备那一列别做成面板里的一页，
   改成**普通常驻 UI 窗口** —— ① 放屏幕**右下角、小地图附近** ② **支持拖拽** ③ 设置面板加个小开关，按一下才显示
   ④ 攻击时窗口里还能看到**敌人数据**（"走远了"= 本次不做，只记录）
-- 礼包页标题「礼包」`gift_head` y **-12 像素**（`PAGE_H/2 - 46 - 12`）；下面那行提示 `gift_hint` **不动**
-  （`musha_panel_screen.lua:849`）—— 若用户指的是礼包列表 `gift_body`(y=175)，改 175-12 即可
+- 礼包页位置（**最新 2026-09-14**）：标题「礼包」`gift_head` x **-3 → -223**（左移 220）、y 不变（242）；
+  下面那行提示 `gift_hint` **不再独立定位**，改成挂"标题右下角 -15,-15" → **(-206, 211)**
+  （`musha_panel_screen.lua:863` 起；常量 GIFT_HEAD_X/Y、HEAD_HALF_W/H=32/16、HINT_GAP=15）
+  · 更早的历史：标题曾 y-12、再左移 3；提示曾净 x=+161（-39+200）
+  · 礼包行容器 `gift_body` 仍是 `(0, 175)`（没动；历史：-20→180→170→175）
 - **技能改名：背水一战 → 「我，活着」**（`SKILL_UI.saber.last_stand.name` + 触发字幕 `talker:Say("我，活着！")`）
 - **悬停信息面板不再跟鼠标** → 固定钉屏幕**右下角**（`musha_item_info.lua:PinBottomRight()`，MARGIN=24；
   旧 `FollowMouse` 整段注释保留，想改回换名字即可）

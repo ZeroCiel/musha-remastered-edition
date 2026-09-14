@@ -860,16 +860,25 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         inner:SetSize(PAGE_W - 34, PAGE_H - 34)
         inner:SetTint(0.965, 0.960, 0.945, 0.97)
 
+        -- ★ 2026-09-14 用户：① 礼包（标题）左移 220 像素 ② 下面那行提示"跟随"，
+        --    但最终定位改成挂在【标题的右下角】再各内缩 15 像素（-15x,-15y）
+        local GIFT_HEAD_X, GIFT_HEAD_Y = -3 - 220, PAGE_H / 2 - 46 - 12   -- x: -3 → -223
+        local HEAD_HALF_W, HEAD_HALF_H = 32, 16        -- 标题"礼包"=2 个 32 号字 → 半宽≈32、半高≈16
+        local HINT_GAP = 15                            -- 右下角内缩量
+
         self.gift_head = root:AddChild(Text(UIFONT, 32))
         self.gift_head:SetColour(0.28, 0.22, 0.15, 1)
         self.gift_head:SetString("礼包")
-        self.gift_head:SetPosition(-3, PAGE_H / 2 - 46 - 12)   -- 2026-09-13 用户：先 -12 像素，再左移 3 像素（下面那行不动）
+        -- 2026-09-13 用户：先 -12 像素，再左移 3 像素；2026-09-14：再左移 220
+        self.gift_head:SetPosition(GIFT_HEAD_X, GIFT_HEAD_Y)
 
         self.gift_hint = root:AddChild(Text(UIFONT, 20))
         self.gift_hint:SetColour(0.46, 0.40, 0.32, 1)
         self.gift_hint:SetString("节日活动期间发放 · 有活动时礼包会出现在这里")
         -- 2026-09-13 用户：右移 -39（= 左移 39）、上移 15 → 再右移 200 → 净 x = +161
-        self.gift_hint:SetPosition(-39 + 200, PAGE_H / 2 - 88 + 15)
+        -- 2026-09-14 用户：跟随标题走，但改成"标题右下角 -15,-15" → (-223+32-15, 242-16-15) = (-206, 211)
+        self.gift_hint:SetPosition(GIFT_HEAD_X + HEAD_HALF_W - HINT_GAP,
+                                   GIFT_HEAD_Y - HEAD_HALF_H - HINT_GAP)
 
         -- 礼包行容器（RefreshGift 动态重建）
         --   2026-09-12 用户：初始礼包上移 200（-20 → 180），再下移 10 → 170
