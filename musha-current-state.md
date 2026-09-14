@@ -19,8 +19,18 @@ D:\SteamLibrary\steamapps\common\Don't Starve Together\mods\musha
    剑气（现在 = **用户自己的亮青月牙** `anim/crescent_cyan.zip`）直线飞出 → 命中掉血
    （日志 `[Musha] 剑气斩 命中 N 个目标`）+ 炸开 + 12 个本地粒子 → 冷却 6 秒（走武器 rechargeable）
    ★ 冷却期**右键应该完全没反应、也不弹字**（2026-09-14 新口径，见 plan 文档 v10）
-6. 月牙弧口朝向不对 → 报"转 X 度"，改 `FX_ROT_OFFSET`（现 FX_ART = cyan 自己的亮青月牙；
-   想看原版真月牙把 FX_ART 改 "crescent"）
+6. 月牙观感（**2026-09-14 三改**）：
+   · 速度：`FX_SPEED` 45 → **22.5（减半）**；命中判定 `FX_HIT_DIST` 0.6 → **1.0**
+     （减速后每帧还走 0.75 单位，判定圈太小会"跨帧跳过去"→ 技能空放）
+   · 朝向："发出去方向会不同变换" 已修：**去掉 SetFourFaced**（单帧贴图设四面向会被引擎按方位吸附），
+     改成原版会飞贴图那套 = `AnimState:SetOrientation(ANIM_ORIENTATION.OnGround)` + 背景层
+     （样板：`prefabs/blowdart.lua:44`、`prefabs/crabking_claw.lua` 的 swipefn），
+     出手时 `Transform:FacePoint(落点靶子)` 摆正 → 弧口仍不正就改 `FX_ROT_OFFSET`（度）
+   · **月牙只有 1 张图，"三面"不存在**：zip 里打进的是 **A 细版**（`crescent_cyan-0.png` 与
+     `crescent_a_thin.png` 内容相同）；B 厚版 / C 双弧 都**没进包** → 所以看着"都一样"。
+     要换版本：把 `crescent_b_thick.png` 或 `crescent_c_double.png` 复制成 `crescent_cyan-0.png`，
+     用 DST Mod Tool 重导一次 scml（代码不用动）
+   · FX_ART 仍可切：cyan（现在）/ crescent（原版真月牙）/ jimeng（旧图）/ vanilla
 7. 后摇 / 动作：现在 = `quickcastspell`（抬手 atk_pre → 挥出 atk，第 5 帧出手，16 帧解除 busy）。
    想换动作只改 `modmain.lua` 一行 `MUSHA_AOE_CAST_STATE`（注释里列了 6 个候选的观感：
    quickcastspell / combat_lunge_start / castspell / attack / channeling / powerup）

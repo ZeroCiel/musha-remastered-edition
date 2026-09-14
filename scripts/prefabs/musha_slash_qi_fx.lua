@@ -47,12 +47,13 @@ local ART = ({
 })[FX_ART]      -- ⚠️ 外面这对括号不能省：Lua 5.1 不许「表构造后面直接跟索引」
 
 -- ===== 飞行手感（想调就动这里）=====
-local FX_SPEED      = 45                      -- 飞行速度（直线）
+local FX_SPEED      = 22.5                    -- 飞行速度（直线）；★ 2026-09-14 用户"太快"→ 45 减半
 local FX_RANGE      = 12                      -- 最远飞多少格（对齐技能的 MAX_RANGE），飞满即消失
-local FX_HIT_DIST   = 0.6                     -- 离落点多近算命中
+local FX_HIT_DIST   = 1.0                     -- 离落点多近算命中（0.6→1.0：减速后每帧仍走 0.75 单位，
+                                              --   太小的判定圈会被"跨帧跳过去"→ 技能空放）
 local FX_LAUNCH_AT  = Vector3(1.0, 1.25, 0)   -- 出手位置
 local FX_LIFETIME   = 3                       -- 兜底自毁（秒）
-local FX_ROT_OFFSET = 0                       -- 贴图朝向补偿（度）
+local FX_ROT_OFFSET = 0                       -- 贴图朝向补偿（度）——月牙弧口不正就报"转 X 度"改这里
 local FX_COLOUR     = nil                     -- 本体染色 {r,g,b}，nil = 原色
 
 -- ===== 命中炸开 FX（联网的那一个，整个命中只发这一个）=====
@@ -236,7 +237,18 @@ local function fn()
     inst:AddTag("projectile")        -- 原版 projectile 组件要求
     -- ⚠️ 千万别加 "complexprojectile"：跟 projectile 互斥
 
-    inst.Transform:SetFourFaced()
+    -- ★ 2026-09-14 朝向统一（用户报"发出去方向会不同变换"）——
+    --   原来只有 SetFourFaced()、出手时又没给角度 → 不同飞行方向看起来朝向不一致。
+    --   照原版两个样板改（都是"会飞的贴图"的标准做法）：
+    --     · prefabs/blowdart.lua:44（吹箭的箭）= SetOrientation(ANIM_ORIENTATION.OnGround)
+    --     · prefabs/crabking_claw.lua 的 swipefn（真月牙 fx）= 同上 + 不设朝向
+    --       （它那行 SetEightFaced 是**注释掉的**：四/八面向只对"画了多方向符号"的贴图有意义，
+    --         我们单帧月牙设了反而会被引擎按方位吸附 → 就是"方向会变"的元凶）
+    --   OnGround = 把贴图平铺在**地面平面**上 → 之后 Transform:SetRotation(角度) 才是
+    --   "在地面上转"（不会随镜头/方向被压扁成别的样子）。
+    inst.AnimState:SetOrientation(ANIM_ORIENTATION.OnGround)
+    inst.AnimState:SetLayer(LAYER_BACKGROUND)     -- 跟原版月牙一样画在角色下面
+    inst.AnimState:SetSortOrder(3)
 
     inst.AnimState:SetBank(ART.bank)
     inst.AnimState:SetBuild(ART.build)
@@ -276,6 +288,13 @@ local function fn()
     p:SetOnMissFn(OnMiss)
     p:SetOnThrownFn(function(i, owner)
         i.owner = owner
+        -- ★ 2026-09-14：出手时把月牙摆成"朝着落点"（引擎自己算朝向，不自己凑角度）
+        --   靶子就在落点上 → FacePoint(靶子) = 沿飞行方向。弧口不正再叠 FX_ROT_OFFSET 微调。
+        local m = i.musha_marker
+        if m ~= nil and m:IsValid() then
+            local mx, my, mz = m.Transform:GetWorldPosition()
+            i:FacePoint(mx, 0, mz)
+        end
         if FX_ROT_OFFSET ~= 0 then
             i.Transform:SetRotation(i.Transform:GetRotation() + FX_ROT_OFFSET)
         end

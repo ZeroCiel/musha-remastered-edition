@@ -170,3 +170,16 @@ v1 现在用的是即梦图抠背的 `slash_fx`。→ 待用户定：剑气斩�
    `ssh -T git@gitee.com` 回 `Hi Anonymous (DeployKey)!`、`git push` 回 `DeployKey does not support push code`。
    两条解法见状态卡「版本管理（Gitee）」一节。
 
+## 十三、v11（2026-09-14）月牙观感三改（用户报"太快 / 方向会不同变换 / 三面呢"）
+1. **速度减半**：`FX_SPEED` 45 → **22.5**。连带 `FX_HIT_DIST` 0.6 → **1.0** —— 22.5 单位/秒 ÷ 30 帧
+   = 每帧走 0.75 单位，判定圈若还是 0.6，抛射体可能整个跨过去（原版 `projectile` 是"每帧比距离"，
+   不是线段扫掠）→ 技能直接空放（走 OnMiss，不结算伤害）。**改速度必须回看这个值**。
+2. **朝向修好**：原来 `inst.Transform:SetFourFaced()` + 出手时没设角度 → 不同飞行方向看起来朝向乱。
+   · 单帧贴图**不该设四/八面向**（原版真月牙 fx 那行 `SetEightFaced` 是注释掉的）→ 设了引擎会按方位吸附
+   · 照原版"会飞的贴图"两样板（`prefabs/blowdart.lua:44` 吹箭、`prefabs/crabking_claw.lua` 的 swipefn）：
+     `inst.AnimState:SetOrientation(ANIM_ORIENTATION.OnGround)` + `SetLayer(LAYER_BACKGROUND)` + `SetSortOrder(3)`
+     → 贴图平铺在地面平面上，`SetRotation` 才是"在地面上转"
+   · 出手时 `i:FacePoint(落点靶子)` 摆正（靶子就在落点上 = 沿飞行方向），弧口仍不正再用 `FX_ROT_OFFSET`
+3. **"三面"不存在**：zip 里只有 **1 张单帧图**，且是 **A 细版**（`crescent_cyan-0.png` ≡ `crescent_a_thin.png`）；
+   B 厚版 / C 双弧 都没进包 → 所以"发出去都一样"。换版本 = 把 B/C 覆盖成 `crescent_cyan-0.png` 重导 scml。
+
