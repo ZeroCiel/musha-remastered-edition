@@ -1,41 +1,104 @@
 -- 文件: scripts/prefabs/musha_sword.lua
 -- musha_sword — 职业剑，攻击力42，攻击距离0.4
+--
+-- ============================================================
+-- 素材自检（2026-09-16 加，跟便签/生命树枝同一套规矩）
+--   新剑 art = anim/musha_sword.zip（重剑，艾尔之光风；工程在 exported/musha_sword_v2/）。
+--   zip 还没打包时**不能**登记 Asset（RegisterPrefabs 阶段 assert → 整个 mod 被禁），
+--   也不能 OverrideSymbol 一个不存在的 build → 回退用原版战矛占位（旧行为）。
+-- ============================================================
+local function asset_exists(path)
+    local f = softresolvefilepath or (GLOBAL ~= nil and GLOBAL.softresolvefilepath)
+    if f == nil then return false end
+    local ok, resolved = pcall(f, path)
+    return ok and resolved ~= nil
+end
+
+local HAS_SWORD_ART = asset_exists("anim/musha_sword.zip")
+if not HAS_SWORD_ART then
+    print("[Musha] 职业剑：anim/musha_sword.zip 还没打包 → 先借原版战矛占位（不会崩），打包后自动换成重剑")
+end
 
 local assets = {
-    Asset("ANIM", "anim/swap_spear.zip"),           -- 先用矛的动画占位，后续换 musha_sword.zip
     Asset("ATLAS", "images/inventoryimages/musha_sword.xml"),
     Asset("IMAGE", "images/inventoryimages/musha_sword.tex"),
 }
+if HAS_SWORD_ART then
+    table.insert(assets, Asset("ANIM", "anim/musha_sword.zip"))
+else
+    table.insert(assets, Asset("ANIM", "anim/swap_spear.zip"))   -- 兜底占位
+end
 
 -- ============================================================
--- 技能门控（2026-09-14）—— 冷却期间「右键不出瞄准圈」（官方口径，不弹提示）
---   原版机制（查证：components/playercontroller.lua:1609 TryAOETargeting）：
---     `item.components.aoetargeting:IsEnabled()` 为假 → 右键**根本不进瞄准圈**；
---     components/aoespell.lua 的 CanCast() 开头也先查这个开关。
---   所以把开关直接绑到武器自己的 rechargeable 上：
---     Discharge（开始冷却）→ SetEnabled(false) → net_bool 同步给客机 → 右键无反应、不弹字
---     冷却结束 → SetEnabled(true) → 恢复
+-- 技能门控（2026-09-14）—— 「右键不出瞄准圈」的两个条件
+--   ① 冷却：官方口径（playercontroller.lua:1609 TryAOETargeting 读 aoetargeting:IsEnabled()）
+--      Discharge（开始冷却）→ SetEnabled(false) → net_bool 同步给客机 → 右键无反应、不弹字
+--      冷却结束 → SetEnabled(true)
+--   ② 加点学习（2026-09-14 新增，用户：剑气斩改 3 级加点学习）：
+--      职业组件里 saber.slash_qi 等级为 0（没学过）→ 也不给进圈
+--      学到后职业组件会 push "musha_skill_changed"（UpgradeSkill 里）→ 这里重新对齐
 --   ⚠️ SetEnabled 只在服务端生效（内部有 if TheWorld.ismastersim），客机只是读 net_bool，别在客机上调。
 --   ⚠️ 关闭时原版还会顺手 StopTargeting()（正在瞄准会被踢出圈），正是我们要的。
 -- ============================================================
+local function IsSkillLearned(item)
+    local owner = item ~= nil and item._musha_owner or nil
+    if owner == nil then return true end          -- 还没装上/异常 → 别锁死（宁可给放）
+    local ok, WS = pcall(require, "musha_weapon_skill")
+    if not ok or type(WS) ~= "table" or WS.GetSkillLevel == nil then return true end
+    local def = WS.SKILLS ~= nil and WS.SKILLS[item.prefab] or nil
+    if def == nil or def.tree == nil then return true end
+    return WS.GetSkillLevel(owner, def) >= 1
+end
+
 local function RefreshSkillGate(item)
     local at = item ~= nil and item.components.aoetargeting or nil
     local rc = item ~= nil and item.components.rechargeable or nil
     if at ~= nil then
-        at:SetEnabled(rc == nil or rc:IsCharged())
+        at:SetEnabled((rc == nil or rc:IsCharged()) and IsSkillLearned(item))
     end
 end
 
 local function on_equip(inst, owner)
-    owner.AnimState:OverrideSymbol("swap_object", "swap_spear", "swap_spear")
+    if HAS_SWORD_ART then
+        -- 新重剑：符号名 = scml 里 <timeline name> = `swap_sword`
+        --   ★ 命名规矩（照 musha_lifebranch → swap_lifebranch）：swap_ 前缀 + 去掉 musha
+        owner.AnimState:OverrideSymbol("swap_object", "musha_sword", "swap_sword")
+    else
+        owner.AnimState:OverrideSymbol("swap_object", "swap_spear", "swap_spear")   -- 兜底占位
+    end
     owner.AnimState:Show("ARM_carry")
     owner.AnimState:Hide("ARM_normal")
+
+    inst._musha_owner = owner
+    -- 加点学到技能后要重新开门（事件由职业组件 UpgradeSkill 推；服务端设 net_bool 就能同步给客机）
+    local cb = function() RefreshSkillGate(inst) end
+    inst._musha_skill_cb = cb
+    owner:ListenForEvent("musha_skill_changed", cb)
+
     RefreshSkillGate(inst)      -- 换/装武器时对齐冷却开关（读档后重装也能修正）
+
+    -- ★ 2026-09-16 修「登录后技能放不出来，要装/卸两次才行」的**时序保险**：
+    --   OnEquip 有可能跑在"职业组件 OnLoad 读完技能等级"之前 → 那一瞬间技能等级还是 0 → 门被关。
+    --   → 隔一帧再对齐一次；同时职业组件读完数据后也会广播 musha_skill_changed（两条一起兜）。
+    if inst._musha_gate_task ~= nil then inst._musha_gate_task:Cancel() end
+    inst._musha_gate_task = owner:DoTaskInTime(0, function()
+        inst._musha_gate_task = nil
+        RefreshSkillGate(inst)
+    end)
 end
 
 local function on_unequip(inst, owner)
+    if inst._musha_gate_task ~= nil then
+        inst._musha_gate_task:Cancel()
+        inst._musha_gate_task = nil
+    end
     owner.AnimState:Hide("ARM_carry")
     owner.AnimState:Show("ARM_normal")
+    if inst._musha_skill_cb ~= nil then
+        owner:RemoveEventCallback("musha_skill_changed", inst._musha_skill_cb)
+        inst._musha_skill_cb = nil
+    end
+    inst._musha_owner = nil
 end
 
 local function fn()
@@ -47,6 +110,14 @@ local function fn()
     inst.entity:AddSoundEmitter()
 
     MakeInventoryPhysics(inst)
+
+    -- 世界/掉落形态（2026-09-16）：有了自己的 build 才设 bank/build；没打包时不设
+    -- （地上就先不显示，但不崩 —— 之前 mod 被禁就是栽在"素材没打包却登记/引用"）
+    if HAS_SWORD_ART then
+        inst.AnimState:SetBank("musha_sword")
+        inst.AnimState:SetBuild("musha_sword")
+        inst.AnimState:PlayAnimation("idle")
+    end
 
     inst:AddTag("musha_weapon")
 
@@ -88,7 +159,7 @@ local function fn()
     -- 武器组件
     inst:AddComponent("weapon")
     inst.components.weapon:SetDamage(42)
-    inst.components.weapon:SetRange(0.4)
+    inst.components.weapon:SetRange(0.8)     -- ★ 2026-09-16 用户：重剑射程改 0.8（原 0.4）
 
     -- 可装备（武器栏）
     inst:AddComponent("equippable")

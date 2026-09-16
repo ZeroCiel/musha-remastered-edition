@@ -1,7 +1,7 @@
-name = "Musha 0.7.6 职业系统重制版"
+name = "Musha 0.7.7 职业系统重制版"
 description = "Musha 职业系统重制版 — 雪儿 (Ciel)"
 author = "Ciel (雪儿)"
-version = "0.7.6"
+version = "0.7.8"
 
 forumthread = ""
 

@@ -39,6 +39,42 @@ end
 local LIFE_DAMAGE = 12      -- 基础攻击（升级机制没做，先固定）
 local LIFE_RANGE  = 0.4     -- 攻击距离（跟剑一致）
 
+-- ===== 装备被动（2026-09-16 用户口述设定，原设定漏档、这次补上）=====
+--   每秒恢复 0.2 生命 + 每 24 秒 +0.1 精神，**必须装备（武器位）才生效**。
+--   （用户原话：原本想做"衣服"（BODY 位），但和「人格」冲突，改放到武器位）
+--   想调数值只改这三行：LIFE_REGEN 越大回血越快 / SANITY_REGEN 与 SANITY_INTERVAL 是"每多少秒加多少精神"
+local LIFE_REGEN      = 0.2
+local SANITY_REGEN    = 0.1
+local SANITY_INTERVAL = 24
+local REGEN_CAUSE     = "musha_lifebranch"
+
+-- 装上：起两个周期任务（回血 / 回精神）；卸下：全部取消
+local function stop_regen(inst)
+    if inst._regen_task then inst._regen_task:Cancel(); inst._regen_task = nil end
+    if inst._sanity_task then inst._sanity_task:Cancel(); inst._sanity_task = nil end
+end
+
+local function start_regen(inst, owner)
+    stop_regen(inst)
+    if not owner then return end
+    inst._regen_task = owner:DoPeriodicTask(1, function(o)
+        if o and o:IsValid() and o.components.health
+           and not o.components.health:IsDead() and not o:HasTag("playerghost") then
+            o.components.health:DoDelta(LIFE_REGEN, false, REGEN_CAUSE)
+        end
+    end)
+    -- ⚠️ 2026-09-16 修崩：原写成 `o.components.sanity:IsDead()` —— **sanity 组件没有 IsDead**
+    --   （只有 health 组件有；EntityScript 也没有）→ 每 24 秒那次必崩：
+    --   "attempt to call method 'IsDead' (a nil value)"。判死统一走 health，跟上面回血那条同口径。
+    inst._sanity_task = owner:DoPeriodicTask(SANITY_INTERVAL, function(o)
+        if o and o:IsValid() and o.components.sanity
+           and (o.components.health == nil or not o.components.health:IsDead())
+           and not o:HasTag("playerghost") then
+            o.components.sanity:DoDelta(SANITY_REGEN, false, REGEN_CAUSE)
+        end
+    end)
+end
+
 local assets = {}
 if HAS_ITEM_ART then table.insert(assets, Asset("ANIM", "anim/musha_lifebranch.zip")) end
 if HAS_SWAP_ART then table.insert(assets, Asset("ANIM", "anim/swap_lifebranch.zip")) end
@@ -56,9 +92,11 @@ local function on_equip(inst, owner)
     end
     owner.AnimState:Show("ARM_carry")
     owner.AnimState:Hide("ARM_normal")
+    start_regen(inst, owner)        -- ★ 装备被动：每秒回血 + 每 24 秒回精神（仅装备时生效）
 end
 
 local function on_unequip(inst, owner)
+    stop_regen(inst)                -- ★ 卸下即停
     owner.AnimState:Hide("ARM_carry")
     owner.AnimState:Show("ARM_normal")
 end
@@ -110,6 +148,9 @@ local function fn()
 
     -- 检查（看物品信息）
     inst:AddComponent("inspectable")
+
+    -- 物品被销毁时收掉周期任务（不然回血/回精神会一直挂着）
+    inst:ListenForEvent("onremove", function() stop_regen(inst) end)
 
     return inst
 end

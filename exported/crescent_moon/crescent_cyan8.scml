@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spriter_data scml_version="1.0" generator="BrashMonkey Spriter" generator_version="r7">
+    <folder id="0" name="crescent_cyan8">
+        <file id="0" name="crescent_dir0.png" width="1280" height="1280" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="1" name="crescent_dir1.png" width="1280" height="1280" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="2" name="crescent_dir2.png" width="1280" height="1280" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="3" name="crescent_dir3.png" width="1280" height="1280" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="4" name="crescent_dir4.png" width="1280" height="1280" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="5" name="crescent_dir5.png" width="1280" height="1280" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="6" name="crescent_dir6.png" width="1280" height="1280" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="7" name="crescent_dir7.png" width="1280" height="1280" pivot_x="0.5" pivot_y="0.5"/>
+    </folder>
+    <entity id="0" name="crescent_cyan8">
+        <animation id="0" name="slash_dir0" length="1000" interval="100">
+            <mainline>
+                <key id="0">
+                    <object_ref id="0" timeline="0" key="0" z_index="0"/>
+                </key>
+            </mainline>
+            <timeline id="0" name="slash_dir0">
+                <key id="0" spin="0">
+                    <object folder="0" file="0"/>
+                </key>
+            </timeline>
+        </animation>
+        <animation id="1" name="slash_dir1" length="1000" interval="100">
+            <mainline>
+                <key id="0">
+                    <object_ref id="0" timeline="0" key="0" z_index="0"/>
+                </key>
+            </mainline>
+            <timeline id="0" name="slash_dir1">
+                <key id="0" spin="0">
+                    <object folder="0" file="1"/>
+                </key>
+            </timeline>
+        </animation>
+        <animation id="2" name="slash_dir2" length="1000" interval="100">
+            <mainline>
+                <key id="0">
+                    <object_ref id="0" timeline="0" key="0" z_index="0"/>
+                </key>
+            </mainline>
+            <timeline id="0" name="slash_dir2">
+                <key id="0" spin="0">
+                    <object folder="0" file="2"/>
+                </key>
+            </timeline>
+        </animation>
+        <animation id="3" name="slash_dir3" length="1000" interval="100">
+            <mainline>
+                <key id="0">
+                    <object_ref id="0" timeline="0" key="0" z_index="0"/>
+                </key>
+            </mainline>
+            <timeline id="0" name="slash_dir3">
+                <key id="0" spin="0">
+                    <object folder="0" file="3"/>
+                </key>
+            </timeline>
+        </animation>
+        <animation id="4" name="slash_dir4" length="1000" interval="100">
+            <mainline>
+                <key id="0">
+                    <object_ref id="0" timeline="0" key="0" z_index="0"/>
+                </key>
+            </mainline>
+            <timeline id="0" name="slash_dir4">
+                <key id="0" spin="0">
+                    <object folder="0" file="4"/>
+                </key>
+            </timeline>
+        </animation>
+        <animation id="5" name="slash_dir5" length="1000" interval="100">
+            <mainline>
+                <key id="0">
+                    <object_ref id="0" timeline="0" key="0" z_index="0"/>
+                </key>
+            </mainline>
+            <timeline id="0" name="slash_dir5">
+                <key id="0" spin="0">
+                    <object folder="0" file="5"/>
+                </key>
+            </timeline>
+        </animation>
+        <animation id="6" name="slash_dir6" length="1000" interval="100">
+            <mainline>
+                <key id="0">
+                    <object_ref id="0" timeline="0" key="0" z_index="0"/>
+                </key>
+            </mainline>
+            <timeline id="0" name="slash_dir6">
+                <key id="0" spin="0">
+                    <object folder="0" file="6"/>
+                </key>
+            </timeline>
+        </animation>
+        <animation id="7" name="slash_dir7" length="1000" interval="100">
+            <mainline>
+                <key id="0">
+                    <object_ref id="0" timeline="0" key="0" z_index="0"/>
+                </key>
+            </mainline>
+            <timeline id="0" name="slash_dir7">
+                <key id="0" spin="0">
+                    <object folder="0" file="7"/>
+                </key>
+            </timeline>
+        </animation>
+    </entity>
+</spriter_data>

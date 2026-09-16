@@ -64,7 +64,7 @@ local function OnUseBook(inst, doer)
         job_id = MUSHA_JOB.WARRIOR
     })
 
-    -- 首次一转仍送一本技能书（和以前一致；职业书本身留下）
+    -- 首次一转仍送一本技能书
     local inv = doer.components.inventory
     if inv and not doer._musha_skillbook_given then
         doer._musha_skillbook_given = true
@@ -72,6 +72,13 @@ local function OnUseBook(inst, doer)
         if book then
             inv:GiveItem(book)
         end
+    end
+
+    -- ★ 2026-09-14 用户：「职业书 一转完成就移除」→ 转职成功立刻把这本吃掉
+    --   ⚠️ 连带后果：以前那条"书留在手里、5 级时右键同一本书接二转任务"的路**没了** ——
+    --      二转任务一律去【进阶祭坛】右键接（下面"已经是战士了"那条分支对旧存档仍然有效）。
+    if inst ~= nil and inst:IsValid() then
+        inst:Remove()
     end
 end
 

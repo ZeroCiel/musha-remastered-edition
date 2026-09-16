@@ -210,9 +210,18 @@ Safe("技能动作(AoE→武器动作)", function()
     print("[Musha] 技能动作(AoE→" .. MUSHA_AOE_CAST_STATE .. ") 已挂上")
 end)
 
--- 武器技能按键（2026-09-13）：按 F 放"手里武器绑定的技能"（快捷方式，可选）
---   键位写在 scripts/musha_weapon_skill.lua 顶部 CAST_KEY（以后接 musha_keyhandler 让玩家可改）
---   主机也走这里：ClientCast 内部判断自己是主机就直接调服务端函数，不走 RPC
+-- =====================
+-- 武器技能按键（F）—— ★ 2026-09-14 用户：「F 右键触发删除，采用原方式，容易误触」★
+--   已停用：F 是常用键，实战里容易误碰 → 技能变成"白扣能量 + 白进冷却"。
+--   现在技能**只走右键那条原版 AoE 路径**（右键 → 瞄准圈 → 点地 → 出「剑气斩」），
+--   跟原版女武神战矛完全一致：见 scripts/prefabs/musha_sword.lua 的 aoetargeting / aoespell 段。
+--
+--   · 连带**现在没人调用、但留着备用**的东西（别顺手删）：
+--       scripts/musha_weapon_skill.lua 的 WeaponSkill.CAST_KEY / ClientCast()
+--       scripts/rpcs/musha_rpcs.lua 的 "musha_weapon_skill_cast" RPC
+--   · 要恢复按键：把下面整块取消注释（原实现在 git 历史里也有）
+-- =====================
+--[[  已停用（2026-09-14）
 Safe("武器技能按键", function()
     if TheNet:IsDedicated() then return end          -- 纯服务器没有客户端输入
     AddSimPostInit(function()                        -- 等 TheInput 准备好
@@ -233,6 +242,7 @@ Safe("武器技能按键", function()
         end)
     end)
 end)
+]]
 
 -- 客户端加载字体（暂禁用，发布后修）
 --if TheNet:GetIsClient() then
@@ -377,12 +387,11 @@ print("[Musha TRACE] 13 - 玩家初始化后")
 -- 职业武器配方
 -- =====================
 print("[Musha TRACE] 14 - 武器配方前")
+-- ★ 2026-09-16 用户拍板「不给剑配方」→ 整块注册取消（表留空，方便以后想给再加回来）
+--   注：旧代码那行配方写的是 Ingredient("ruby", 4) —— 原版没有 ruby 这个东西（原版是 redgem），
+--       所以就算留着也永远点不出来。要恢复的话记得把材料名改对。
 local JOB_WEAPONS = {
-    [1] = {
-        prefab = "musha_sword",
-        recipe = {Ingredient("ruby", 4)},
-        tech = GLOBAL.TECH.SCIENCE_ONE
-    }
+    -- [1] = { prefab = "musha_sword", recipe = {Ingredient("redgem", 4)}, tech = GLOBAL.TECH.SCIENCE_ONE },
 }
 
 for _, def in pairs(JOB_WEAPONS) do
@@ -391,7 +400,7 @@ for _, def in pairs(JOB_WEAPONS) do
         image = def.prefab .. ".tex"
     })
 end
-print("[Musha] 武器配方已注册")
+print("[Musha] 武器配方已注册（当前 0 条：用户要求不给剑配方）")
 
 -- =====================
 -- 转职建筑（进阶祭坛）配方 —— 方案 A（用户 2026-09-12 拍板）
@@ -461,7 +470,11 @@ Safe("噩梦燃料监听", function()
 end)
 
 Safe("宝石收集监听", function()
-    for _, gem_prefab in ipairs({"ruby", "emerald", "sapphire"}) do
+    -- ★★ 2026-09-16 修「收集三色宝石 任务永远不完成」的**根因**：
+    --   这里原来写的是 ruby / emerald / sapphire —— **原版根本没有这三个 prefab**
+    --   （原版宝石叫 redgem / greengem / bluegem，另有 purplegem / orangegem / yellowgem）。
+    --   AddPrefabPostInit 对不存在的 prefab 不报错、只是永远不触发 → 钩子静默失效 → 任务进度永远是 0/3。
+    for _, gem_prefab in ipairs({"redgem", "greengem", "bluegem"}) do
         AddPrefabPostInit(gem_prefab, function(inst)
             if not TheWorld or not TheWorld.ismastersim then
                 return

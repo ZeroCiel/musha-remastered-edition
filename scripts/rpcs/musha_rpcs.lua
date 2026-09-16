@@ -55,13 +55,34 @@ GLOBAL.AddModRPCHandler(NS, "musha_claim_gift", function(player, gift_id)
         return
     end
 
-    -- 活动时间判定（预留）：现在 period 为空 = 常驻；节日活动按 start_day/end_day 判
-    local p = gift.period
-    if p and p.start_day and p.end_day then
-        local cycles = (GLOBAL.TheWorld.state and GLOBAL.TheWorld.state.cycles) or 0
-        if cycles < p.start_day or cycles > p.end_day then
-            Say("这个礼包不在活动时间内")
+    -- ★ 可领判定（2026-09-14 改双轨；跟面板显示同一口径）
+    local cycles = (GLOBAL.TheWorld.state and GLOBAL.TheWorld.state.cycles) or 0
+    if gift.kind == "cycle" then
+        -- ① 游戏时间礼包：按游戏内天数
+        local need = gift.day or 0
+        if cycles < need then
+            Say(string.format("还差 %d 天才能领（第 %d 天开放）", need - cycles, need))
             return
+        end
+    elseif gift.kind == "festival" then
+        -- ② 节日礼包：按现实日期窗口（本机时间，含首尾）
+        local today = os.date("%Y-%m-%d")
+        if gift.from ~= nil and today < gift.from then
+            Say("这个礼包还没到时间")
+            return
+        end
+        if gift.to ~= nil and today > gift.to then
+            Say("这个礼包已经结束了")
+            return
+        end
+    else
+        -- ③ 老字段兼容：period.start_day / end_day（游戏内天数区间）
+        local p = gift.period
+        if p and p.start_day and p.end_day then
+            if cycles < p.start_day or cycles > p.end_day then
+                Say("这个礼包不在活动时间内")
+                return
+            end
         end
     end
 

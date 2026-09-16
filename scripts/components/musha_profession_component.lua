@@ -91,7 +91,9 @@ local function OnKilledOther(inst, data)
     saber_traits.current_hunt_bonus = math.min(saber_traits.current_hunt_bonus + 0.1, 1.5)
 
     -- 应用新的伤害加成
-    player.components.combat.externaldamagemultipliers:SetModifier(player, saber_traits.current_hunt_bonus,
+    -- ★ 2026-09-16 同一类 bug：current_hunt_bonus 是"加成"（每层 +0.1，上限 1.5 = +150%），
+    --   SetModifier 要倍率 → 原来传 0.1 会把伤害打到 10%（越猎越弱）。这里 +1 换算。
+    player.components.combat.externaldamagemultipliers:SetModifier(player, 1 + saber_traits.current_hunt_bonus,
         "saber_hunt_bonus")
 end
 
@@ -406,6 +408,31 @@ local Musha_Profession_Component = Class(function(self, inst)
     --           level_effects = { [1]=0.023, [2]=0.054, [3]=0.086, [4]=0.114 },
     --           unlock_requirements = { [1]=4, [2]=7, [3]=11, [4]=15 } },
     self.saber = {
+        -- ★ 2026-09-14 用户拍板：剑气斩「改为加点学习」——
+        --   3 级、解锁门槛 = 角色 3 / 7 / 12 级，每级 1 技能点；
+        --   level_effects 存的是【每次施放消耗的能量】：18 → 16 → 14（等级越高越省）
+        --   ⚠️ 没学过（current_level = 0）→ 右键不给放（musha_weapon_skill.DoCast 里卡）
+        --   ⚠️ 存档：OnSave/OnLoad 都要带上它（漏了会每次重进游戏等级归零）
+        slash_qi = {
+            current_level = 0,
+            max_level = 3,
+            level_effects = {
+                [1] = 18,
+                [2] = 16,
+                [3] = 14
+            },
+            unlock_requirements = {
+                [1] = 3,
+                [2] = 7,
+                [3] = 12
+            },
+            skill_point_cost = {
+                [1] = 1,
+                [2] = 1,
+                [3] = 1
+            }
+        },
+
         -- ★ 2026-09-12 新增（用户）：剑士专属「背水一战」
         --   血量 ≤50% 被动自动回满；7 级可学、消耗 3 个技能点；冷却 80 秒（见 LastStandTick）
         last_stand = {
@@ -507,6 +534,25 @@ local Musha_Profession_Component = Class(function(self, inst)
     self.inst:ListenForEvent("onattackother", OnAttackOther)
     self.inst:ListenForEvent("attacked", GetAttacked)
     self.inst:WatchWorldState("startday", NewDay)
+
+    -- ★★ 2026-09-16 生命偷取（近卫）改成正确口径：**攻击后按伤害比例回血**
+    --   用户确认："生命偷取应该是攻击后回复生命，不走那个（伤害乘区）"
+    --   原来错挂在 externaldamagemultipliers:SetModifier(0.05) → 近卫伤害直接被压到 5%（已删）。
+    --   onhitother 的 data 里带 damage（combat.lua:698）→ 直接按 level_effects 的百分比回血。
+    self.inst:ListenForEvent("onhitother", function(inst2, data)
+        local self2 = inst2.components ~= nil and inst2.components.musha_profession_component or nil
+        if self2 == nil or self2.userdata == nil then return end
+        if self2.userdata.carrer_special ~= "guardian" then return end
+        local ll = self2.guardian ~= nil and self2.guardian.life_leech or nil
+        if ll == nil or (ll.current_level or 0) <= 0 then return end
+        local effect = ll.level_effects[ll.current_level]
+        local dmg = data ~= nil and data.damage or nil
+        if effect == nil or dmg == nil or dmg <= 0 then return end
+        local health = inst2.components.health
+        if health ~= nil and not health:IsDead() then
+            health:DoDelta(dmg * effect, false, "guardian_life_leech")
+        end
+    end)
 
     -- 转职事件监听 — 只用这一个，按职业给内容
     self.inst:ListenForEvent("musha_job_changed", function(inst, data)
@@ -614,8 +660,12 @@ function Musha_Profession_Component:ApplyProfessionData()
                     player.components.combat.externaldamagemultipliers:RemoveModifier(
                         player, "warrior_weapon_proficiency"
                     )
+                    -- ★★ 2026-09-16 修「剑气斩只有 20 伤害」真凶：SetModifier 要的是**倍率**
+                    --   （原版例子 mermking_gear_buffs.lua 传 1.05），不是加成值本身！
+                    --   原来传 0.48 → 伤害被乘 0.48（42 × 0.48 = 20.2，日志实测），越精通越弱。
+                    --   level_effects 存的仍是"加成"（0.30/0.48/0.63 = +30/48/63%），这里 +1 换算。
                     player.components.combat.externaldamagemultipliers:SetModifier(
-                        player, effect, "warrior_weapon_proficiency"
+                        player, 1 + effect, "warrior_weapon_proficiency"
                     )
                     self.applied_status.weapon_proficiency = effect
                 end
@@ -640,24 +690,10 @@ function Musha_Profession_Component:ApplyProfessionData()
         end
     end
     
-    -- 4. 应用生命偷取（仅近卫）
-    if self.userdata.carrer_special and self.userdata.carrer_special == "guardian" then
-        local ll = self.guardian.life_leech
-        if ll and ll.current_level > 0 and ll.level_effects[ll.current_level] then
-            local effect = ll.level_effects[ll.current_level]
-            if self.applied_status.life_leech ~= effect then
-                if player.components.combat and player.components.combat.externaldamagemultipliers then
-                    player.components.combat.externaldamagemultipliers:RemoveModifier(
-                        player, "guardian_life_leech"
-                    )
-                    player.components.combat.externaldamagemultipliers:SetModifier(
-                        player, effect, "guardian_life_leech"
-                    )
-                    self.applied_status.life_leech = effect
-                end
-            end
-        end
-    end
+    -- 4. 生命偷取（仅近卫）—— ★ 2026-09-16 从这里**移走**了
+    --    它原来把 level_effects（0.05/0.10/0.15/0.20）传给了 externaldamagemultipliers:SetModifier
+    --    → 那是**伤害倍率**，等于近卫伤害被压到 5%（越学越弱）。
+    --    现在正确实现 = 攻击后按伤害百分比回血（构造函数里的 onhitother 监听）。
     
     -- 5. 如果转职近卫，移除武器精通效果
     if self.userdata.carrer_special and self.userdata.carrer_special == "guardian" then
@@ -857,6 +893,10 @@ function Musha_Profession_Component:UpgradeSkill(skill_tree, skill_name)
     -- 推面板（技能页等级/可加点状态要跟着变）
     self:PushSettings()
 
+    -- ★ 2026-09-14：广播给"挂在玩家身上的东西"——
+    --   例：剑的右键瞄准圈要按"剑气斩学没学"开关（musha_sword 里 ListenForEvent 这个事件）
+    self.inst:PushEvent("musha_skill_changed", { tree = skill_tree, name = skill_name, level = new_level })
+
     return true,
         string.format("技能 %s 已升级到等级 %d (效果: %.1f%%)", skill_name, new_level, new_effect * 100)
 end
@@ -912,7 +952,8 @@ end
 -- 显示顺序（按解锁等级排）
 local SKILL_ORDER = {
     warrior  = { "combat_recovery", "weapon_proficiency" },
-    saber    = { "last_stand" },   -- 2026-09-13：命中强化/吸血 摘掉（见上方注释）
+    -- 2026-09-13：命中强化/吸血 摘掉（见上方注释）；2026-09-14：剑气斩上架（加点学习，排在最前）
+    saber    = { "slash_qi", "last_stand" },
     guardian = { "iron_will", "life_leech" },
     rogue    = { "backstab" },
 }
@@ -934,6 +975,12 @@ local SKILL_UI = {
         -- ❌ 2026-09-13 摘掉：命中强化（DST 无命中率，数值无意义）、吸血（与近卫生命偷取重复）
         -- hit           = { name = "命中强化", fmt = function(v) return string.format("命中效果 +%.0f%%", v * 100) end },
         -- stealing_life = { name = "吸血",     fmt = function(v) return string.format("攻击吸血 %.1f%%", v * 100) end },
+        -- ★ 2026-09-14 上架：剑气斩（加点学习，3 级；level_effects 存的是每次耗能量）
+        slash_qi      = {
+            name = "剑气斩",
+            fmt  = function(v) return string.format("挥出月牙剑气，命中造成 100%% / 130%% / 160%% 武器伤害 · 每次消耗 %d 点能量", v) end,
+            tip  = "3 级可学 · 3 / 7 / 12 级逐级加点（伤害 100→130→160%，耗能量 18→16→14）· 装剑后右键释放",
+        },
         -- ★ 2026-09-12 新增（用户）：剑士专属，血量 ≤50% 被动自动回满 / 冷却 80 秒 / 7 级 / 3 技能点
         last_stand    = {
             name = "我，活着",
@@ -1194,13 +1241,9 @@ function Musha_Profession_Component:CompleteAdvance()
     self.userdata.quests_for_advance_done = {}
     self.userdata.current_advance_target = nil
 
-    -- 给予一转技能书（统一图标样式 musha_skillbook）
-    -- 原 skillbook_map 的 6 个进阶书 prefab（musha_skillbook_swordsman 等）从未注册，
-    -- SpawnPrefab 返回 nil 导致一转完成永远不发书。
-    local book = SpawnPrefab("musha_skillbook")
-    if book and self.inst.components.inventory then
-        self.inst.components.inventory:GiveItem(book)
-    end
+    -- ❌ 2026-09-14 用户：「不需要再二转之后再发一本技能面板的书」→ 删掉发书
+    --   （原来这里 SpawnPrefab("musha_skillbook") + inventory:GiveItem 各发一本）
+    --   技能页现在从面板「技能」页看，不需要实体书当入口。
 
     -- 推送进阶结果给客户端面板（2026-09-08 补：原来不发，面板不刷新）
     -- 2026-09-12：改成整包推（userdata + 设置 + 技能页），走同一个 PushSettings 通道
@@ -1250,6 +1293,10 @@ function Musha_Profession_Component:OnSave()
         },
         saber = {
             -- 2026-09-13：hit / stealing_life 已摘除，不再存档（旧档里这两项会被忽略）
+            -- ★ 2026-09-14 新增：剑气斩（加点学习，3 级）—— 不写这里会存不上档 → 重进游戏等级归零
+            slash_qi = {
+                current_level = self.saber.slash_qi and self.saber.slash_qi.current_level or 0
+            },
             -- ★ 2026-09-12 新增：背水一战（不写这里会存不上档 → 重进游戏技能等级归零）
             last_stand = {
                 current_level = self.saber.last_stand and self.saber.last_stand.current_level or 0,
@@ -1292,6 +1339,16 @@ function Musha_Profession_Component:OnLoad(data)
 
         if data.saber then
             -- 2026-09-13：hit / stealing_life 已摘除，旧档里的这两项直接丢掉
+            -- ★ 2026-09-14 新增：剑气斩（加点学习，3 级）
+            if data.saber.slash_qi then
+                if self.saber.slash_qi == nil then
+                    self.saber.slash_qi = { current_level = 0, max_level = 3,
+                        level_effects = { [1] = 18, [2] = 16, [3] = 14 },
+                        unlock_requirements = { [1] = 3, [2] = 7, [3] = 12 },
+                        skill_point_cost = { [1] = 1, [2] = 1, [3] = 1 } }
+                end
+                self.saber.slash_qi.current_level = data.saber.slash_qi.current_level or 0
+            end
             -- ★ 2026-09-12 新增：背水一战（等级 + 冷却结束时间）
             if data.saber.last_stand then
                 if self.saber.last_stand == nil then
@@ -1324,6 +1381,14 @@ function Musha_Profession_Component:OnLoad(data)
 
         self:UpdateExpToNext()
         self:UpdateCharacterStats()  -- 使用新的统一函数
+    end
+
+    -- ★ 2026-09-16 修「登录后武器技能放不出来，得把武器装/卸两次才行」
+    --   时序坑：读档时手里那把武器先跑 prefab/on_equip（那时候技能等级还没读进来 = 0）
+    --   → musha_sword 里挂的 aoetargeting 门被判成"没学"关掉了；之后除了"加点"没有任何事件会重开它。
+    --   武器 on_equip 里本来就 ListenForEvent("musha_skill_changed")，所以数据读完这里补广播一次即可。
+    if TheWorld ~= nil and TheWorld.ismastersim and self.inst ~= nil and self.inst:IsValid() then
+        self.inst:PushEvent("musha_skill_changed", { tree = "saber", name = "load", level = 0 })
     end
 end
 

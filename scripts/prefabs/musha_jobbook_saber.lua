@@ -75,14 +75,10 @@ local function OnUseBook(inst, doer)
         return
     end
 
-    -- 和正式路径保持一致：发一本基础技能书
-    local inv = doer.components.inventory
-    if inv then
-        local sk = SpawnPrefab("musha_skillbook")
-        if sk then
-            inv:GiveItem(sk)
-        end
-    end
+    -- ★ 2026-09-14 用户：「剑士转职书**不该给技能面板**」→ 这里不再发 musha_skillbook
+    --   （技能面板 = 技能书 musha_skillbook；一转时已经给过一本，二转不该再塞一本）
+    --   ⚠️ 正式二转路径（进阶祭坛 3 轮 → musha_quest:CompleteAdvanceQuest）里**还有一处**发书，
+    --      见 scripts/components/musha_quest.lua:432 —— 那处用户还没拍板，先留着。
 
     Say(doer, "【测试】已直接完成二转：剑士（正式流程走进阶祭坛）", 5)
 end

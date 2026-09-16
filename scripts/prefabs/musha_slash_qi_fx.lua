@@ -25,8 +25,11 @@
 --     粒子素材直接用我们自己的 slash_fx（已经打包好、且 modmain 里全局声明了，客户端一定有）。
 -- ============================================================
 
-local FX_ART = "cyan"      -- 2026-09-14 用户已打包 anim/crescent_cyan.zip（自己的亮青月牙）→ 换过来
-                           -- 备选：jimeng（旧图，像刀光/冲击波） / crescent（原版真月牙，蟹王爪击） / vanilla（暗影抛射体）
+local FX_ART = "cyan8"     -- ★ 2026-09-14 切到方向图版：8 张（对称光斩）按飞行方向选图、贴图不旋转
+                           --   素材链：make_lightslash.py（画对称光弧）→ make_dirs.py（派生 8 方向）→ DST Mod Tool 导 zip
+                           --   打包好的：anim/crescent_cyan8.zip（用户 2026-09-14 19:53 导出）
+                           -- 备选：cyan（单图+3D旋转，旧；会斜着被压扁） / jimeng（旧刀光图）
+                           --       crescent（原版真月牙，蟹王爪击） / vanilla（暗影抛射体）
 
 local ART = ({
     -- jimeng 的 scale 说明：素材画布 512x512，但可见的剑气只占 305x171（约 60%x33%）
@@ -49,20 +52,97 @@ local ART = ({
     --   → 斜着飞不再被"地面投影"压扁（就是用户说的"光和面倾斜"）。
     --   打包：`exported/crescent_cyan/dirs/crescent_cyan8.scml` → `anim/crescent_cyan8.zip`，
     --   然后把最上面的 FX_ART 改成 "cyan8" 即可（表都填好了，不用改别的）。
-    cyan8    = { bank = "crescent_cyan8",            build = "crescent_cyan8",            pre = "anim_0",          fly = "anim_0",          hit = "anim_0",           scale = 0.90, bloom = true,
-                 dirs = { "anim_0", "anim_1", "anim_2", "anim_3", "anim_4", "anim_5", "anim_6", "anim_7" } },
+    cyan8    = { bank = "crescent_cyan8",            build = "crescent_cyan8",            pre = "slash_dir0",      fly = "slash_dir0",      hit = "slash_dir0",           scale = 1.20, bloom = false,
+                 -- ★ 2026-09-16：动画名 = slash_dir0..7（**无朝向后缀**，代码按方向点名播；
+                 --   带后缀会让编译器写"朝向掩码"、逼引擎自己挑面，实测会挑错，见文件头说明）
+                 dirs = { "slash_dir0", "slash_dir1", "slash_dir2", "slash_dir3",
+                          "slash_dir4", "slash_dir5", "slash_dir6", "slash_dir7" } },
+                 -- ★ 2026-09-14 用户「太大了」→ 0.90 → 0.25（等身）→ 用户「太小」→ **0.50**
+                 --   换算口径（本项目实测）：1 世界单位 ≈ 100 贴图像素；月牙本体 ≈966 px 宽
+                 --   · 0.90 ≈ 8.7 单位（太大）  · 0.25 ≈ 2.4 单位（太小）
+                 --   · **0.50 ≈ 4.8 单位** ≈ 角色身高(1.7) 的 2.8 倍 —— 对齐洛克人 X5 觉醒 Zero
+                 --     那个绿月牙的比例（图上月牙 ≈ 角色 3 倍左右）
+                 --   要再调就改这一个数，**不用重导素材**
+                 -- ★★ 2026-09-16 二调：用户「太小了，几乎成了光斑」→ 63 改 **1.20**，
+                 --   同时 **bloom: true → false**（辉光会把白芯糊成一团，这就是「光斑」的主因）
+                 --   想再调就动这两个数：scale（大小）/ bloom（要不要发光）——都不用重导素材
+                 -- ★ 2026-09-16 用户「太小，一坨 看不清」→ 0.50 → **0.63**
+                 --   根因不是 code，是换素材了：09-16 03:47 那版（exported/crescent_moon，
+                 --   零辉光干净新月，实物 639x595）比 09-14 那版（exported/crescent_cyan，
+                 --   实物 705x809）小 1.266 倍 → 同样 0.50 看着就小一圈、边缘又没辉光过渡 → "一坨"。
+                 --   → 0.50 × 809/639 ≈ **0.63** 只是"还原到 09-14 认可的那个大小"。
+                 --   想更大就继续加：0.8（≈6.2 单位）/ 1.0（≈7.7 单位）；等比缩放，别非等比（见下面 FX_LEN_MULT）
+                 --   想"更清楚"（不是更大）→ 改形状：exported/_tools/crescent_gen.py 顶部 E 减薄（99→60 左右）
+                 --   或 XS 拉宽 → 重跑 make_lightslash/make_dirs → 重导 zip
     vanilla  = { bank = "shadow_thrall_projectile_fx", build = "shadow_thrall_projectile_fx", pre = "projectile_pre", fly = "projectile_loop", hit = "projectile_impact", scale = 1, bloom = false },
 })[FX_ART]      -- ⚠️ 外面这对括号不能省：Lua 5.1 不许「表构造后面直接跟索引」
 
 -- ===== 飞行手感（想调就动这里）=====
 local FX_SPEED      = 22.5                    -- 飞行速度（直线）；★ 2026-09-14 用户"太快"→ 45 减半
 local FX_RANGE      = 12                      -- 最远飞多少格（对齐技能的 MAX_RANGE），飞满即消失
+
+-- ★ 2026-09-14 用户：「月牙太大了，可以改一改长度，类似洛克人光剑那样」
+--   ⚠️ 2026-09-14 撤回"只压长度"的做法：`SetScale(x<y)` 是**沿屏幕水平方向**压 ——
+--      而 8 张方向图是**预先转好角度**的（朝上飞的那张本身就竖着），再压屏幕 x 就等于
+--      在不同方向上压不同的部位 → 用户实测"正面侧面不一样、不平均"。
+--   → **必须等比缩放**（1.0）。想改"长度"只能**重画底图**（改 make_lightslash.py 的 XS/YS），
+--      不能在游戏里拉非等比。
+local FX_LEN_MULT   = 1.0
+
 local FX_HIT_DIST   = 1.0                     -- 离落点多近算命中（0.6→1.0：减速后每帧仍走 0.75 单位，
                                               --   太小的判定圈会被"跨帧跳过去"→ 技能空放）
-local FX_LAUNCH_AT  = Vector3(1.0, 1.25, 0)   -- 出手位置
+local FX_LAUNCH_AT  = Vector3(1.0, 1.60, 0)   -- 出手位置（★ 2026-09-16 用户说往上移：1.25 → 1.60）
 local FX_LIFETIME   = 3                       -- 兜底自毁（秒）
+-- ⚠️ 2026-09-16：USE_ENGINE_FACING = true 时**别动这个数**——旋转 = 飞行方向（MotorVel 沿自身旋转），
+--    动它会连带偏航。引擎模式下修朝向只能改素材相位（crescent_gen.py 的 PHASE_DEG）或换动画名。
+--    只有旧的"代码选图/单图"路径才用它。
 local FX_ROT_OFFSET = 0                       -- 贴图朝向补偿（度）——月牙弧口不正就报"转 X 度"改这里
-local FX_COLOUR     = nil                     -- 本体染色 {r,g,b}，nil = 原色
+
+-- ★★ 2026-09-16 官方多面向方案（让引擎挑面，替代"代码算序号选图"）★★
+--   原理（拆官方编译器 Don't Starve Mod Tools/mod_tools/tools/scripts/buildanimation.py 得到）：
+--     动画名带朝向后缀（_down/_side/_up/_upright/_downright...）时，编译器会把"朝向位掩码"
+--     写进 anim 包；游戏里只 PlayAnimation("slash")，引擎按 Transform 的旋转挑对应那一面。
+--     官方样板就在眼前：boat_cannon.lua 只写 PlayAnimation("idle") + Transform:SetEightFaced()。
+--   ⚠️ 切过来之前**必须**让 Mod Tool 用 exported/crescent_moon/crescent_cyan8.scml 重导
+--      anim/crescent_cyan8.zip（新包里动画名才是 slash_right/slash_up/...；旧包还是 anim_0..7）。
+--      USE_ENGINE_FACING = false 可一键回退旧的"代码选图"方案（不用重导）。
+-- ★★ 2026-09-16 实测定稿：**默认关**（改由代码按方向点名播 slash_dir0..7）★★
+--   为什么放弃"引擎挑面"：① 原版 4044 个脚本里没有任何一处用带后缀的名字播动画
+--   （后缀只是编译期标记，运行时只能靠引擎按旋转挑面）；② 引擎"旋转 → up/down/right"
+--   的映射在本机无法验证 —— 实测两次施法旋转都对（世界 165.5° / 256.4°），但月牙朝向是错的。
+--   → 唯一能保证准的：8 条动画我们自己点名播；方向的来源 = **引擎已设好的真实旋转**
+--     （DirIndexFromRotation，这才是"方向不准"的真根因：旧代码问的是落点靶子，实测恒为 0 区）。
+local USE_ENGINE_FACING = false   -- true = 回到"引擎按掩码挑面"（需要官方后缀名版 scml）
+local FACING_ANIM       = "slash" -- 仅 USE_ENGINE_FACING = true 时才用（官方名版 scml 的基础名）
+local FACING_DEBUG      = true    -- 实测期打印"旋转角 → 引擎实际选中哪一面"；定稿后改 false
+
+-- 8 个方向名（只给调试用；顺序 = 引擎的朝向位顺序）
+local FACING_NAMES = { "slash_right", "slash_upright", "slash_up", "slash_upleft",
+                       "slash_left", "slash_downleft", "slash_down", "slash_downright" }
+
+-- Klei 旋转 → 方向序号 k（0 = 世界 +X，每 45° 一格，往 +Z 排）
+--   ★ 只用来"同步给客机挑面"，**绝不用来改飞行方向**
+--   （DST 的 Physics:SetMotorVel 是沿实体自身旋转飞的：locomotor.lua:723 把旋转换成向量、
+--     projectile.lua:458 靠 RotateToTarget 转向、RestoreDelayPos 连 rotation 一起复原）
+--   口径：第 k 格覆盖世界角 [45k, 45k+45)，素材按**格中心** 45k+22.5 画
+--   （= crescent_gen.py 的 theta = m*45 + 180/count）→ 所以是 floor(b/45)，别加 22.5！
+--   2026-09-16 踩过：写成 floor((b+22.5)/45) → 落在每格上半段的朝向整整偏一格（最大 45°）。
+local function DirIndexFromRotation(rot)
+    local b = (((-rot) % 360) + 360) % 360      -- 朝向的世界角（+X 起往 +Z）
+    return math.floor(b / 45) % 8
+end
+
+-- 方向序号 k（0 = 世界 +X，每 45° 一个，往 +Z 排）→ Klei 旋转角
+--   官方口径（projectile.lua:162 / boat_cannon.lua:170）：朝向向量 = (cos(-rot), sin(-rot))
+--   → 朝世界角 b 的旋转 = -b。FX_ROT_OFFSET 用来整圈微调（实测偏了就改它，不用重导素材）。
+local function FacingRotationFor(k)
+    return ((360 - (k % 8) * 45) % 360) + FX_ROT_OFFSET
+end
+local FX_COLOUR     = nil                     -- 本体染色 {r,g,b}；nil = 用素材原色
+-- ★ 2026-09-16 用户："zero的光什么颜色 我们就改什么"
+--   → 洛克人 ZERO（GBA 系列）的 Z 剑光是**青蓝底 + 白芯**，不是 X5 觉醒版那个绿；
+--     而新素材本体就是亮青 (0.30,0.86,1.00) → **不再染色**，直接用原色（正是用户要的"青色 青亮色"）。
+--   ↩️ 想回到 X5 幻梦零那个绿：把上面那行改回 { 0.45, 1.00, 0.35 }（乘法染色，不用重导素材）
 
 -- ★★ 方向美术（2026-09-14 用户要做：8 面最好、至少 4 面；**左右自动镜像**）——
 --   为什么：单图靠"3D 旋转"摆方向 → 斜着飞时贴图被压扁（用户原话"光和面倾斜"）。
@@ -91,12 +171,36 @@ local function Atan2(y, x)
     else return 0 end
 end
 
+-- 调试：隔一帧问引擎"你现在到底在播哪一面"（IsCurrentAnimation，666 个原版脚本都在用）
+local function FacingDebug(inst, k)
+    if not FACING_DEBUG then return end
+    local rot = 0
+    if inst.Transform ~= nil then rot = inst.Transform:GetRotation() end
+    inst:DoTaskInTime(0, function(i)
+        if i:IsValid() and i.AnimState ~= nil then
+            local got = "(没匹配上)"
+            for _, nm in ipairs(FACING_NAMES) do
+                local ok, cur = pcall(function() return i.AnimState:IsCurrentAnimation(nm) end)
+                if ok and cur then got = nm; break end
+            end
+            if got == "(没匹配上)" then
+                -- 官方编译器会把后缀从动画名里去掉 → 包里存的名字就是基础名，
+                -- 所以"挑到哪一面"名字上看不出来，但至少能确认引擎有没有挑中动画
+                local ok2, cur2 = pcall(function() return i.AnimState:IsCurrentAnimation(FACING_ANIM) end)
+                if ok2 and cur2 then got = FACING_ANIM .. "(基础名·引擎已挑到某一面)" end
+            end
+            print(string.format("[Musha] 剑气斩 引擎挑面：dir%s 旋转=%.1f°（朝向世界角=%.1f°）→ 实际播 %s",
+                tostring(k), rot, (((-rot) % 360) + 360) % 360, got))
+        end
+    end)
+end
+
 -- 按飞行方向挑方向图（返回 动画名, 是否水平镜像）；没配方向表就返回 nil
-local function PickDirAnim(inst, tx, tz)
-    if FX_DIRS == nil or #FX_DIRS == 0 then return nil, false end
+local function PickDirIndex(inst, tx, tz)
+    if FX_DIRS == nil or #FX_DIRS == 0 then return nil end
     local x, _, z = inst.Transform:GetWorldPosition()
     local dx, dz = tx - x, tz - z
-    if math.abs(dx) < 0.001 and math.abs(dz) < 0.001 then return nil, false end
+    if math.abs(dx) < 0.001 and math.abs(dz) < 0.001 then return nil end
 
     local n = #FX_DIRS                                  -- 表里画了几张
     local total = DIR_MIRROR and n * 2 or n             -- 覆盖多少个方向
@@ -109,12 +213,67 @@ local function PickDirAnim(inst, tx, tz)
         k = n - (k - n) - 1            -- 镜像轴折回：k=n→n-1, n+1→n-2 … 2n-1→0
         flip = true
     end
+    return k, flip
+end
 
+-- 序号 → (动画名, 是否镜像)
+local function DirAnimFor(k, flip)
+    if FX_DIRS == nil or #FX_DIRS == 0 or k == nil then return nil, false end
     local entry = FX_DIRS[k + 1] or FX_DIRS[1]
     if type(entry) == "table" then
-        return entry[1], (entry[2] == true) ~= flip
+        return entry[1], (entry[2] == true) ~= (flip == true)
     end
-    return entry, flip
+    return entry, flip == true
+end
+
+-- 把对应方向的那张图贴到实体上（任意端都能调；scale 的 x 取负 = 水平镜像）
+local function ApplyDirArt(inst, k, flip, fromengine)
+    if inst.AnimState == nil then return false end
+
+    if USE_ENGINE_FACING then
+        -- ★ 官方做法：贴好 scale + 播基础名，**朝向交给引擎按 Transform 的旋转自己挑**
+        --   ⚠️ 服务端（fromengine=true）**一个字都不动旋转**：旋转就是飞行方向！
+        --      （引擎已由 projectile:RotateToTarget 设成朝落点，动它就偏航 —— 2026-09-16 踩过）
+        --   客机（fromengine=nil）没有飞行责任，用 netvar 传来的 k 摆一个等价旋转，好让引擎挑到同一面。
+        --   ★ 想修正"月牙朝向偏了 45° 的整数倍"：不要用 FX_ROT_OFFSET（那会连带偏航），
+        --     改素材相位（crescent_gen.py 的 PHASE_DEG）或换动画名（scml 里 slash_* 对调 → 重导）。
+        local s = ART.scale
+        local ok = pcall(function()
+            inst.AnimState:SetScale(s * FX_LEN_MULT, s, s)
+            if not fromengine then
+                inst.Transform:SetRotation(FacingRotationFor(k or 0))
+            end
+            inst.AnimState:PlayAnimation(FACING_ANIM)
+        end)
+        if ok then FacingDebug(inst, k) end
+        return ok
+    end
+
+    local anim, needflip = DirAnimFor(k, flip)
+    if anim == nil then return false end
+    local s = ART.scale
+    local sx = s * FX_LEN_MULT          -- ★ 只压长度（水平），高度不动
+    return pcall(function()
+        inst.AnimState:SetScale(needflip and -sx or sx, s, s)
+        inst.AnimState:PlayAnimation(anim)
+    end)
+end
+
+-- 方向序号打包进 net_byte：0 = 还没定；否则 (k+1)，镜像放最高位（+128）—— 最大 136，byte 够放
+local function PackDir(k, flip)
+    return (k + 1) + (flip and 128 or 0)
+end
+
+-- ★ 2026-09-14：方向图必须**每个客户端各自播**（AnimState 不会自动联网！）
+--   以前只在服务端 OnThrownFn 里 PlayAnimation → 官方客机看到的永远是 build 的默认动画
+--   （就是用户报的"只有一个方向"）。现在服务端只写一个 netvar，各端收到 dirty 自己播。
+local function OnDirDirty(inst)
+    if TheNet ~= nil and TheNet:IsDedicated() then return end
+    local v = inst._qi_dir ~= nil and inst._qi_dir:value() or 0
+    if v == 0 then return end
+    local flip = v >= 128
+    local k = (flip and (v - 128) or v) - 1
+    ApplyDirArt(inst, k, flip, false)      -- 客机：只为挑面摆个等价旋转，不动飞行（飞行是服务端的事）
 end
 
 -- ===== 命中炸开 FX（联网的那一个，整个命中只发这一个）=====
@@ -239,7 +398,13 @@ local function FadeOutAndRemove(inst)
         if a <= 0 then
             i:Remove()
         elseif i.AnimState ~= nil then
-            i.AnimState:SetMultColour(1, 1, 1, a)
+            -- ⚠️ 别写死 (1,1,1,a)：那会把 FX_COLOUR 的染色冲掉 → 淡出瞬间"绿变青"闪一下
+            local c = FX_COLOUR
+            if c ~= nil then
+                i.AnimState:SetMultColour(c[1], c[2], c[3], a)
+            else
+                i.AnimState:SetMultColour(1, 1, 1, a)
+            end
         end
     end)
 end
@@ -300,25 +465,38 @@ local function fn()
 
     -- ★ 2026-09-14 朝向统一（用户报"发出去方向会不同变换"）——
     --   原来只有 SetFourFaced()、出手时又没给角度 → 不同飞行方向看起来朝向不一致。
-    --   照原版两个样板改（都是"会飞的贴图"的标准做法）：
-    --     · prefabs/blowdart.lua:44（吹箭的箭）= SetOrientation(ANIM_ORIENTATION.OnGround)
-    --     · prefabs/crabking_claw.lua 的 swipefn（真月牙 fx）= 同上 + 不设朝向
-    --       （它那行 SetEightFaced 是**注释掉的**：四/八面向只对"画了多方向符号"的贴图有意义，
-    --         我们单帧月牙设了反而会被引擎按方位吸附 → 就是"方向会变"的元凶）
+    --   照原版样板改（"会飞的贴图"的标准做法）：prefabs/blowdart.lua:44 = OnGround 平铺地面
+    --   ★ 2026-09-16 更新：crabking_claw 那行 SetEightFaced 是注释掉的，原因是**它只有单帧**；
+    --     我们现在是"8 条动画各管一面"→ 反而**必须**开 SetEightFaced（见下面 fn 里那两行，
+    --     官方 boat_cannon 就是这么干的）。别再把这条当"不能开"的理由。
     --   OnGround = 把贴图平铺在**地面平面**上 → 之后 Transform:SetRotation(角度) 才是
     --   "在地面上转"（不会随镜头/方向被压扁成别的样子）。
-    inst.AnimState:SetOrientation(ANIM_ORIENTATION.OnGround)
-    inst.AnimState:SetLayer(LAYER_BACKGROUND)     -- 跟原版月牙一样画在角色下面
+    -- ★★ 2026-09-14 v10b：SetOrientation 这行**故意不调** ★★
+    --   起因：原来 = OnGround（贴图平铺地面）→ 用户报「剑气看起来像从地上发出去」。
+    --   改 Billboard 时踩坑：**本版本 ANIM_ORIENTATION.Billboard 是 nil**，写了直接崩
+    --   （calling 'SetOrientation' on bad self (number expected, got nil)）。
+    --   结论：**不调这个方法** = 用引擎默认朝向 —— DST 的 AnimState 默认就是"面向摄像机"
+    --   （billboard），正是我们要的"月牙立着飞"。
+    --   · 想改回贴地：把下面一行换成 inst.AnimState:SetOrientation(ANIM_ORIENTATION.OnGround)
+    --   · 要写成版本兼容：ANIM_ORIENTATION and (ANIM_ORIENTATION.Billboard or ANIM_ORIENTATION.Default)
+    --   ⚠️ 连带：默认朝向的贴图**不吃 Transform:SetRotation**（不像贴地时"在地上转"会真的转），
+    --     所以"月牙朝着飞行方向"完全靠方向图（FX_DIRS 一张一个方向），单图指望不上了。
+    inst.AnimState:SetLayer(LAYER_BACKGROUND)     -- 仍然画在角色下面（别挡住人）
     inst.AnimState:SetSortOrder(3)
 
     inst.AnimState:SetBank(ART.bank)
     inst.AnimState:SetBuild(ART.build)
+    if USE_ENGINE_FACING and inst.Transform.SetEightFaced ~= nil then
+        -- ★ 官方样板同款（boat_cannon.lua:290）：「八面向」= 引擎按 Transform 的旋转挑面
+        --   不设的话引擎只认"没后缀"的默认面（我们 8 条动画各管一面，就必须开这个）
+        inst.Transform:SetEightFaced()
+    end
     if FX_DIRS == nil then
         inst.AnimState:PlayAnimation(ART.pre)     -- 配了方向表就等出手时按方向播（见 OnThrownFn）
     end
     inst.AnimState:SetLightOverride(1)
     if ART.scale ~= 1 then
-        inst.AnimState:SetScale(ART.scale, ART.scale, ART.scale)
+        inst.AnimState:SetScale(ART.scale * FX_LEN_MULT, ART.scale, ART.scale)
     end
     if ART.bloom then
         -- 亮部辉光：亮青月牙靠它才有"在发光"的感觉（原版 FX 常用这招）
@@ -332,13 +510,22 @@ local function fn()
     inst._qi_burst = net_event(inst.GUID, "musha_qi.burst", "musha_qi_burstdirty")
     inst:ListenForEvent("musha_qi_burstdirty", OnBurstDirty)
 
+    -- ★ 方向图信号（同样建在 SetPristine 之前）：服务端只写方向序号，各客户端各自播那张图
+    --   （AnimState 不会自动联网 —— 少了这一步客机永远只看到 build 的默认动画）
+    --   ⚠️ 数值类型只能用原版有的：net_bool / net_smallbyte[0..63] / **net_byte[0..255]** / net_int …
+    --      （没有 net_smallint！写了会 "variable 'net_smallint' is not declared" 直接崩）
+    inst._qi_dir = net_byte(inst.GUID, "musha_qi.dir", "musha_qi.dirdirty")
+    inst:ListenForEvent("musha_qi.dirdirty", OnDirDirty)
+
     inst.entity:SetPristine()
 
     if not TheWorld.ismastersim then
         return inst
     end
 
-    inst.AnimState:PushAnimation(ART.fly)
+    if FX_DIRS == nil then
+        inst.AnimState:PushAnimation(ART.fly)      -- 方向图模式在出手时按方向播（见 OnThrownFn）
+    end
 
     inst:AddComponent("projectile")
     local p = inst.components.projectile
@@ -346,7 +533,12 @@ local function fn()
     p:SetHoming(false)              -- ★ 直线：出手朝向落点，之后不再转向
     p:SetRange(FX_RANGE)            -- 飞满就 Miss
     p:SetHitDist(FX_HIT_DIST)
-    p:SetLaunchOffset(FX_LAUNCH_AT)
+    p:SetLaunchOffset(Vector3(0, 0, 0))
+    -- ★ 2026-09-16：原来这里写 Vector3(1.0, 1.25, 0)，而 musha_weapon_skill.DoCast 又手动设了一次
+    --   位置（径向按瞄点方向、y 给的是脚下）→ **径向叠了两份、高度口径不一致**
+    --   （projectile.lua:159-162 的 Throw 会自动 y+launchoffset.y）→ 客户端看就是"出门那下往下掉一下"。
+    --   现在统一由 musha_weapon_skill 一处算（径向 + 高度），这里归零，起点高度 == 落点靶子高度 = 直线平飞。
+    inst.musha_launch_y = FX_LAUNCH_AT.y   -- ★ 给 weapon_skill 用：出手高度（起点和落点靶子都用它）
     p:SetOnHitFn(OnHit)
     p:SetOnMissFn(OnMiss)
     p:SetOnThrownFn(function(i, owner)
@@ -360,18 +552,28 @@ local function fn()
 
         if FX_DIRS ~= nil then
             -- ★ 方向美术：按方向选动画，**贴图不旋转**（斜飞的压扁/光面倾斜就是这么消掉的）
-            --   动画名取不到会 assert → 先 pcall 兜一层，取不到就退回"单图 + 旋转"那条路
-            local anim, flip = nil, false
-            if mx ~= nil then anim, flip = PickDirAnim(i, mx, mz) end
-            local ok = false
-            if anim ~= nil then
-                local s = ART.scale
-                ok = pcall(function()
-                    i.AnimState:SetScale(flip and -s or s, s, s)
-                    i.AnimState:PlayAnimation(anim)
-                end)
+            --   ★ 2026-09-14 修"只有一个方向"：改成写 netvar，让**每个客户端各自播**对应方向图
+            --     （AnimState 不联网；只在服务端 PlayAnimation 的话，客机永远看 build 默认动画）
+            -- ★ 方向来源（2026-09-16 定稿）：**引擎已设好的真实旋转**
+            --   （projectile:RotateToTarget 出手时已朝向落点；且 MotorVel 沿自身旋转飞 → 旋转就是方向）
+            --   旧的"落点靶子"口径实测恒落在 0 区（就是用户报"方向不准"的根因），只留作兜底。
+            local k, flip = nil, false
+            if i.Transform ~= nil then
+                k = DirIndexFromRotation(i.Transform:GetRotation())
             end
-            if not ok and mx ~= nil then
+            if k == nil and mx ~= nil then
+                k, flip = PickDirIndex(i, mx, mz)
+            end
+            if k ~= nil and i._qi_dir ~= nil then
+                i._qi_dir:set(PackDir(k, flip))
+            end
+            -- 日志：实测时一眼看出选的是哪张方向图（k=0 起，对应 anim_0..7）
+            if k ~= nil and not USE_ENGINE_FACING then
+                local an = DirAnimFor(k, flip)
+                print("[Musha] 剑气斩 方向图 → " .. tostring(an) .. "（k=" .. tostring(k) .. "）")
+            end
+            -- 兜底①：netvar 写不进去 → 本端自己贴一张；兜底②：方向表取不到 → 退回"单图 + 旋转"
+            if not ApplyDirArt(i, k, flip, USE_ENGINE_FACING) and mx ~= nil then
                 i.AnimState:SetScale(ART.scale, ART.scale, ART.scale)
                 i:FacePoint(mx, 0, mz)
                 if FX_ROT_OFFSET ~= 0 then

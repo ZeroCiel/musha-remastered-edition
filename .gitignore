@@ -1,4 +1,23 @@
-_bak*/
+# ===== 旧规则（保留）=====
 _bak*/
 *.bak
 图片/
+
+# ===== 自动编译器 / 工具产生的垃圾（2026-09-16 新增）=====
+__pycache__/
+*.pyc
+exported/_tools/_test_out/
+exported/**/_bak*/
+exported/**/_concept/
+exported/**/_v1_*/
+exported/**/_orig_*/
+exported/**/*.autosave.zip
+anim/*.autosave.zip
+anim/*.zip.bak
+anim/_bak_*
+images/**/_bak*/
+*.rar
+
+*_bak_*
+_bak_*
+_bak*/

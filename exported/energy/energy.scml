@@ -7,10 +7,11 @@
         <file id="0" name="bg/bg-0.png" width="60" height="60" pivot_x="-0.949142" pivot_y="1.97456"/>
     </folder>
     <folder id="2" name="heart">
-        <file id="0" name="heart/heart-0.png" width="37" height="29" pivot_x="0.5" pivot_y="0.5"/>
-        <file id="1" name="heart/heart-1.png" width="37" height="29" pivot_x="0.5" pivot_y="0.5"/>
-        <file id="2" name="heart/heart-2.png" width="37" height="29" pivot_x="0.5" pivot_y="0.5"/>
-        <file id="3" name="heart/heart-3.png" width="37" height="29" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="0" name="heart/heart-0.png" width="44" height="44" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="1" name="heart/heart-1.png" width="44" height="44" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="2" name="heart/heart-2.png" width="44" height="44" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="3" name="heart/heart-3.png" width="44" height="44" pivot_x="0.5" pivot_y="0.5"/>
+        <file id="4" name="heart/heart-4.png" width="44" height="44" pivot_x="0.5" pivot_y="0.5"/>
     </folder>
     <folder id="3" name="health_level">
         <file id="0" name="health_level/health_level-0.png" width="63" height="63" pivot_x="0.500936" pivot_y="0.499064"/>
@@ -506,7 +507,7 @@
                     <object folder="2" file="0" angle="0"/>
                 </key>
                 <key id="5" time="165" curve_type="instant">
-                    <object folder="2" file="0" angle="0"/>
+                    <object folder="2" file="1" angle="0"/>
                 </key>
                 <key id="6" time="198" curve_type="instant">
                     <object folder="2" file="1" angle="0"/>
@@ -521,13 +522,13 @@
                     <object folder="2" file="1" angle="0"/>
                 </key>
                 <key id="10" time="330" curve_type="instant">
-                    <object folder="2" file="1" angle="0"/>
+                    <object folder="2" file="2" angle="0"/>
                 </key>
                 <key id="11" time="363" curve_type="instant">
-                    <object folder="2" file="1" angle="0"/>
+                    <object folder="2" file="2" angle="0"/>
                 </key>
                 <key id="12" time="396" curve_type="instant">
-                    <object folder="2" file="1" angle="0"/>
+                    <object folder="2" file="2" angle="0"/>
                 </key>
                 <key id="13" time="429" curve_type="instant">
                     <object folder="2" file="2" angle="0"/>
@@ -536,28 +537,28 @@
                     <object folder="2" file="2" angle="0"/>
                 </key>
                 <key id="15" time="495" curve_type="instant">
-                    <object folder="2" file="2" angle="0"/>
+                    <object folder="2" file="3" angle="0"/>
                 </key>
                 <key id="16" time="528" curve_type="instant">
-                    <object folder="2" file="2" angle="0"/>
+                    <object folder="2" file="3" angle="0"/>
                 </key>
                 <key id="17" time="561" curve_type="instant">
-                    <object folder="2" file="2" angle="0"/>
+                    <object folder="2" file="3" angle="0"/>
                 </key>
                 <key id="18" time="594" curve_type="instant">
-                    <object folder="2" file="2" angle="0"/>
+                    <object folder="2" file="3" angle="0"/>
                 </key>
                 <key id="19" time="627" curve_type="instant">
-                    <object folder="2" file="3" angle="0"/>
+                    <object folder="2" file="4" angle="0"/>
                 </key>
                 <key id="20" time="660" curve_type="instant">
-                    <object folder="2" file="3" angle="0"/>
+                    <object folder="2" file="4" angle="0"/>
                 </key>
                 <key id="21" time="693" curve_type="instant">
-                    <object folder="2" file="3" angle="0"/>
+                    <object folder="2" file="4" angle="0"/>
                 </key>
                 <key id="22" time="726" curve_type="instant">
-                    <object folder="2" file="3" angle="0"/>
+                    <object folder="2" file="4" angle="0"/>
                 </key>
             </timeline>
         </animation>

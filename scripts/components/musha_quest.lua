@@ -51,7 +51,7 @@ local DAILY_MAX = 10
 --   collect_gems = 收集三色宝石     → 扣 q.target 颗宝石（红/绿/蓝任选，凑够数量即可）
 local CONSUME_BY_TYPE = {
     collect      = { nightmarefuel = true },
-    collect_gems = { ruby = true, emerald = true, sapphire = true },
+    collect_gems = { redgem = true, greengem = true, bluegem = true },
 }
 
 -- 从任务池随机抽 N 个不重复
@@ -277,6 +277,18 @@ function MUSHA_QUEST:OnNewDay()
         end
     end
 
+    -- 2b. ★ 2026-09-15 修：转职任务也可能是 survive 类（用户报「接到转职任务存活5天，五天进度条一动不动」）
+    --   根因：上面那个循环只遍历 daily_quests，转职任务挂在 self.advance_quest 上，
+    --   而事件型推进（ProgressQuests）只处理 kill/collect/craft/discover 这类，
+    --   没有任何地方给 advance_quest 的 survive 类型加天数 → 永远停在 0/5。
+    local aq = self.advance_quest
+    if aq and not aq.done and aq.type == "survive" then
+        aq.progress = (aq.progress or 0) + 1
+        if aq.progress >= aq.target then
+            self:CompleteCurrentAdvance()      -- 到点即完成本轮（内部会推进轮次 / 第3轮进阶）
+        end
+    end
+
     -- 3. 新增当天的任务（累积，上限 10）
     self:GrantNewDayQuests()
 
@@ -428,11 +440,8 @@ function MUSHA_QUEST:CompleteAdvanceQuest()
             pc.userdata.has_advanced = true
             pc.userdata.advance_round = nil
             pcall(function() pc:ApplyProfessionData() end)
-            -- 给一转技能书
-            local book = SpawnPrefab("musha_skillbook")
-            if book and self.inst.components.inventory then
-                self.inst.components.inventory:GiveItem(book)
-            end
+            -- ★ 2026-09-14 用户：「二转不该再给技能面板」→ 这里不再发 musha_skillbook
+            --   （技能书 = 技能面板，只在一转时给一本，见 scripts/prefabs/musha_jobbook_warrior.lua）
             if self.inst.components.talker then
                 self.inst.components.talker:Say("一转进阶完成！当前职业：" .. tostring(self.advance_target), 5)
             end
@@ -509,7 +518,7 @@ function MUSHA_QUEST:ConsumeQuestItems(q)
             for c in pairs(q.gems) do table.insert(list, c) end
         end
         if #list == 0 then
-            list = { "ruby", "emerald", "sapphire" }
+            list = { "redgem", "greengem", "bluegem" }
         end
         for _, c in ipairs(list) do
             self:TakeItemsFromInventory(c, 1)
@@ -680,7 +689,8 @@ function MUSHA_QUEST:OnCollected(item_type, count)
         self:ProgressQuests(function(q) return q.type == "collect" end, count)
         return
     end
-    if item_type == "ruby" or item_type == "emerald" or item_type == "sapphire" then
+    -- ★ 2026-09-16：用**原版 prefab 名**（redgem/greengem/bluegem）；ruby/emerald/sapphire 原版不存在
+    if item_type == "redgem" or item_type == "greengem" or item_type == "bluegem" then
         self:ProgressGemQuest(item_type)
     end
 end
@@ -728,7 +738,7 @@ function MUSHA_QUEST:OnHealUsed()
     end)
 end
 
--- 存活天数：由 OnNewDay 内单独处理（survive 每日 +1）
+-- 存活天数：由 OnNewDay 内单独处理（survive 每日 +1；★ 2026-09-15 起**每日任务和转职任务都推进**）
 
 -- ====================================
 -- 同步到 pc.userdata（面板读取）

@@ -109,6 +109,13 @@ end
 if type(MUSHA_CHANGELOG) ~= "table" then
     -- 兜底（内容和 scripts/musha_changelog.lua 保持一致，改内容请改那个文件）
     MUSHA_CHANGELOG = {
+        { ver = "0.7.7", date = "2026-09-16", lines = {
+            "新增武器技能「剑气斩」：剑士专属，右键瞄准、点地释放（月牙改用 8 方向光斩）。",
+            "新增礼包系统：游戏时间礼包 + 节日礼包；面板新增「礼包」页（「装备」页暂时收起）。",
+            "新增「生命树枝」道具（装备时每秒回 0.2 生命、每 24 秒 +0.1 精神）；便签新增“地上/手中”形态（一卷系绳的纸）。",
+            "一转职业书在转职完成后消耗；二转不再额外补发技能书。",
+            "修复：剑气斩会穿过敌人；转职任务「存活5天」进度不增长。",
+        } },
         { ver = "0.7.6", date = "2026-09-10", lines = {
             "Musha 系统 0.7.6 正式上线。",
             "职业面板改为多页书：主页 / 技能 / 信箱 / 设置 / 图鉴。",
@@ -131,6 +138,18 @@ if type(MUSHA_CHANGELOG) ~= "table" then
 end
 
 local MAIL_PER_PAGE = 3   -- 每页几条（长度限制由这里定）
+
+-- 图鉴数据（scripts/musha_dex.lua）—— 2026-09-16 新增（原图鉴页是"内容待定"占位）
+local MUSHA_DEX
+do
+    local ok, data = pcall(require, "musha_dex")
+    if ok and type(data) == "table" then
+        MUSHA_DEX = data
+    else
+        print("[Musha Panel] 警告：require('musha_dex') 失败 → " .. tostring(data) .. "，图鉴页先留空")
+    end
+end
+if type(MUSHA_DEX) ~= "table" then MUSHA_DEX = {} end
 
 -- 礼包数据（scripts/musha_gifts.lua）—— 2026-09-12 新增
 local MUSHA_GIFTS
@@ -228,6 +247,50 @@ local function SkillText(row, size, y, str, r, g, b)
     t:SetHAlign(ANCHOR_LEFT)
     t:SetPosition(SKILL_TXT_X + SKILL_TXT_W / 2, y)
     return t
+end
+
+-- ★ 2026-09-16 礼包「领取」按钮：橙灰质感 + **弹起感**（用户要求）
+--   做法（只用 square.tex 也能做出立体）：
+--     · 最底一块深灰棕的"外框"（比面大 6px）= 阴影层，看起来是浮起来的
+--     · 面上：上边 + 左边 提亮细条（高光）／下边 + 右边 压暗细条（阴影）→ 立体"凸起"
+--     · 悬停：整块放大到 1.06（"弹起来"的手感）；移开缩回
+--   ⚠️ 和 MakeTextButton 一样必须关 scale_on_focus，否则 DST 会自己放大 1.2 倍把底色顶出白框
+local function MakeGiftButton(parent, w, h, str, onclick)
+    local b = parent:AddChild(ImageButton("images/global.xml", "square.tex"))
+    b:ForceImageSize(w + 6, h + 6)
+    b:SetImageNormalColour(0.38, 0.24, 0.12, 0.92)      -- 外框（深棕）= 立体底（2026-09-16 去灰）
+    b:SetImageFocusColour(0.46, 0.30, 0.15, 0.95)
+    b.scale_on_focus = false
+
+    local face = b:AddChild(Image("images/global.xml", "square.tex"))
+    face:SetSize(w, h)
+    face:SetTint(0.90, 0.62, 0.26, 0.99)                 -- 暖橙主色（去灰）
+
+    -- 高光（上 + 左）
+    for _, ln in ipairs({ { 0, h / 2 - 2, w, 3 }, { -(w / 2 - 2), 0, 3, h } }) do
+        local i = b:AddChild(Image("images/global.xml", "square.tex"))
+        i:SetSize(ln[3], ln[4])
+        i:SetPosition(ln[1], ln[2])
+        i:SetTint(1.00, 0.90, 0.62, 0.98)
+    end
+    -- 阴影（下 + 右）
+    for _, ln in ipairs({ { 0, -(h / 2 - 2), w, 3 }, { (w / 2 - 2), 0, 3, h } }) do
+        local i = b:AddChild(Image("images/global.xml", "square.tex"))
+        i:SetSize(ln[3], ln[4])
+        i:SetPosition(ln[1], ln[2])
+        i:SetTint(0.56, 0.33, 0.13, 0.95)
+    end
+
+    local t = b:AddChild(Text(UIFONT, 26))
+    t:SetString(str)
+    t:SetColour(1.00, 0.97, 0.90, 1)
+    b._label = t
+
+    b:SetOnGainFocus(function() b:SetScale(1.06, 1.06, 1) end)
+    b:SetOnLoseFocus(function() b:SetScale(1, 1, 1) end)
+
+    if onclick then b:SetOnClick(onclick) end
+    return b
 end
 
 -- 把按钮刷成"三角图标那套"外观：蜡黄底 + 白色细框
@@ -368,10 +431,13 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     self.bg = self.content:AddChild(Image("images/bookpage_bg.xml", "bookpage_bg.tex"))
     self.bg:SetSize(BG_W, BG_H)
 
-    -- 右上角红叉
+    -- 右上角红叉（★ 可见的红叉画在书页底图里；这里是**点击/悬停区**）
+    --   ★ 2026-09-14 从 V2 底图 images/bookpage_bg.png（1644x1109，等比显示成 1232x832）
+    --     用像素分析量出红色圆盘（红叉）**圆心 = 面板 (523, 360)**：原值 (492,341) 偏左 31、偏下 19。
+    --     ⚠️ 口径：图上量的是圆心，点击区按 80x80 居中放这里。
     self.close_btn = self.content:AddChild(ImageButton("images/global.xml", "square.tex"))
     self.close_btn:ForceImageSize(80, 80)
-    self.close_btn:SetPosition(492, 341)
+    self.close_btn:SetPosition(523, 360)        -- V2 图实测圆心（原 492,341）
     self.close_btn:SetImageNormalColour(1, 1, 1, 0)
     self.close_btn:SetImageFocusColour(1, 1, 1, 0.15)
     self.close_btn:SetOnClick(function()
@@ -472,11 +538,18 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         w.label:SetPosition(-250, 0)
         w.label:SetHAlign(ANCHOR_LEFT)
 
+        -- ★ 2026-09-16 UI（A 版最小改动）：计数左移 22 —— 原来贴着滚动条，眼睛要跑两边
         w.stat = w:AddChild(Text(UIFONT, 30))
         w.stat:SetString("")
         w.stat:SetColour(0.6, 0.6, 0.6, 1)
-        w.stat:SetPosition(250, 0)
+        w.stat:SetPosition(228, 0)
         w.stat:SetHAlign(ANCHOR_RIGHT)
+
+        -- ★ 2026-09-16 UI（A）：行底一条浅分隔线 —— 相邻任务行有层次，不再只靠两根细边框
+        w.div = w:AddChild(Image("images/global.xml", "square.tex"))
+        w.div:SetSize(ROW_W - 60, 2)
+        w.div:SetPosition(0, -34)
+        w.div:SetTint(0.45, 0.36, 0.24, 0.30)
 
         return w
     end
@@ -512,6 +585,8 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             w.bar:Hide()
             w.barw:Show()
         end
+
+        w.div:SetTint(done and 0.3 or 0.45, done and 0.5 or 0.36, done and 0.32 or 0.24, 0.30)
 
         if done then
             w.stat:SetString("✓ 完成")
@@ -644,7 +719,10 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     -- 2026-09-13：装备页从"图鉴"里拆出来单独一页（原来页名叫图鉴、内容其实是装备·属性）
     --   现在：equip = 装备·属性（原内容不动），dex = 图鉴（新占位页，内容待定）
     self.page_titles = { home = "主页", skill = "技能", equip = "装备", mail = "信箱", set = "设置", gift = "礼包", dex = "图鉴" }
-    self.page_order  = { "home", "skill", "equip", "mail", "set", "gift", "dex" }
+    -- ★ 2026-09-14 用户：「装备系统拆出来，先隐藏，后面做在右边显示」
+    --   → 导航里**先不放** equip（这一版看不到入口）。页面代码（self.pages.equip / RefreshEquip）
+    --     全部保留着，以后要做"右边单独显示"时，把 "equip" 加回这个表就能恢复。
+    self.page_order  = { "home", "skill", "mail", "set", "gift", "dex" }
 
     self.pages = {}
     self.pages.home = {
@@ -863,7 +941,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         -- ★ 2026-09-14 用户：① 礼包（标题）左移 220 像素 ② 下面那行提示"跟随"，
         --    但最终定位改成挂在【标题的右下角】再各内缩 15 像素（-15x,-15y）
         -- 2026-09-14 再调：标题再左移 40、上移 12；下面那行在"跟随结果"基础上再加 120 x
-        local GIFT_HEAD_X, GIFT_HEAD_Y = -3 - 220 - 40, PAGE_H / 2 - 46 - 12 + 12   -- (-263, 254)
+        local GIFT_HEAD_X, GIFT_HEAD_Y = -3 - 220 - 40 - 32, PAGE_H / 2 - 46 - 12 + 12   -- (-295, 254) ← 2026-09-14 用户"再往左 -32x"
         local HEAD_HALF_W, HEAD_HALF_H = 32, 16        -- 标题"礼包"=2 个 32 号字 → 半宽≈32、半高≈16
         local HINT_GAP = 15                            -- 右下角内缩量
         local HINT_EXTRA_X = 120                       -- 提示行额外右移（2026-09-14）
@@ -885,8 +963,11 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         -- 礼包行容器（RefreshGift 动态重建）
         --   2026-09-12 用户：初始礼包上移 200（-20 → 180），再下移 10 → 170
         --   2026-09-13 用户：再上移 5 → 175
+        --   2026-09-14 用户：「礼包框下移 80 像素」→ 175 - 80 = 95
+        --   2026-09-14 用户：「再下 12 像素」→ 95 - 12 = 83
+        --   2026-09-14 用户：「再下移 5 像素」→ 83 - 5 = 78
         self.gift_body = root:AddChild(Widget("gift_body"))
-        self.gift_body:SetPosition(0, 175)
+        self.gift_body:SetPosition(0, 78)
     end
 
     -- 信箱页（更新日志）：外圈橙色框条 + 内层橙灰底 + 底部翻页
@@ -1039,8 +1120,8 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         end
     end
 
-    -- 图鉴页（2026-09-13 从装备页里拆出来单独一页）：内容未定，先放占位
-    --   待用户定：放什么（生物图鉴 / 物品图鉴 / 配方解锁 / 收集进度）
+    -- 图鉴页（2026-09-13 从装备页里拆出来单独一页）：2026-09-16 起有内容了
+    --   内容源 = scripts/musha_dex.lua（数组，卡片式滚动列表；加条目只改那个文件）
     self.pages.dex = NewPage()
     do
         local PAGE_W, PAGE_H = 890, 600
@@ -1053,11 +1134,134 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         inner:SetSize(PAGE_W - 34, PAGE_H - 34)
         inner:SetTint(0.965, 0.960, 0.945, 0.97)
 
-        PageTip(root, "图鉴", 40)
-        local tip2 = root:AddChild(Text(UIFONT, 26))
-        tip2:SetString("内容待定")
-        tip2:SetColour(0.62, 0.56, 0.46, 1)
-        tip2:SetPosition(0, -48)
+        -- ★ 2026-09-16 用户「上面根本没排」：PageTip 自带位置是 (0,0)（= 页面正中），
+        --   原来标题被压在卡片后面 → 这里挪到页面上方；列表也跟着上移（见下面 SetPosition）
+        local dex_title = PageTip(root, "图鉴", 40)
+        dex_title:SetPosition(0, 248)
+
+        -- ★ 2026-09-16 用户「图鉴再改一下 太大」：卡片收窄（840 → 760）、可见行 4 → 3
+        --   （高度压不了：标题条 + 3 行说明已经占满 112，再压文字就出框）
+        local DEX_W, DEX_H = 760, 112
+        local DEX_VISIBLE = 3
+        local FT, FOFF = 4, 4
+
+        local function dex_ctor(context, index)
+            local w = Widget("dex_item")
+
+            w.bg = w:AddChild(Image("images/global.xml", "square.tex"))
+            w.bg:SetSize(DEX_W, DEX_H)
+            w.bg:SetTint(0.85, 0.68, 0.25, 0.22)
+
+            w.frame = {}
+            local frame_lines = {
+                { x = 0,                y = DEX_H / 2 + FOFF,  w = DEX_W + FOFF * 2, h = FT },
+                { x = 0,                y = -DEX_H / 2 - FOFF, w = DEX_W + FOFF * 2, h = FT },
+                { x = -(DEX_W / 2) - FOFF, y = 0,              w = FT, h = DEX_H + FOFF * 2 },
+                { x = (DEX_W / 2) + FOFF,  y = 0,              w = FT, h = DEX_H + FOFF * 2 },
+            }
+            for _, ln in ipairs(frame_lines) do
+                local line = w:AddChild(Image("images/global.xml", "square.tex"))
+                line:SetSize(ln.w, ln.h)
+                line:SetPosition(ln.x, ln.y)
+                line:SetTint(0.9, 0.72, 0.3, 0.85)
+                table.insert(w.frame, line)
+            end
+
+            -- ★ 2026-09-16 新增：条目图标（贴装备自己的库存图集 images/inventoryimages/<名>.xml）
+            --   条目里给了 icon_atlas/icon_tex 才贴，没给就藏起来（不报错）
+            --   位置：卡片左侧，文字整体右移 110 让位
+            w.icon = w:AddChild(Image("images/global.xml", "square.tex"))
+            w.icon:SetSize(64, 64)
+            w.icon:SetPosition(-DEX_W / 2 + 46, -12)
+
+            -- 顶部姓名条（同任务列表那套暖黄贴纸感）
+            w.chip = w:AddChild(Image("images/global.xml", "square.tex"))
+            w.chip:SetSize(320, 36)
+            w.chip:SetPosition(-DEX_W / 2 + 292, 34)
+            w.chip:SetTint(0.96, 0.91, 0.74, 0.95)
+
+            w.title = w:AddChild(Text(UIFONT, 30))
+            w.title:SetString("")
+            w.title:SetColour(0.30, 0.24, 0.16, 0.98)
+            w.title:SetHAlign(ANCHOR_LEFT)
+            w.title:SetPosition(-DEX_W / 2 + 150, 34)
+
+            w.tag = w:AddChild(Text(UIFONT, 24))
+            w.tag:SetString("")
+            w.tag:SetColour(0.55, 0.42, 0.2, 1)
+            w.tag:SetHAlign(ANCHOR_RIGHT)
+            w.tag:SetPosition(DEX_W / 2 - 22, 34)
+
+            w.rows = {}
+            for i = 1, 3 do
+                local t = w:AddChild(Text(UIFONT, 24))
+                t:SetString("")
+                t:SetColour(0.30, 0.24, 0.17, 1)
+                t:SetRegionSize(DEX_W - 170, 26)
+                t:SetHAlign(ANCHOR_LEFT)
+                t:SetPosition(55, 2 - (i - 1) * 28)
+                w.rows[i] = t
+            end
+
+            return w
+        end
+
+        local function dex_apply(context, w, data, index)
+            if not data then w:Hide(); return end
+
+            -- ★ 2026-09-16 图标：条目自带 icon_atlas/icon_tex 就贴（装备的库存图集），否则藏
+            if data.icon_atlas ~= nil and data.icon_tex ~= nil then
+                w.icon:SetTexture(data.icon_atlas, data.icon_tex, data.icon_tex)
+                w.icon:SetSize(64, 64)
+                w.icon:Show()
+            else
+                w.icon:Hide()
+            end
+
+            w.title:SetString(tostring(data.name or "?"))
+            w.tag:SetString(tostring(data.tag or ""))
+            for i = 1, 3 do
+                local t = w.rows[i]
+                local s = data.lines and data.lines[i]
+                if s then
+                    t:SetString("· " .. tostring(s))
+                    t:Show()
+                else
+                    t:SetString("")
+                    t:Hide()
+                end
+            end
+            w:Show()
+        end
+
+        self.dex_list = root:AddChild(TEMPLATES.ScrollingGrid(MUSHA_DEX or {}, {
+            context = { screen = self },
+            -- ★ 2026-09-16 修「图鉴卡片错位、上下两张叠在一起」：
+            --   卡片含外框实际占 DEX_H + 2*FOFF（= 120），原来行高只有 118 → 行与行互相压；
+            --   行宽又写的是任务列表的 ITEM_W（860）而卡片是 840 → 左右也偏。按卡片真实尺寸给，留 8px 缝。
+            widget_width = DEX_W + 2 * FOFF + 8,
+            widget_height = DEX_H + 2 * FOFF + 8,
+            num_visible_rows = DEX_VISIBLE,
+            num_columns = 1,
+            item_ctor_fn = dex_ctor,
+            apply_fn = dex_apply,
+            -- ★ 2026-09-16 修「框框位置不对」：行宽从 ITEM_W(860) 改成 856 后位置没跟着改，
+            --   原来 x=-20 → 卡片外框（848 宽）占 -444..+404：**左框线跑到内页白底外 16px、
+            --   右边空 24px**，左右不对称。现 x=0 → 外框 -424..+424，左右各留 4px 对称。
+            --   滚动条为了不跟着位移：x 右移了 20，这里 offset 30 → 10（绝对位置不变）。
+            scrollbar_offset = 10,
+            scrollbar_height_offset = 20,
+            peek_percent = 0,
+            allow_bottom_empty_row = true,
+        }))
+        -- ★ 2026-09-16：原来 y=-108（3 行 120 高会掉到白页底边外），现在 3 行 × 128 = 384 高，
+        --   取 y=-20 → 占 -212..+172：上方留给标题(+248)、下方留给底部说明(-262)
+        self.dex_list:SetPosition(0, -20)
+
+        local tip2 = root:AddChild(Text(UIFONT, 22))
+        tip2:SetString("（图鉴按上架顺序排列；新内容会陆续补进来）")
+        tip2:SetColour(0.62, 0.56, 0.46, 0.9)
+        tip2:SetPosition(0, -262)
     end
 
     -- 设置页（行数少，直接排，不做滚动）
@@ -1712,27 +1916,70 @@ function MushaPanelScreen:RefreshEquip(md)
 end
 
 -- 礼包页：按 md.gifts（服务端推来的"已领过"表）重建行
---   2026-09-12 新增；节日活动只改 scripts/musha_gifts.lua，这里不用动
+--   2026-09-12 新增；2026-09-14 改双轨：
+--     · 游戏时间礼包（kind="cycle"）→ **常显**；没到天数 → 按钮位显示"第 X 天可领（还差 N 天）"，点不了
+--     · 节日礼包（kind="festival"）→ 只在现实日期窗口内**出现**，窗口外连行都没有
+--   口径跟服务端 RPC 一致：天数 = TheWorld.state.cycles；日期 = 本机时间 YYYY-MM-DD
 -- ================================================================
 local GIFT_ROW_W   = 780
 local GIFT_ROW_H   = 76
 local GIFT_ROW_GAP = 18
+
+-- 今天（本机时间）"YYYY-MM-DD" —— 字符串大小比较 == 时间先后（跨年也对）
+local function TodayStr()
+    local ok, s = pcall(os.date, "%Y-%m-%d")
+    return (ok and type(s) == "string") and s or nil
+end
+
+-- 这行现在该不该出现在礼包页
+local function GiftVisible(g)
+    if g.enabled == false then return false end
+    if g.kind == "festival" then
+        local today = TodayStr()
+        if today ~= nil then
+            if g.from ~= nil and today < g.from then return false end
+            if g.to   ~= nil and today > g.to   then return false end
+        end
+    end
+    return true
+end
+
+-- 游戏内天数（客户端直接读 world state 的同步值；拿不到当 0）
+local function CurrentCycles()
+    local st = TheWorld ~= nil and TheWorld.state or nil
+    return (st and st.cycles) or 0
+end
+
+-- 没到天数 → 返回锁态文字；能领 → nil
+local function GiftLockText(g)
+    if g.kind == "cycle" then
+        local need = g.day or 0
+        local cy = CurrentCycles()
+        if cy < need then
+            return string.format("第 %d 天可领（还差 %d 天）", need, need - cy)
+        end
+    end
+    return nil
+end
 
 function MushaPanelScreen:RefreshGift(md)
     if not self.gift_body then return end
     self.gift_body:KillAllChildren()
 
     local claimed = (md and md.gifts) or {}
-    local rows = {}
+    local rows, has_cycle = {}, false
     for _, g in ipairs(MUSHA_GIFTS or {}) do
-        if g.enabled ~= false then
+        if GiftVisible(g) then
             table.insert(rows, g)
+            if g.kind == "cycle" then has_cycle = true end
         end
     end
 
     if self.gift_hint then
         if #rows == 0 then
             self.gift_hint:SetString("当前没有可领取的礼包 · 节日活动期间会出现在这里")
+        elseif has_cycle then
+            self.gift_hint:SetString("按游戏内天数开放 · 每个只能领一次")
         else
             self.gift_hint:SetString("活动礼包 · 每个只能领一次")
         end
@@ -1769,17 +2016,28 @@ function MushaPanelScreen:RefreshGift(md)
         ds:SetHAlign(ANCHOR_LEFT)
         ds:SetPosition(-GIFT_ROW_W / 2 + 30 + TXT_W / 2, -18)
 
-        -- 状态 / 领取按钮
+        -- 状态 / 领取按钮（2026-09-14：多一档「没到时间」的锁态）
         if claimed[g.id] ~= nil then
             local done = row:AddChild(Text(UIFONT, 22))
             done:SetString("已领取")
             done:SetColour(0.52, 0.46, 0.38, 1)
             done:SetPosition(GIFT_ROW_W / 2 - 80, 0)
         else
-            local b = MakeTextButton(row, 120, 44, "领取", function()
-                SendClaimGift(g.id)
-            end)
-            b:SetPosition(GIFT_ROW_W / 2 - 80, 0)
+            local lock = GiftLockText(g)
+            if lock ~= nil then
+                -- 游戏时间礼包：没到天数 → 灰字，点不了
+                local lk = row:AddChild(Text(UIFONT, 20))
+                lk:SetString(lock)
+                lk:SetColour(0.58, 0.52, 0.44, 1)
+                lk:SetRegionSize(220, 26)
+                lk:SetHAlign(ANCHOR_MIDDLE)
+                lk:SetPosition(GIFT_ROW_W / 2 - 120, 0)
+            else
+                local b = MakeGiftButton(row, 120, 44, "领取", function()
+                    SendClaimGift(g.id)
+                end)
+                b:SetPosition(GIFT_ROW_W / 2 - 80, 0)
+            end
         end
     end
 end
@@ -1838,8 +2096,20 @@ function MushaPanelScreen:SetActivePage(name)
     elseif name == "equip" then
         self.default_focus = self.nav_triangle
         self:RefreshEquip(self:GetUserData())    -- 装备 · 属性页（2026-09-13 从"图鉴"改名拆出）
+    elseif name == "dex" then
+        self.default_focus = self.dex_list or self.nav_triangle
+        self:RefreshDex()                        -- 图鉴页（2026-09-16 起有内容，源 = scripts/musha_dex.lua）
     else
         self.default_focus = self.nav_triangle
+    end
+end
+
+-- ================================================================
+-- 图鉴页：内容源 = scripts/musha_dex.lua（静态表；以后要按收集进度动态显示，在这里改）
+-- ================================================================
+function MushaPanelScreen:RefreshDex()
+    if self.dex_list and MUSHA_DEX then
+        self.dex_list:SetItemsData(MUSHA_DEX)
     end
 end
 
