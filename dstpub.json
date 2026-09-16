@@ -6,6 +6,18 @@
     "character",
     "server_only_mod"
   ],
-  "ignore": [],
+  "ignore": [
+    ".mobius/",
+    ".git/",
+    "图片/",
+    "_bak_20260517/",
+    "_bak_20260910/",
+    "exported/",
+    "references/",
+    "front/",
+    "musha-log-2026-09.md",
+    "musha-current-state.md",
+    "musha-backlog.md"
+  ],
   "keep": []
 }
