@@ -18,18 +18,22 @@
 【用户要求】"打开祭坛发现里面的卷轴才能接任务，不是触碰祭坛那一下，多走一步，仪式感"
 - 新流程：右键祭坛（动作 **MUSHA_OPEN_ALTAR** "打开祭坛"）→ 打开**祭坛容器**（1 格）
   → 里面躺着 **转职卷轴 `musha_advance_scroll`** → 取出来 → 右键卷轴（**MUSHA_UNROLL_SCROLL** "展开卷轴"）→ 才接取本轮任务
-- 改动文件（6 个）：
-  · `modmain.lua` — 祭坛段重写：容器参数（抄原版 yots_lantern_post / `ui_chest_1x1`）、`OnAltarOpen`、
-    补卷 `RefillAltarScroll`（挂在 container.onopenfn）、`GLOBAL.MUSHA_AltarUseScroll`（跨文件接取入口）、PrefabFiles 加卷轴
-  · `scripts/prefabs/musha_advance_scroll.lua` — **新文件**（占位美术 = 原版莎草纸 papyrus 的贴图+图标）
-  · `scripts/actions/musha_actions.lua` — `MUSHA_QUEST_INTERACT` **改名 → `MUSHA_OPEN_ALTAR`**；新增 `MUSHA_UNROLL_SCROLL`
-  · `scripts/prefabs/musha_advance_altar.lua`、`scripts/components/musha_action.lua` — 注释同步
-  · `scripts/languages/{chinese,english}.lua` — 动作/名称/描述
+- ★ 架构（用户 2026-09-17 拍板"容器要按 Musha-beta 的写法、加在自身的建筑上"）：
+  · `scripts/musha_containers.lua` — 容器参数集中登记（照 beta 的 `main/05.Musha_Containers.lua`，本地留档 `references/musha_beta_containers.lua`）
+  · `scripts/prefabs/musha_advance_altar.lua` — **容器组件 + WidgetSetup + 开/关动作都在建筑自己身上**（照 beta 的 forge/arrowrest/icebox）
+  · `modmain.lua` 祭坛段只留"后厨"：`GLOBAL.MUSHA_AltarRefillScroll`（补卷）+ `GLOBAL.MUSHA_AltarUseScroll`（接取）
+- 改动文件：modmain.lua、scripts/musha_containers.lua（新）、scripts/prefabs/musha_advance_scroll.lua（新）、
+  scripts/prefabs/musha_advance_altar.lua、scripts/actions/musha_actions.lua、scripts/components/musha_action.lua、
+  scripts/languages/{chinese,english}.lua
+- 动作改名：`MUSHA_QUEST_INTERACT`("查看任务") → `MUSHA_OPEN_ALTAR`("打开祭坛")；新增 `MUSHA_UNROLL_SCROLL`("展开卷轴")
 - 补卷规则：空坛 + 该玩家【有基础职业 / 未进阶 / 身上没有没用掉的卷轴 / 当前没有在跑的转职任务】→ 补 1 卷（台词"祭坛深处…"）
 - ⚠️ 旧的"右键祭坛直接接任务"**已删除**（`OnAltarInteract` 整段没了）
-- ⚠️ 旧占位 `statuemaxwell`（麦斯威尔雕像）走**同一套**（本来就是所有雕像都被当祭坛，老存档兼容）
+- ⚠️ **旧占位兼容已删除**：以前所有 `statuemaxwell`(麦斯威尔雕像) 都被当祭坛（`AddPrefabPostInit` 外挂），
+  现在不挂了 —— 老存档里那座雕像就是普通雕像，重新造一座进阶祭坛即可
 - ⚠️ 卷轴**接取失败不消耗**（等级不够会说"需要 5 级才能接取转职任务"）
 - 待实测：①开坛有没有卷轴 ②拿卷轴→展开→任务进面板 ③第 2/3 轮再来还给不给 ④卷轴满地丢会不会重复给
+- ⚠️ 美术：卷轴目前 = **原版莎草纸 papyrus 占位**（贴图+图标）；用户 2026-09-17 提醒"职业书图标/美术也没更新"——
+  本次**一行美术都没改**（只动代码）。职业书美术现状：只有 warrior/mage/ranger/rogue 四本（png 5月、tex 9-04），**进阶职业（剑士/近卫…）的图标/职业书美术还没有**
 1. ✅ **【已完成 2026-09-14 19:55】月牙方向图（对称"光斩"版）已切上线**
    素材链：`exported/crescent_cyan/make_lightslash.py`（画**关于飞行轴严格对称**的光弧，上下不对称 0.00%）
    → `python exported/crescent_cyan/make_dirs.py crescent_light.png`（派生 8 方向 + scml）
@@ -503,11 +507,12 @@
 | 方向图生成（8 面 + 投影补偿） | 技能 `dst-modding` → `references/directional-art-projection-compensation.md` |
 
 ## ⏳ 待拍板
-- **祭坛改版三问**（2026-09-17）：
+- **祭坛改版待拍板**（2026-09-17）：
   · 卷轴美术 —— 现在占位=原版莎草纸；要不要出专属"转职卷轴"图标 + 世界贴图（我可程序化画，或写外包需求单）
-  · 旧占位 `statuemaxwell` 要不要顺手砍掉（现在**全世界所有麦斯威尔雕像**都会被当祭坛、都会给卷轴）
   · 等级不够时祭坛要不要**提前给**卷轴（现在给：接取时才提示"需要 5 级"；也可以改成不到 5 级坛里空空）
   · 要不要给"取出卷轴 / 展开卷轴"加音效或光效（要查原版音效路径，别瞎猜）
+  · ✅ 已定：旧占位 statuemaxwell 兼容**已删**（容器只加在祭坛自己的建筑上）
+  · ⚠️ 职业书美术缺进阶职业那一批（warrior/mage/ranger/rogue 才有）→ 近卫职业书要配套美术
 - 生命恢复 `hp_regen_mult` 现在 0 消费方：留 or 删
 - 设置页 6 行要不要居中/下移（给数字）
 - 上线前清理清单 —— 发布前逐条过（✅ 2026-09-16 核过一遍）：

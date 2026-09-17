@@ -3,10 +3,11 @@
 -- 作用：**装**转职任务的容器（3 轮，第 3 轮完成 → 进阶）
 -- 交互链（2026-09-17 改版）：
 --   右键 → MUSHA_OPEN_ALTAR（"打开祭坛"）→ musha_action:InteractScene
---        → modmain 的 OnAltarOpen → 打开本祭坛的【容器】（1 格）
+--        → 本文件里绑的 SetFn → 打开本祭坛的【容器】（1 格）
 --        → 里面躺着【转职卷轴 musha_advance_scroll】→ 取出 → 右键卷轴"展开" → 接取本轮任务
---   ⚠️ 容器本体（container 组件 + WidgetSetup + 补卷 onopenfn）挂在 **modmain 的 BindAltar** 里，
---      和旧占位 statuemaxwell 共用同一套（本文件只管实体外观 + 客户端要有的 tag/组件）
+--   ⚠️ 容器本体（container 组件 + WidgetSetup + 开/关动作）就写在本文件里（照 Musha-beta 的写法：
+--      musha_building_forge / arrowrest / icebox = 建筑自己带容器）；参数表在 scripts/musha_containers.lua，
+--      modmain 只提供补卷/接取两个 GLOBAL 函数（跨文件用）
 --
 -- ★★★ 模型开关（唯一需要动的地方）★★★
 --   贴图+scml 已经做好了，在 exported/musha_advance_altar/（打包步骤见那个目录的 README.txt）：
@@ -78,8 +79,38 @@ local function fn()
 
     -- ===== 服务端专用 =====
     inst:AddComponent("inspectable")
-    -- 注：动作回调（SetFn / SetCanUseCheck）在 modmain 的 AddPrefabPostInit 里绑定，
-    --     因为 OnAltarOpen / 补卷逻辑要用到 modmain 作用域的任务池 / 职业组件
+
+    -- ★ 容器（右键"打开祭坛"开的就是它）
+    --   参数在 scripts/musha_containers.lua；写法照 **Musha-beta**：
+    --   建筑自己的 prefab 里 AddComponent("container") + WidgetSetup(参数名)
+    inst:AddComponent("container")
+    inst.components.container:WidgetSetup("musha_advance_altar")
+    inst.components.container.onopenfn = function(altar, data)
+        -- ⚠️ onopenfn 第 2 个参数是 { doer = doer } 这张表，不是 doer 本人（原版 container.lua:659）
+        --    补卷逻辑在 modmain 的祭坛段（要查职业/任务状态），这里只负责转交
+        local refill = GLOBAL.MUSHA_AltarRefillScroll
+        if type(refill) == "function" then
+            refill(altar, data and data.doer or nil)
+        elseif not altar._warned_no_refill then
+            altar._warned_no_refill = true
+            print("[Musha ERROR] musha_advance_altar: 取不到 GLOBAL.MUSHA_AltarRefillScroll（modmain 祭坛段没跑？）")
+        end
+    end
+
+    -- 右键祭坛 = 开 / 关容器（动作 MUSHA_OPEN_ALTAR → musha_action:InteractScene → 这里）
+    inst.components.musha_action:SetFn(function(altar, doer)
+        if doer == nil or not doer:IsValid() then return end
+        local c = altar.components.container
+        if c == nil then return end
+        if c:IsOpenedBy(doer) then
+            c:Close(doer)
+        else
+            c:Open(doer)
+        end
+    end)
+    inst.components.musha_action:SetCanUseCheck(function(_, doer)
+        return doer ~= nil and doer:IsValid() and doer.components.musha_profession_component ~= nil
+    end)
 
     return inst
 end

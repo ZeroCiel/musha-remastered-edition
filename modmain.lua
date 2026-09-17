@@ -301,6 +301,14 @@ Safe("能量条挂载", function()
 end)
 
 -- =====================
+-- 容器参数登记（必须早于 RegisterPrefabs —— WidgetSetup 会来查 containers.params；双端都要有）
+--   写法照 Musha-beta main/05.Musha_Containers.lua（本地留了一份：references/musha_beta_containers.lua）
+-- =====================
+Safe("容器参数", function()
+    modimport "scripts/musha_containers"
+end)
+
+-- =====================
 -- 注册 Prefab
 -- =====================
 print("[Musha TRACE] 8 - PrefabFiles 前")
@@ -654,14 +662,16 @@ end)
 
 -- =====================
 -- 进阶祭坛（2026-09-08 占位 → 09-12 独立 prefab → 09-17 仪式化：打开祭坛取卷轴）
--- 实体：scripts/prefabs/musha_advance_altar.lua（模型已移植）；旧占位 statuemaxwell(麦斯威尔雕像) 同流程兼容老存档
+-- 实体 + 容器 + 开坛动作：scripts/prefabs/musha_advance_altar.lua（都在建筑自己身上）
+-- 容器参数表：scripts/musha_containers.lua（写法照 Musha-beta main/05.Musha_Containers.lua）
 --
 -- ★ 2026-09-17 交互链改版（用户要求"多走一步、仪式感"）：
 --   旧：右键祭坛 → 直接接取转职任务（一碰就到手）
---   新：右键祭坛 → 动作 MUSHA_OPEN_ALTAR（"打开祭坛"）→ musha_action:InteractScene → OnAltarOpen
+--   新：右键祭坛 → 动作 MUSHA_OPEN_ALTAR（"打开祭坛"）→ musha_action:InteractScene（祭坛 prefab 里绑的）
 --        → 打开【祭坛容器】（1 格）→ 里面躺着 1 卷【转职卷轴 musha_advance_scroll】
 --        → 玩家把卷轴拿出来 → 右键卷轴（MUSHA_UNROLL_SCROLL "展开卷轴"）→ 才接取本轮任务
---   容器补卷规则（onopenfn）：空坛 + 玩家【有基础职业 / 未进阶 / 身上没有没用掉的卷轴】→ 补 1 卷
+--   本段只留"后厨"：跨文件的补卷函数 / 接取函数（挂 GLOBAL，给 prefab 那边调）
+--   容器补卷规则：空坛 + 玩家【有基础职业 / 未进阶 / 身上没有没用掉的卷轴 / 无在跑任务】→ 补 1 卷
 -- =====================
 print("[Musha TRACE] 20.6 - 祭坛绑定前")
 Safe("祭坛占位", function()
@@ -672,31 +682,6 @@ Safe("祭坛占位", function()
         assassin = "moonshadow",
         rogue = "moonshadow",
     }
-
-    -- ---------------------------------------------------------------
-    -- 祭坛容器参数（2026-09-17 新增）
-    --   1 格、只收卷轴；外观抄原版 yots_lantern_post（ui_chest_1x1）
-    --   ⚠️ containers.params 必须在 prefab 构造前登记（WidgetSetup 要来查这张表），
-    --      而且**客户端也要有**（容器 widget 靠它画框和格子）→ 所以写在 modmain（双端都跑）
-    -- ---------------------------------------------------------------
-    local containers_lib = GLOBAL.require("containers")
-    containers_lib.params.musha_advance_altar = {
-        widget = {
-            slotpos = { GLOBAL.Vector3(0, 0, 0) },
-            animbank = "ui_chest_1x1",
-            animbuild = "ui_chest_1x1",
-            pos = GLOBAL.Vector3(0, 160, 0),
-            side_align_tip = 100,
-        },
-        acceptsstacks = false,
-        type = "chest",
-    }
-    function containers_lib.params.musha_advance_altar.itemtestfn(container, item, slot)
-        -- 祭坛只认卷轴（玩家塞不进别的东西）
-        return item:HasTag("musha_scroll") and not container.inst:HasTag("burnt")
-    end
-    containers_lib.MAXITEMSLOTS = math.max(containers_lib.MAXITEMSLOTS or 0, 1)
-    print("[Musha] 祭坛容器参数已登记: musha_advance_altar（1 格 / ui_chest_1x1）")
 
     -- 从任务池抽 count 个，跳过 heal_skill（技能系统暂 .bak 未启用）
     local function PickAdvanceQuests(pool_index, count)
@@ -790,17 +775,9 @@ Safe("祭坛占位", function()
         end
     end
 
-    -- 右键祭坛：开 / 关（容器本体在 BindAltar 里挂）
-    local function OnAltarOpen(inst, doer)
-        if doer == nil or not doer:IsValid() then return end
-        local c = inst.components and inst.components.container
-        if c == nil then return end
-        if c:IsOpenedBy(doer) then
-            c:Close(doer)
-        else
-            c:Open(doer)
-        end
-    end
+    -- ★ 开坛补卷入口（scripts/prefabs/musha_advance_altar.lua 里 container.onopenfn 调这个）
+    --   容器 + 开/关动作都在祭坛自己的 prefab 上（照 Musha-beta 的写法），这里只给它一个"后厨"函数
+    GLOBAL.MUSHA_AltarRefillScroll = RefillAltarScroll
 
     -- ★ 接取入口（scripts/prefabs/musha_advance_scroll.lua 的"展开卷轴"调这个）
     --   返回 true = 已接取（调用方消耗卷轴）；false = 不消耗（原因已由台词说明）
@@ -825,39 +802,13 @@ Safe("祭坛占位", function()
         return true
     end
 
-    -- 祭坛绑定（2026-09-12 起有独立 prefab 了）
-    --   musha_advance_altar = 新祭坛（真正的 prefab，见 scripts/prefabs/musha_advance_altar.lua）
-    --   statuemaxwell       = 旧占位（老存档里已经摆着的麦斯威尔雕像，继续兼容）
-    -- 注意：tag + 组件要在**客户端也加上**，否则客机右键不出 MUSHA_OPEN_ALTAR。
-    --       新 prefab 自己在 fn 里 pristine 之前加了；这里补 tag 只为旧占位 statuemaxwell。
-    local function BindAltar(inst)
-        if not inst:HasTag("musha_altar") then
-            inst:AddTag("musha_altar")
-        end
-        if not inst.components.musha_action then
-            inst:AddComponent("musha_action")
-        end
-        if not GLOBAL.TheWorld or not GLOBAL.TheWorld.ismastersim then
-            return
-        end
-        -- ★ 容器：右键"打开祭坛"= 开这个容器（1 格，只放卷轴）
-        --   容器只在服务端加（原版/参考 mod 都这么写：客户端靠 replica 自动获得）
-        if not inst.components.container then
-            inst:AddComponent("container")
-            inst.components.container:WidgetSetup("musha_advance_altar")
-            inst.components.container.onopenfn = function(altar, data)
-                RefillAltarScroll(altar, data and data.doer or nil)
-            end
-        end
-        inst.components.musha_action:SetFn(OnAltarOpen)
-        inst.components.musha_action:SetCanUseCheck(function(_, doer)
-            return doer and doer:IsValid() and doer.components.musha_profession_component ~= nil
-        end)
-    end
-
-    AddPrefabPostInit("musha_advance_altar", BindAltar)
-    AddPrefabPostInit("statuemaxwell", BindAltar)
-    print("[Musha] 祭坛已绑定: musha_advance_altar (新) + statuemaxwell (旧占位兼容) → 右键=打开祭坛取卷轴")
+    -- 祭坛的实体侧（tag / musha_action / container / 开坛动作）全部在 prefab 文件里：
+    --   scripts/prefabs/musha_advance_altar.lua
+    --   （2026-09-17 用户拍板：容器组件加在"自身的建筑"上，不再由 modmain 的 AddPrefabPostInit 外挂）
+    --   参数表在 scripts/musha_containers.lua（写法照 Musha-beta main/05.Musha_Containers.lua）
+    --
+    -- ⚠️ 旧占位兼容（statuemaxwell 麦斯威尔雕像当祭坛）**已删除**：
+    --    容器不能挂在别人家建筑上；老存档里那座雕像现在就是普通雕像，重新打造一座进阶祭坛即可。
 end)
 print("[Musha TRACE] 20.7 - 祭坛占位后")
 
