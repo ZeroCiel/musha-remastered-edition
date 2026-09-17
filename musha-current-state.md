@@ -336,3 +336,16 @@
   + 72² 地上贴图/scml `exported/musha_advance_scroll/`。
   prefab 侧已接（asset_exists 自检，没打包就退回原版莎草纸）→ 等打包 tex/xml + anim zip。
 - 📌 用户口径：「**任务卷轴 / 技能卷轴 这两个是"通用"道具**」→（不绑职业、不属于某个进阶职业专属）。
+### ★★ 2026-09-18 00:40（发布准备，0.7.9）
+- ✅ **版本号 = 0.7.9**（用户定）：`modinfo.lua` 的 version + name、`musha_changelog.lua`、
+  面板内联兜底（`musha_panel_screen.lua:111` 起）**四处统一**
+  · 更新日志 0.7.9 条目 5 行：祭坛改版 / 二转赠礼技能书 + 通用技能卷轴 / 新美术三件 / 生命树枝修复 / 崩溃与提示修复
+- ✅ **上线前清理**：测试用剑士转职书下架（PrefabFiles 移除 + prefab 改名
+  `musha_jobbook_saber.lua._bak_上线前下架_20260917` + 中英 STRINGS 注释）；
+  modmain **33 处 [Musha TRACE] 改走 `MUSHA_TRACE` 开关**（默认 false；定位闪退改 true）
+- 🐛 **发布级隐患已修**：`musha_skillbook_saber.lua` 的兜底包 `anim/musha_skillbook.zip` **根本不存在**
+  （老技能书只有图标、没世界贴图）→ 无条件登记会让**整个 mod 被禁**；已改成先探再登记
+- ⏳ **剑气斩**：用户说"再测试一下" → **保持引擎挑面版（USE_ENGINE_FACING = true）不动**，
+  等他实测结论；要切回点名播必须**同时**换 zip（`_bak_scml_点名声_20260917.scml` 重编）
+- 素材：5 个新道具的图标（png+tex+xml）与 anim zip 都已由用户打包到位；语法校验 54 文件全过
+- 剩：祭坛配方图标仍是 musha_note 占位（美术跳过）；上传工坊由用户操作（ModUploader / dst_mod_publisher）
