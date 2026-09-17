@@ -1,7 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spriter_data scml_version="1.0" generator="BrashMonkey Spriter" generator_version="r7">
+    <!-- ============================================================
+         生命树枝：**合并版**（2026-09-17 用户选 4A：地上 idle + 手上 swap 合成一个 zip/bank）
+           · bank/build 名 = musha_lifebranch（= 文件名，代码 SetBuild 不变）
+           · 两个 symbol：
+               idle             → musha_lifebranch-0.png  （物品自体：掉地上/背包里）
+               swap_lifebranch  → swap_lifebranch/swap_lifebranch-*.png（拿在手里：OverrideSymbol 第三参）
+           · 编译：scml.exe musha_lifebranch.scml .  → anim/musha_lifebranch.zip（覆盖旧的）
+             ⚠️ 旧的 anim/swap_lifebranch.zip 之后就不需要了（代码改成从本包取 symbol）
+           · 手上那张的 pivot / 位移沿用 2026-09-17 那版 swap_lifebranch.scml（0.561562/0.528529 + x63/y29）
+             —— 要调"树枝在手里的位置/角度"就改这里（用户自己修）
+         ============================================================ -->
     <folder id="0" name="musha_lifebranch">
         <file id="0" name="musha_lifebranch-0.png" width="256" height="256" pivot_x="0.5" pivot_y="0.5"/>
+    </folder>
+    <folder id="1" name="swap_lifebranch">
+        <!-- ⚠️ 2026-09-17：目录里**只有 swap_lifebranch-0.png**（-1/-2 从来没生成过；
+             根目录那份 swap_lifebranch.png 与它字节完全相同）。原来写的 file id=1/2 是空引用，
+             编译时会被忽略，但留着容易误导 → 只保留 0 这一条。 -->
+        <file id="0" name="swap_lifebranch/swap_lifebranch-0.png" width="1024" height="1024" pivot_x="0.561562" pivot_y="0.528529"/>
     </folder>
     <entity id="0" name="musha_lifebranch">
         <animation id="0" name="idle" length="1000" interval="100">
@@ -13,6 +30,24 @@
             <timeline id="0" name="idle">
                 <key id="0" spin="0">
                     <object folder="0" file="0" x="0" y="0"/>
+                </key>
+            </timeline>
+        </animation>
+        <animation id="1" name="BUILD" length="1000" interval="100">
+            <mainline>
+                <key id="0">
+                    <object_ref id="0" timeline="0" key="0" z_index="0"/>
+                </key>
+            </mainline>
+            <timeline id="0" name="swap_lifebranch">
+                <key id="0" spin="0">
+                    <!-- ★ 2026-09-17 用户实测「能看到了 但太大」→ 加缩放。
+                         实测：这张图里树枝本体 372x380 px（≈3.8 世界单位），比原版矛(1.6)大一圈半。
+                         scale 0.45 → ≈1.7 单位（跟矛差不多）。
+                         （世界单位≈贴图像素/100，本项目实测口径）
+                         ⚠️ 缩放是**绕着 pivot** 缩的 → 握把仍钉在手心，位移 x/y 不用跟着改。
+                         还想更大/更小只改这两个数（0.6 = 大一圈，0.35 = 再小一档），重编即可。 -->
+                    <object folder="1" file="0" x="63.039488" y="29.213696" angle="0" scale_x="0.45" scale_y="0.45"/>
                 </key>
             </timeline>
         </animation>

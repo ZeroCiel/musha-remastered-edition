@@ -6,6 +6,7 @@ local S = GLOBAL.STRINGS
 S.NAMES.MUSHA_SWORD = "Sword"
 S.NAMES.MUSHA_LIFEBRANCH = "Life Branch"
 S.NAMES.MUSHA_SKILLBOOK = "Skill Book"
+S.NAMES.MUSHA_SKILL_SCROLL = "Skill Scroll"
 S.NAMES.MUSHA_NOTE = "Note"
 S.NAMES.MUSHA_JOBBOOK = "Job Tome"
 S.NAMES.MUSHA_JOBBOOK_WARRIOR = "Job Tome (Warrior)"
@@ -40,6 +41,7 @@ S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_SKILLBOOK_MOONSHADOW = "Contains basic skill
 S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_SWORD = "A heavy job sword emitting a faint cold gleam."
 S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_LIFEBRANCH = "A branch that is still alive. Warm in the hand, as if it were budding."
 S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_SKILLBOOK = "A yellowed book recording your job skills."
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_SKILL_SCROLL = "A scroll of common combat techniques. Unroll it to learn the skill within."
 S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_REST_ITEM = "Right-click to toggle resting state."
 
 -- Character selection screen

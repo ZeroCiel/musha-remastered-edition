@@ -25,7 +25,19 @@ local function asset_exists(path)
 end
 
 local HAS_ITEM_ART = asset_exists("anim/musha_lifebranch.zip")
-local HAS_SWAP_ART = asset_exists("anim/swap_lifebranch.zip")
+-- ★★ 2026-09-17 用户选「4A」：地上(idle) + 手上(swap_lifebranch) **合并进同一个 zip/bank**
+--   合并包 = anim/musha_lifebranch.zip（bank/build = musha_lifebranch，内含 2 个 symbol）
+--   工程在 exported/musha_lifebranch/musha_lifebranch.scml（合并版；旧的世界单帧版备份成
+--   musha_lifebranch.scml.bak_世界单帧_20260917）→ 用 Mod Tool / scml.exe 编译覆盖 anim/musha_lifebranch.zip
+--   ⚠️ 合并包一导好，手上就从这个 build 取 symbol（旧的 anim/swap_lifebranch.zip 不再需要）
+--   想回退成"手上用单独的 swap_lifebranch.zip"：把下面这行改成 false
+local LIFE_ART_MERGED = true
+local HAS_SWAP_ART
+if LIFE_ART_MERGED then
+    HAS_SWAP_ART = HAS_ITEM_ART                                   -- 合并包：symbol 就在同一个包里
+else
+    HAS_SWAP_ART = asset_exists("anim/swap_lifebranch.zip")
+end
 local HAS_ICON     = asset_exists("images/inventoryimages/musha_lifebranch.xml")
                      and asset_exists("images/inventoryimages/musha_lifebranch.tex")
 
@@ -77,7 +89,10 @@ end
 
 local assets = {}
 if HAS_ITEM_ART then table.insert(assets, Asset("ANIM", "anim/musha_lifebranch.zip")) end
-if HAS_SWAP_ART then table.insert(assets, Asset("ANIM", "anim/swap_lifebranch.zip")) end
+-- 合并模式不再单独加载 swap 包（symbol 已在上面那个 zip 里）
+if (not LIFE_ART_MERGED) and HAS_SWAP_ART then
+    table.insert(assets, Asset("ANIM", "anim/swap_lifebranch.zip"))
+end
 if HAS_ICON then
     table.insert(assets, Asset("ATLAS", "images/inventoryimages/musha_lifebranch.xml"))
     table.insert(assets, Asset("IMAGE", "images/inventoryimages/musha_lifebranch.tex"))
@@ -88,7 +103,12 @@ end
 --   第三参数 = 该 build 里的 sprite 名（= swap_lifebranch.png 去扩展名）
 local function on_equip(inst, owner)
     if HAS_SWAP_ART then
-        owner.AnimState:OverrideSymbol("swap_object", "swap_lifebranch", "swap_lifebranch")
+        if LIFE_ART_MERGED then
+            -- ★ 2026-09-17 合并包：build 名 = musha_lifebranch（不再是单独的 swap_lifebranch 包）
+            owner.AnimState:OverrideSymbol("swap_object", "musha_lifebranch", "swap_lifebranch")
+        else
+            owner.AnimState:OverrideSymbol("swap_object", "swap_lifebranch", "swap_lifebranch")
+        end
     end
     owner.AnimState:Show("ARM_carry")
     owner.AnimState:Hide("ARM_normal")

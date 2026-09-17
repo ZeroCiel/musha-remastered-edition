@@ -86,7 +86,9 @@ local SETTINGS_UI = {
     { scope = "world",  key = "monster_spawn_mult",    label = "生成倍率",   kind = "choice", default = 1, choices = { 0, 0.5, 1, 2, 3 } },
     { scope = "world",  key = "daily_quest_count",     label = "每日任务数", kind = "number", default = 4, min = 1, max = 10, step = 1 },
     { scope = "world",  key = "exp_mult",              label = "经验倍率",   kind = "choice", default = 1, choices = { 0.5, 1, 2, 3 } },
-    { scope = "player", key = "hp_regen_mult",         label = "生命恢复",   kind = "choice", default = 1, choices = { 0.5, 1, 2, 5 } },
+    -- 生命恢复 hp_regen_mult 已于 2026-09-17 删除（用户：「移除生命恢复」）
+    --   原因同 mp_regen_mult：全项目 0 个消费方（class_traits.health_regen 没接过它），纯空转
+    --   旧存档里存过的这个键由 OnLoad 按 SPEC 过滤自动丢弃，不会报错
     -- 能量恢复 mp_regen_mult 已于 2026-09-12 删除（用户：没有开放能量恢复的设定就删除）
     --   原因：MP/能量系统整体不存在（全项目无 MP 组件/字段），该设置是纯空转
     { scope = "player", key = "show_debug",            label = "调试信息",   kind = "bool",   default = false },
@@ -290,6 +292,26 @@ local function MakeGiftButton(parent, w, h, str, onclick)
     b:SetOnLoseFocus(function() b:SetScale(1, 1, 1) end)
 
     if onclick then b:SetOnClick(onclick) end
+    return b
+end
+
+-- ★ 2026-09-17 技能书锁（用户）：技能书解锁技在 0 级时不显示加号，改显示这把小锁；
+--   鼠标悬停 → 提示"需要 N 本技能书才能解锁"（给新手建立认知）。贴图用**官方技能树的挂锁**，不新增素材。
+local function MakeLockButton(parent, size, x, y, tipfn)
+    local b = parent:AddChild(ImageButton("images/skilltree.xml", "locked.tex"))
+    b:SetSize(size, size)
+    b:SetPosition(x, y)
+    b.scale_on_focus = false                       -- 别吃 ImageButton 默认的 focus 放大（会爆框）
+    b:SetImageNormalColour(0.58, 0.52, 0.44, 0.95)
+    b:SetImageFocusColour(0.92, 0.82, 0.56, 1)
+    b:SetOnGainFocus(function()
+        b:SetScale(1.14, 1.14, 1)
+        if tipfn then tipfn(true) end
+    end)
+    b:SetOnLoseFocus(function()
+        b:SetScale(1, 1, 1)
+        if tipfn then tipfn(false) end
+    end)
     return b
 end
 
@@ -825,7 +847,13 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             row.t_l3_tip = SkillText(row, 18, -58, "", 0.52, 0.46, 0.38)
             row.t_l3_next = SkillText(row, 22, -58, "", 0.52, 0.30, 0.36)
 
+            -- ★ 2026-09-17 技能书锁的悬停提示（默认隐藏，鼠标移到锁上才显示）
+            row.t_lock_tip = SkillText(row, 20, -58, "", 0.62, 0.28, 0.24)
+            row.t_lock_tip:Hide()
+
             row.btn = nil          -- 加点按钮：apply_fn 里按数据新建
+            row.btn_lock_w = nil   -- 技能书锁图标：apply_fn 里按数据新建
+            row.btn_lock = false   -- 当前行是不是"锁"状态（供 diff 判断）
             return row
         end
 
@@ -856,7 +884,12 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                 if (data.req or 0) > 0 then
                     table.insert(parts, string.format("需要 Lv.%d", data.req))
                 end
-                table.insert(parts, string.format("消耗 %d 技能点", data.cost or 1))
+                if (data.book_lock or 0) > 0 then
+                    -- ★ 2026-09-17 技能书锁：这条不能用技能点买，要书
+                    table.insert(parts, string.format("需要 %d 本技能书解锁", data.book_lock))
+                else
+                    table.insert(parts, string.format("消耗 %d 技能点", data.cost or 1))
+                end
                 row.t_l1:SetString(tag .. table.concat(parts, "　·　"))
                 row.t_l1:SetColour(0.40, 0.34, 0.26, 1)
                 row.t_l2:SetString("学完后：" .. (data.nextfx or ""))
@@ -877,18 +910,36 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             end
 
             -- 加点按钮（2026-09-13 用户：不能加点 = 灰加号；已满级 = 直接隐藏加号）
-            local can_add = (data.can == true) and not data.maxed
+            -- ★ 2026-09-17 技能书锁：0 级的"技能书解锁技"不画加号，改画小锁（悬停出提示）
+            local book_lock = ((data.book_lock or 0) > 0)
+            local can_add = (data.can == true) and not data.maxed and not book_lock
             local maxed   = (data.maxed == true)
-            if row.btn_skill ~= data.id or row.btn_can ~= can_add or row.btn_maxed ~= maxed then
+            if row.btn_skill ~= data.id or row.btn_can ~= can_add or row.btn_maxed ~= maxed
+                or row.btn_lock ~= book_lock then
                 if row.btn then row.btn:Kill(); row.btn = nil end
+                if row.btn_lock_w then row.btn_lock_w:Kill(); row.btn_lock_w = nil end
                 if not maxed then
-                    local sid = data.id
-                    row.btn = MakePlusButton(row, SKILL_BTN, can_add, function() SendSkillUpgrade(sid) end)
-                    row.btn:SetPosition(SKILL_ROW_W / 2 - 56, -6)
+                    if book_lock then
+                        local needn = data.book_lock
+                        row.btn_lock_w = MakeLockButton(row, SKILL_BTN, SKILL_ROW_W / 2 - 56, -6,
+                            function(over)
+                                if over then
+                                    row.t_lock_tip:SetString(string.format("需要 %d 本技能书才能解锁", needn))
+                                    row.t_lock_tip:Show()
+                                else
+                                    row.t_lock_tip:Hide()
+                                end
+                            end)
+                    else
+                        local sid = data.id
+                        row.btn = MakePlusButton(row, SKILL_BTN, can_add, function() SendSkillUpgrade(sid) end)
+                        row.btn:SetPosition(SKILL_ROW_W / 2 - 56, -6)
+                    end
                 end
                 row.btn_skill = data.id
                 row.btn_can   = can_add
                 row.btn_maxed = maxed
+                row.btn_lock  = book_lock
             end
         end
 

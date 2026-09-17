@@ -745,11 +745,20 @@ function Musha_Profession_Component:SetCarrerBase(carrer)
     return true
 end
 
+-- ★ 2026-09-17 用户：「剑士的剑气斩改为技能书解锁，但二转后赠送（唯一例外）——其实是将 0 级设置为 1 级」
+--   → 下表 = 各职业"可由技能书解锁"的主动技能；二转时把该技能 0 级直接置 1 级（省去第 1 级加点）
+local BOOK_UNLOCK_SKILL = {
+    saber = "slash_qi",     -- 剑气斩
+}
+
 function Musha_Profession_Component:SetCarrerSpecial(carrer)
     if not carrer or carrer == "" then
         return false
     end
     self.userdata.carrer_special = carrer
+    -- ★ 2026-09-17 二转赠礼：改成一卷【技能卷轴】（右键展开 → 解锁本职业专属技能 Lv1）
+    --   （原来这里直接调 GrantSkillLevel1 把 0 级置 1 级；要回去把 ADVANCE_GIFT_IS_SCROLL 改 false）
+    self:GrantAdvanceGift(carrer)
     self:ApplyProfessionData()  -- 应用新职业的效果
     self:PushSettings()         -- 技能页要换树（2026-09-12）
     return true
@@ -979,7 +988,7 @@ local SKILL_UI = {
         slash_qi      = {
             name = "剑气斩",
             fmt  = function(v) return string.format("挥出月牙剑气，命中造成 100%% / 130%% / 160%% 武器伤害 · 每次消耗 %d 点能量", v) end,
-            tip  = "3 级可学 · 3 / 7 / 12 级逐级加点（伤害 100→130→160%，耗能量 18→16→14）· 装剑后右键释放",
+            tip  = "解锁：二转赠送 Lv1（=技能书解锁，不花技能点）· Lv2/Lv3 在 7 / 12 级加点（伤害 100→130→160%，耗能量 18→16→14）· 装剑后右键释放",
         },
         -- ★ 2026-09-12 新增（用户）：剑士专属，血量 ≤50% 被动自动回满 / 冷却 80 秒 / 7 级 / 3 技能点
         last_stand    = {
@@ -996,6 +1005,109 @@ local SKILL_UI = {
         backstab = { name = "背刺", fmt = function(v) return string.format("背刺造成 %.0f 倍伤害", v) end },
     },
 }
+
+-- ====== 技能解锁（2026-09-17：技能书 / 二转赠送） ======
+
+-- 把某个技能从 0 级免费提到 1 级（返回 true = 这次真的提上去了）
+--   ★ 用户："省去1级加点，其实是将0级设置为1级"
+function Musha_Profession_Component:GrantSkillLevel1(tree, skill_id)
+    local t = self[tree]
+    if not t or not t[skill_id] then
+        return false
+    end
+    if (t[skill_id].current_level or 0) >= 1 then
+        return false
+    end
+    t[skill_id].current_level = 1
+    local nm = (SKILL_UI[tree] and SKILL_UI[tree][skill_id] and SKILL_UI[tree][skill_id].name) or skill_id
+    if self.inst.components.talker then
+        self.inst.components.talker:Say(string.format("技能解锁：%s Lv1", nm), 3)
+    end
+    print(string.format("[Musha] %s 免费解锁技能 %s → Lv1（技能书/二转赠送）", tostring(self.inst.prefab), tostring(skill_id)))
+    return true
+end
+
+-- 技能书解锁入口（通用技能书右键使用 → 解锁本职业的"技能书解锁技"）
+--   返回：ok(是否解锁成功), why("unlocked" 成功 / "already" 已解锁过 / "noskill" 本职业没这类技能)
+function Musha_Profession_Component:UnlockSkillByBook()
+    local spec = self.userdata.carrer_special
+    if not spec or spec == "" then
+        return false, "noskill"
+    end
+    local skill_id = BOOK_UNLOCK_SKILL[spec]
+    if not skill_id then
+        return false, "noskill"
+    end
+    if self:GrantSkillLevel1(spec, skill_id) then
+        return true, "unlocked"
+    end
+    return false, "already"
+end
+
+-- ====== 二转赠礼（2026-09-17 用户：「A 我指的是剑气斩，二转完成应该给一本属于剑气斩的技能树」）======
+--   默认 = 发**本职业的职业技能书**（剑士 = 剑士技能书，属于剑气斩那棵技能树；右键使用 → 解锁剑气斩 Lv1）
+--   美术：ChatGPT 那张三本书里中间那本（SWORDSMAN）→ exported/musha_skillbook_saber/
+--   物品本体：scripts/prefabs/musha_skillbook_saber.lua（tag=musha_panel → 右键"打开面板"那套动作）
+--   其它两种模式（回退用）：
+--     "scroll" = 通用技能卷轴（可制作/可掉落那件，scripts/prefabs/musha_skill_scroll.lua）
+--     "level"  = 旧行为（直接 0→1 级，不送东西，用 GrantSkillLevel1）
+local ADVANCE_GIFT_MODE = "career_book"
+
+-- 各进阶职业对应的"职业技能书"（没进表的职业 → 退回通用技能卷轴）
+local CAREER_BOOK = {
+    saber = "musha_skillbook_saber",
+}
+
+function Musha_Profession_Component:GiveCareerBook(career)
+    local prefab = CAREER_BOOK[career]
+    if prefab == nil then return false end
+    local inv = self.inst.components.inventory
+    if inv == nil then return false end
+    local book = SpawnPrefab(prefab)
+    if book == nil then return false end
+    inv:GiveItem(book)
+    return true
+end
+
+function Musha_Profession_Component:GiveSkillScroll()
+    local inv = self.inst.components.inventory
+    if inv == nil then return false end
+    local scroll = SpawnPrefab("musha_skill_scroll")
+    if scroll == nil then return false end
+    -- ★★ 2026-09-17 修崩：`GiveItem(item, slot, ...)` 的**第 2 个参数是槽位号(number)**，不是 bool！
+    --   我原来传了 `true` → inventory.lua:1088 `if slot > 0` 直接崩
+    --   "attempt to compare boolean with number"（用户实测崩在就职仪式那一刻）
+    inv:GiveItem(scroll)
+    return true
+end
+
+-- 二转赠礼统一入口（返回 true = 这次真的给了东西：发了书/卷轴 或 直接加了等级）
+function Musha_Profession_Component:GrantAdvanceGift(career)
+    local free_skill = BOOK_UNLOCK_SKILL[career]
+    if not free_skill then return false end
+    if ADVANCE_GIFT_MODE == "level" then
+        return self:GrantSkillLevel1(career, free_skill)
+    end
+    if ADVANCE_GIFT_MODE == "scroll" then
+        local ok = self:GiveSkillScroll()
+        if ok and self.inst.components.talker then
+            self.inst.components.talker:Say("祭坛给了你一卷技能卷轴——展开它。", 5)
+        end
+        return ok
+    end
+    -- 默认：本职业的职业技能书；没有专属书 → 退回卷轴
+    if self:GiveCareerBook(career) then
+        if self.inst.components.talker then
+            self.inst.components.talker:Say("祭坛给了你一本属于你的技能书——去翻开它。", 5)
+        end
+        return true
+    end
+    local ok = self:GiveSkillScroll()
+    if ok and self.inst.components.talker then
+        self.inst.components.talker:Say("祭坛给了你一卷技能卷轴——展开它。", 5)
+    end
+    return ok
+end
 
 -- 组装"当前职业技能页"的数据（给客户端面板用）
 --   ★ 2026-09-12 改：原来只读 carrer_base 那一棵树 → 二转后技能页还是显示基础职业的技能；
@@ -1038,6 +1150,10 @@ function Musha_Profession_Component:GetSkillView()
                         cost = skill.skill_point_cost[nxt]
                     end
 
+                    -- ★ 2026-09-17 技能书锁（用户）：本职业"技能书解锁技"（剑士=剑气斩）在 0 级时**不能**用技能点买，
+                    --   要 1 本技能书解锁 → 面板上画小锁 + 悬停显示"需要 1 本技能书才能解锁"
+                    local book_need = (BOOK_UNLOCK_SKILL[tree] == key and cur == 0) and 1 or 0
+
                     local entry = {
                         id     = tree .. "_" .. key,
                         tree   = tree,
@@ -1055,8 +1171,9 @@ function Musha_Profession_Component:GetSkillView()
                         lv     = self.userdata.level or 0,
                         effect = (d and d.fmt) and d.fmt(skill.level_effects and skill.level_effects[cur] or 0) or "",
                         nextfx = (d and d.fmt) and d.fmt(skill.level_effects and skill.level_effects[nxt] or 0) or "",
+                        book_lock = book_need,     -- >0 = 需要这么多本技能书才能解锁（客户端画锁 + 提示）
                     }
-                    entry.can = (not entry.maxed) and entry.points >= entry.cost and entry.lv >= entry.req
+                    entry.can = (book_need == 0) and (not entry.maxed) and entry.points >= entry.cost and entry.lv >= entry.req
                     table.insert(out, entry)
                 end
             end
@@ -1235,10 +1352,15 @@ end
 
 function Musha_Profession_Component:CompleteAdvance()
     if not self.userdata.current_advance_target then return end
-    self.userdata.carrer_special = self.userdata.current_advance_target
+    local target = self.userdata.current_advance_target
+    self.userdata.carrer_special = target
     self.userdata.has_advanced = true
+    -- ★ 2026-09-17 二转赠送（用户："剑士的剑气斩改为技能书解锁，但二转后赠送"）
+    --   ⚠️ 这里必须显式送：祭坛二转走的是本函数，直接给 carrer_special 赋值、不经过 SetCarrerSpecial
+    -- ★ 2026-09-17 改：赠礼 = 技能卷轴（同上，走统一入口）
+    self:GrantAdvanceGift(target)
     self.userdata.quests_for_advance = {}
-    self.userdata.quests_for_advance_done = {}
+
     self.userdata.current_advance_target = nil
 
     -- ❌ 2026-09-14 用户：「不需要再二转之后再发一本技能面板的书」→ 删掉发书

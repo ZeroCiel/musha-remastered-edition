@@ -397,6 +397,11 @@ function MUSHA_QUEST:AcceptAdvanceQuest(target_job)
         return false, string.format("需要 %d 级才能接取转职任务（当前 %d 级）", ADVANCE_MIN_LEVEL, lv)
     end
 
+    -- ★ 就职仪式待办中不再接新任务（先回祭坛把仪式做完）
+    if self.advance_ceremony_pending then
+        return false, "先回进阶祭坛完成就职仪式"
+    end
+
     if self.advance_quest and not self.advance_quest.done then
         return false, "已有进行中的转职任务"
     end
@@ -426,12 +431,27 @@ function MUSHA_QUEST:AcceptAdvanceQuest(target_job)
     return true
 end
 
--- 转职任务完成 → 推进轮次；第 3 轮完成 → 进阶
+-- ★★ 2026-09-17 就职仪式开关（用户拍板；对应设定文档「回到建筑进行最终交互，完成就职仪式」）
+--   true  = 第 3 轮任务完成后**不立刻进阶**，要回祭坛做「就职仪式」（祭坛右键，见 musha_advance_altar.lua）
+--   false = 旧行为：第 3 轮完成即自动进阶
+local CEREMONY_ON_FINAL_ROUND = true
+
+-- 转职任务完成 → 推进轮次；第 3 轮完成 → 回祭坛做就职仪式 → 进阶
 function MUSHA_QUEST:CompleteAdvanceQuest()
     if not self.advance_quest then return end
     self.advance_quest = nil
 
     if self.advance_round >= 3 then
+        -- ★ 仪式待办：只挂标记，真正进阶在 DoAdvanceCeremony()
+        --   ⚠️ advance_target 必须留着 —— 仪式那一刻才知道要转成什么职业
+        if CEREMONY_ON_FINAL_ROUND then
+            self.advance_ceremony_pending = true
+            if self.inst.components.talker then
+                self.inst.components.talker:Say("第 3 轮考验完成！回到进阶祭坛，完成就职仪式。", 6)
+            end
+            self:SyncToPanel()
+            return
+        end
         -- 进阶完成
         local pc = self.inst.components.musha_profession_component
         if pc then
@@ -442,6 +462,10 @@ function MUSHA_QUEST:CompleteAdvanceQuest()
             pcall(function() pc:ApplyProfessionData() end)
             -- ★ 2026-09-14 用户：「二转不该再给技能面板」→ 这里不再发 musha_skillbook
             --   （技能书 = 技能面板，只在一转时给一本，见 scripts/prefabs/musha_jobbook_warrior.lua）
+            -- ★ 2026-09-17 改：二转赠礼 = 一卷【技能卷轴】（右键展开 → 解锁本职业专属技能）
+            if pc.GrantAdvanceGift then
+                pcall(function() pc:GrantAdvanceGift(self.advance_target) end)
+            end
             if self.inst.components.talker then
                 self.inst.components.talker:Say("一转进阶完成！当前职业：" .. tostring(self.advance_target), 5)
             end
@@ -457,9 +481,55 @@ function MUSHA_QUEST:CompleteAdvanceQuest()
     self:SyncToPanel()
 end
 
+-- 就职仪式是否待办（第 3 轮任务已完成、等玩家回祭坛）
+function MUSHA_QUEST:IsCeremonyPending()
+    return self.advance_ceremony_pending == true
+end
+
+-- 回祭坛完成【就职仪式】：真正把进阶职业落下去 + 发二转赠礼（技能卷轴）
+--   由 scripts/prefabs/musha_advance_altar.lua 的右键（MUSHA_OPEN_ALTAR）调
+--   返回 true = 这次完成了仪式（祭坛那边就不再开容器）
+function MUSHA_QUEST:DoAdvanceCeremony(doer)
+    if not self.advance_ceremony_pending then return false end
+    local pc = self.inst.components.musha_profession_component
+    if pc == nil then return false end
+
+    local target = self.advance_target
+    pc.userdata.carrer_special = target
+    pc.userdata.has_advanced = true
+    pc.userdata.advance_round = nil
+    pcall(function() pc:ApplyProfessionData() end)
+
+    -- 二转赠礼（用户 2026-09-17：「转职之后给技能卷轴」）—— 0 级不直接加，改成发一卷
+    --   展开后由 pc:UnlockSkillByBook() 解锁（剑士 = 剑气斩 Lv1）
+    --   ⚠️ 必须 pcall：赠礼这一步出任何错都不该把"仪式待办"卡住（否则每次右键祭坛都崩同一个地方）
+    local gave = false
+    if pc.GrantAdvanceGift then
+        local ok, ret = pcall(pc.GrantAdvanceGift, pc, target)
+        if not ok then
+            print("[Musha ERROR] 就职仪式赠礼失败（已跳过，仪式照常完成）：" .. tostring(ret))
+        else
+            gave = ret and true or false
+        end
+    end
+
+    self.advance_ceremony_pending = nil
+    self.advance_round = 1
+    self.advance_target = nil
+
+    if self.inst.components.talker then
+        self.inst.components.talker:Say("就职仪式完成！当前职业：" .. tostring(target), 6)
+    end
+    self:SyncToPanel()
+    print(string.format("[Musha] %s 完成就职仪式 → %s（赠礼技能卷轴=%s）",
+        tostring(self.inst and self.inst.prefab), tostring(target), gave and "yes" or "no"))
+    return true
+end
+
 -- 放弃转职任务（重置轮次）
 function MUSHA_QUEST:AbortAdvanceQuest()
     self.advance_quest = nil
+    self.advance_ceremony_pending = nil
     self.advance_round = 1
     self.advance_target = nil
     self:SyncToPanel()
@@ -758,7 +828,18 @@ function MUSHA_QUEST:SyncToPanel()
         })
     end
 
-    if self.advance_quest then
+    if self.advance_ceremony_pending then
+        -- ★ 2026-09-17：第 3 轮任务已完成、等回祭坛做就职仪式 —— 这时 advance_quest 是 nil，
+        --   面板上会"什么都没了"（用户报「做完没反应」）。塞一行**假任务**当提示，
+        --   让玩家一眼看到"回祭坛完成就职仪式"（画 ✓，不是可推进的任务）。
+        pc.userdata.advance_quest = {
+            id = "ceremony",
+            n = "就职仪式：回祭坛右键完成",
+            p = 1,
+            t = 1,
+            done = true,
+        }
+    elseif self.advance_quest then
         pc.userdata.advance_quest = {
             id = self.advance_quest.quest_id,
             n = self.advance_quest.name,
@@ -817,6 +898,7 @@ function MUSHA_QUEST:OnSave()
     data.advance_quest = self.advance_quest
     data.advance_round = self.advance_round
     data.advance_target = self.advance_target
+    data.advance_ceremony_pending = self.advance_ceremony_pending
     return data
 end
 
@@ -826,6 +908,7 @@ function MUSHA_QUEST:OnLoad(data)
         self.advance_quest = data.advance_quest or nil
         self.advance_round = data.advance_round or 1
         self.advance_target = data.advance_target or nil
+        self.advance_ceremony_pending = data.advance_ceremony_pending or nil
     end
 
     -- 空则补发（首日/旧档无任务数据时）

@@ -312,7 +312,7 @@ end)
 -- 注册 Prefab
 -- =====================
 print("[Musha TRACE] 8 - PrefabFiles 前")
-PrefabFiles = {"musha_jobbook_warrior", "musha_jobbook_saber", "musha_skillbook", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point"}
+PrefabFiles = {"musha_jobbook_warrior", "musha_jobbook_saber", "musha_skillbook", "musha_skillbook_saber", "musha_skill_scroll", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point"}
 -- ⚠️ "musha_jobbook_saber" = **测试专用**（右键直通二转，跳过祭坛 3 轮任务）
 --    上线前删除 3 处：这一项 + scripts/prefabs/musha_jobbook_saber.lua + STRINGS 的 MUSHA_JOBBOOK_SABER
 print("[Musha TRACE] 9 - PrefabFiles 后")
@@ -454,6 +454,40 @@ AddRecipe2("musha_jobbook_warrior",
     },
     { "CHARACTER" })
 print("[Musha] 基础职业书配方已注册（草 x8）")
+
+-- =====================
+-- 技能卷轴配方（2026-09-17）—— 普通技能学习道具
+--   用户口径：「技能卷轴是普通技能学习专用的，大部分时候可制作 或 可掉落；
+--             珍惜技能 = boss 掉落」→ 这张配方只覆盖**普通技能**那条线
+--   材料：莎草纸×2 + 蜘蛛丝×2（科学机器；都属于"5 天内能凑齐"的档位）
+--   ⚠️ 图标：专属 tex（images/inventoryimages/musha_skill_scroll.tex）还没转出来 →
+--      先用原版莎草纸图标占位；等 Mod Tool 转好、文件一到位，这里**自动**切到专属图标（不用改代码）
+--   TODO（未做）：珍惜技能掉落表（boss 掉落；美术参考 图片/珍惜技能.png）
+-- =====================
+local function MushaAssetExists(path)
+    local f = GLOBAL.softresolvefilepath
+    if f == nil then return false end
+    local ok, r = pcall(f, path)
+    return ok and r ~= nil
+end
+
+local SKILL_SCROLL_ICON = MushaAssetExists("images/inventoryimages/musha_skill_scroll.xml")
+    and { atlas = "images/inventoryimages/musha_skill_scroll.xml", image = "musha_skill_scroll.tex" }
+    or  { atlas = "images/inventoryimages.xml",                    image = "papyrus.tex" }
+
+AddRecipe2("musha_skill_scroll",
+    {
+        Ingredient("papyrus", 2),
+        Ingredient("silk", 2),
+    },
+    GLOBAL.TECH.SCIENCE_ONE,
+    {
+        atlas = SKILL_SCROLL_ICON.atlas,
+        image = SKILL_SCROLL_ICON.image,
+        builder_tag = "musha",
+    },
+    { "CHARACTER" })
+print("[Musha] 技能卷轴配方已注册（莎草纸x2+蜘蛛丝x2 / 科学机器）")
 
 print("[Musha TRACE] 15 - 武器配方后/任务收集前")
 -- =====================
@@ -755,7 +789,9 @@ Safe("祭坛占位", function()
         local c = inst.components.container
         if c == nil or doer == nil or not doer:IsValid() then return end
         if not c:IsEmpty() then return end            -- 坛里已经有一卷了
-        if HasScrollOnPerson(doer) then return end    -- 手上那一卷还没用 → 不重复给
+        -- ★ 2026-09-17 用户：「主动去转职…起码保证祂是满的」→ 撤掉"手上有卷就不补"这道闸
+        --   （它最容易造成"莫名其妙空坛"；函数 HasScrollOnPerson 留着，想恢复把下一行取消注释）
+        -- if HasScrollOnPerson(doer) then return end
         local target, reason = GetAdvanceTarget(doer)
         if target == nil then
             Say(doer, reason, 3)                      -- 还没一转 / 已进阶 / 无方向 → 空坛 + 说明
@@ -763,10 +799,17 @@ Safe("祭坛占位", function()
         end
         local quest = doer.components.musha_quest
         if quest == nil then return end
-        if quest.advance_quest ~= nil and not quest.advance_quest.done then
-            Say(doer, "祭坛里空空如也——先完成手头的转职任务（第 " .. tostring(quest.advance_round or 1) .. "/3 轮）。", 4)
+        -- ★ 2026-09-17 就职仪式待办中：坛里不再补卷（这次右键应该是在做仪式，先完成它）
+        if quest.advance_ceremony_pending then
+            Say(doer, "祭坛在等你的就职仪式——去完成它。", 4)
             return
         end
+        -- ★ 2026-09-17 同理由：手头有在跑的转职任务也照样补卷（真去接取时会被 AcceptAdvanceQuest
+        --   挡下并给台词，且**失败不消耗卷轴**）→ 坛子始终是满的，不再出现"空坛不解释"
+        -- if quest.advance_quest ~= nil and not quest.advance_quest.done then
+        --     Say(doer, "祭坛里空空如也——先完成手头的转职任务（第 " .. tostring(quest.advance_round or 1) .. "/3 轮）。", 4)
+        --     return
+        -- end
         local scroll = SpawnPrefab("musha_advance_scroll")
         if scroll ~= nil then
             c:GiveItem(scroll)

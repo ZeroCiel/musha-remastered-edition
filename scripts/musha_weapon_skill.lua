@@ -29,7 +29,11 @@ WeaponSkill.DAMAGE_MULT  = 1.2       -- ★ 兜底倍率（只在拿不到技能
 --   等级读的是职业组件的技能树（和耗能量同一个源）→ 没学过/读不到就按 Lv1 的 100%
 WeaponSkill.MULT_BY_LEVEL = { 1.00, 1.30, 1.60 }
 WeaponSkill.HIT_RADIUS   = 1.6       -- 剑气命中判定半径（世界单位）
-WeaponSkill.LAUNCH_DIST  = 0.6       -- 出手点离身位多远（太近会贴脸）
+-- ★ 2026-09-17 出手几何**统一成一个参数**（用户 + 外部评审都指出"两套参数打架"）：
+--   以前：前后距离用 LAUNCH_DIST=0.6，而 FX 文件里又写了 FX_LAUNCH_AT=(1.0,1.60)，其中 x=1.0 根本没人读
+--   → 改一个地方没用、看着像"位置不对"。现在**唯一来源** = LAUNCH_OFFSET(前后, 上下, 0)：
+--   起点用它、落点靶子高度也用它。调手感只改这一行。
+WeaponSkill.LAUNCH_OFFSET = Vector3(1.0, 1.30, 0)
 WeaponSkill.MAX_RANGE    = 12        -- 瞄点最远（防乱点屏幕外）
 
 -- ============ ★ 技能能量消耗（2026-09-14 用户拍板）============
@@ -281,8 +285,11 @@ function WeaponSkill.DoCast(doer, target_pos)
     --      客户端看就是"出门先往下沉一下再找平"。
     --   ② 现在 fx 那边 launchoffset 归零（见 musha_slash_qi_fx.lua），**径向 + 高度全在这里算**：
     --      起点 y = 落点靶子 y = 角色 y + 出手高度 → 直线平飞。
-    local ly = (y or 0) + (fx.musha_launch_y or 0)
-    fx.Transform:SetPosition(x + ux * WeaponSkill.LAUNCH_DIST, ly, z + uz * WeaponSkill.LAUNCH_DIST)
+    -- ★ 2026-09-17 出手几何唯一来源 = WeaponSkill.LAUNCH_OFFSET（前后/高度一处改）
+    local off = WeaponSkill.LAUNCH_OFFSET
+    local ly = (y or 0) + off.y
+    fx.musha_launch_y = off.y      -- 落点靶子高度读的就是这个值（不再由 FX 文件决定）
+    fx.Transform:SetPosition(x + ux * off.x, ly, z + uz * off.x)
     fx.musha_skill  = def
     fx.musha_weapon = weapon
     fx.owner        = doer                      -- ★ 原版 projectile 不会自己写 inst.owner，命中回调要用

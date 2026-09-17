@@ -91,7 +91,10 @@ local FX_LEN_MULT   = 1.0
 
 local FX_HIT_DIST   = 1.0                     -- 离落点多近算命中（0.6→1.0：减速后每帧仍走 0.75 单位，
                                               --   太小的判定圈会被"跨帧跳过去"→ 技能空放）
-local FX_LAUNCH_AT  = Vector3(1.0, 1.60, 0)   -- 出手位置（★ 2026-09-16 用户说往上移：1.25 → 1.60）
+-- ⚠️ 2026-09-17：出手高度/距离的**唯一来源**已挪到 musha_weapon_skill.lua 的 WeaponSkill.LAUNCH_OFFSET
+--   （外部评审指出"FX 写 1.0、weapon_skill 又用 0.6"两套参数打架）。这里只留一个**兜底默认值**，
+--   仅当 fx 不是由武器技能生成时生效；武器技能每次出手都会覆盖 inst.musha_launch_y。
+local FX_DEFAULT_LAUNCH_Y = 1.30
 local FX_LIFETIME   = 3                       -- 兜底自毁（秒）
 -- ⚠️ 2026-09-16：USE_ENGINE_FACING = true 时**别动这个数**——旋转 = 飞行方向（MotorVel 沿自身旋转），
 --    动它会连带偏航。引擎模式下修朝向只能改素材相位（crescent_gen.py 的 PHASE_DEG）或换动画名。
@@ -112,7 +115,14 @@ local FX_ROT_OFFSET = 0                       -- 贴图朝向补偿（度）—�
 --   的映射在本机无法验证 —— 实测两次施法旋转都对（世界 165.5° / 256.4°），但月牙朝向是错的。
 --   → 唯一能保证准的：8 条动画我们自己点名播；方向的来源 = **引擎已设好的真实旋转**
 --     （DirIndexFromRotation，这才是"方向不准"的真根因：旧代码问的是落点靶子，实测恒为 0 区）。
-local USE_ENGINE_FACING = false   -- true = 回到"引擎按掩码挑面"（需要官方后缀名版 scml）
+-- ★★ 2026-09-17 用户：「引擎挑面 待定，你做一个 8 面的 scml 我去试试效果」→ **本次开 true 做 A/B 实测**
+--   · 8 面 scml = `exported/crescent_moon/crescent_cyan8.scml`（8 条动画名带官方后缀
+--     slash_downright/down/downleft/left/upleft/up/upright/right）→ 我这边已用命令行
+--     `Don't Starve Mod Tools/mod_tools/scml.exe crescent_cyan8.scml .` 编译并覆盖
+--     `anim/crescent_cyan8.zip`（包里动画名已被编译器削成基础名 `slash` + 朝向掩码，实测确认）
+--   · 回退（一步）：① 本行改回 false；② `cp anim/_bak_crescent_cyan8_点名声_20260917.zip anim/crescent_cyan8.zip`
+--     （点名声版的 scml 也留着：`exported/crescent_moon/_bak_scml_点名声_20260917.scml`）
+local USE_ENGINE_FACING = true    -- true = 回到"引擎按掩码挑面"（需要官方后缀名版 scml）
 local FACING_ANIM       = "slash" -- 仅 USE_ENGINE_FACING = true 时才用（官方名版 scml 的基础名）
 local FACING_DEBUG      = true    -- 实测期打印"旋转角 → 引擎实际选中哪一面"；定稿后改 false
 
@@ -538,7 +548,8 @@ local function fn()
     --   位置（径向按瞄点方向、y 给的是脚下）→ **径向叠了两份、高度口径不一致**
     --   （projectile.lua:159-162 的 Throw 会自动 y+launchoffset.y）→ 客户端看就是"出门那下往下掉一下"。
     --   现在统一由 musha_weapon_skill 一处算（径向 + 高度），这里归零，起点高度 == 落点靶子高度 = 直线平飞。
-    inst.musha_launch_y = FX_LAUNCH_AT.y   -- ★ 给 weapon_skill 用：出手高度（起点和落点靶子都用它）
+    -- ★ 2026-09-17 兜底默认值；武器技能出手时会覆盖成 WeaponSkill.LAUNCH_OFFSET.y
+    inst.musha_launch_y = FX_DEFAULT_LAUNCH_Y
     p:SetOnHitFn(OnHit)
     p:SetOnMissFn(OnMiss)
     p:SetOnThrownFn(function(i, owner)

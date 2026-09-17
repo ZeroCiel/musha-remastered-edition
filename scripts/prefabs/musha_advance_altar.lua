@@ -5,6 +5,9 @@
 --   右键 → MUSHA_OPEN_ALTAR（"打开祭坛"）→ musha_action:InteractScene
 --        → 本文件里绑的 SetFn → 打开本祭坛的【容器】（1 格）
 --        → 里面躺着【转职卷轴 musha_advance_scroll】→ 取出 → 右键卷轴"展开" → 接取本轮任务
+--   ★ 2026-09-17 补第三条（设定文档「回到建筑进行最终交互，完成就职仪式」）：
+--        第 3 轮任务完成后，**右键祭坛这一次不开容器，而是做「就职仪式」**
+--        （→ doer.components.musha_quest:DoAdvanceCeremony()，进阶落地 + 发二转赠礼技能卷轴）
 --   ⚠️ 容器本体（container 组件 + WidgetSetup + 开/关动作）就写在本文件里（照 Musha-beta 的写法：
 --      musha_building_forge / arrowrest / icebox = 建筑自己带容器）；参数表在 scripts/musha_containers.lua，
 --      modmain 只提供补卷/接取两个 GLOBAL 函数（跨文件用）
@@ -102,6 +105,16 @@ local function fn()
     -- 右键祭坛 = 开 / 关容器（动作 MUSHA_OPEN_ALTAR → musha_action:InteractScene → 这里）
     inst.components.musha_action:SetFn(function(altar, doer)
         if doer == nil or not doer:IsValid() then return end
+
+        -- ★ 就职仪式优先：第 3 轮转职任务已完成 → 这次右键 = 完成仪式（不开容器）
+        local quest = doer.components.musha_quest
+        if quest ~= nil and quest.IsCeremonyPending ~= nil and quest:IsCeremonyPending() then
+            if quest.DoAdvanceCeremony ~= nil then
+                quest:DoAdvanceCeremony(doer)
+            end
+            return
+        end
+
         local c = altar.components.container
         if c == nil then return end
         if c:IsOpenedBy(doer) then
@@ -112,6 +125,20 @@ local function fn()
     end)
     inst.components.musha_action:SetCanUseCheck(function(_, doer)
         return doer ~= nil and doer:IsValid() and doer.components.musha_profession_component ~= nil
+    end)
+
+    -- ★ 2026-09-17 用户：「起码保证祂是满的」→ 祭坛**落成/读档下一帧就先塞一卷**，
+    --   不用等玩家开坛才"发现"（旧写法只在 onopenfn 里补，空坛时看着像坏了）
+    --   注：这里不做资格检查（拿不到 doer）；资格/仪式/进阶 那些判定仍旧在开坛那一下（MUSHA_ALTAR_REFILL）
+    inst:DoTaskInTime(0, function()
+        if not inst:IsValid() then return end
+        local c = inst.components.container
+        if c == nil or not c:IsEmpty() then return end
+        local s = SpawnPrefab("musha_advance_scroll")
+        if s ~= nil then
+            c:GiveItem(s)
+            print("[Musha] 祭坛落成即满：补入 1 卷转职卷轴")
+        end
     end)
 
     return inst

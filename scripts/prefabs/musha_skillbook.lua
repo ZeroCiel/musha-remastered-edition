@@ -28,6 +28,24 @@ local function OnUseBook(inst, doer)
         return
     end
 
+    -- ★ 2026-09-17 用户：「musha_skillbook 是解锁技能书用的」
+    --   先尝试解锁本职业的"技能书解锁技"（剑士 = 剑气斩 Lv1），解锁提示由组件里的 GrantSkillLevel1 负责
+    local ok, why = pc:UnlockSkillByBook()
+    if ok then
+        -- ★ 2026-09-17 用户：「用掉」→ **解锁成功才消耗**这本技能书（没解锁成功就不浪费）
+        if inst.components.stackable then
+            inst.components.stackable:Get():Remove()
+        else
+            inst:Remove()
+        end
+    elseif doer.components.talker then
+        if why == "already" then
+            doer.components.talker:Say("已经没有要解锁的技能了", 3)
+        elseif why == "noskill" then
+            doer.components.talker:Say("这本书里没有你职业的技能", 3)
+        end
+    end
+
     -- 服务端：通过 net_bool 通知客户端打开职业面板
     -- （客户端 mushapanelchanged 监听 → PushEvent("musha_open_skill_panel") → panel ShowPanel）
     if TheWorld.ismastersim and doer._musha_panel_net then

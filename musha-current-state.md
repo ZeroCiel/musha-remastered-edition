@@ -14,6 +14,65 @@
 
 ## 📌 队列（2026-09-14 收工状态）
 
+### ★★ 2026-09-17 晚（用户口径 + 本批改动，全部**未跑语法校验**）
+【用户口径】技能卷轴 = **普通技能学习专用**（大部分时候可制作 或 可掉落）；
+**珍惜技能 = boss 掉落**（另一条线，未做；美术参考 `图片/珍惜技能.png`）
+- ✅ **技能卷轴 `musha_skill_scroll`（新物品）**：右键「展开卷轴」(复用 MUSHA_UNROLL_SCROLL)
+  → `pc:UnlockSkillByBook()` 解锁本职业技能（剑士 = 剑气斩 Lv1）→ **成功才消耗**；
+  没解锁成功给台词（already / noskill）。tag = `musha_scroll`（动作路由现成的，没加新动作）
+  · 简称/简介：`S.NAMES.MUSHA_SKILL_SCROLL` = "技能卷轴"；
+    DESCRIBE = "记载着普通技能要诀的卷轴。展开后习得其中的技能。"（中英都改了）
+  · 配方：**莎草纸×2 + 蜘蛛丝×2 / 科学机器 / builder_tag=musha / CHARACTER 页**
+  （材料是我按"5 天内能凑齐"定的，要改就改 modmain 那一段）
+  · 素材自检：`asset_exists` 探 anim zip 和 icon xml/tex，缺哪个都退回**原版莎草纸**（不会禁 mod）
+  · 美术：`图片/技能卷轴_图标.png` → 已缩 64×64 → `images/inventoryimages/musha_skill_scroll.png`
+    （**还差你用 Mod Tool 转 .tex/.xml**）；`图片/技能卷轴_地上.png` → 72×72 + scml →
+    已命令行编出 `exported/musha_skill_scroll/anim/musha_skill_scroll.zip`
+    （**还差拷进 `anim/`**——用户说"等会做"）
+- ✅ **二转赠礼改为"发一卷技能卷轴"**（原来是直接 0→1 级）：
+  `musha_profession_component.lua` 新增 `GiveSkillScroll()` / `GrantAdvanceGift(career)`；
+  开关 `ADVANCE_GIFT_IS_SCROLL`（false = 回旧行为）。两个调用点已改成走统一入口。
+- ✅ **就职仪式**（设定文档第三条，用户"5 对了"）：第 3 轮任务完成**不再自动进阶**，
+  改成"回祭坛右键 → 做就职仪式"（`quest:DoAdvanceCeremony()`：进阶落地 + 发赠礼 + 面板刷新）。
+  开关 `musha_quest.lua` 顶部 `CEREMONY_ON_FINAL_ROUND`（false = 回旧自动进阶）。
+  连带：仪式待办期间祭坛不补卷、不接新任务；`advance_ceremony_pending` 进存档。
+  · 用户说「我跳过了前两轮，得重新测试一轮」→ 实测要**完整跑 3 轮**才看得到仪式。
+- ✅ **剑气斩 8 面 scml（引擎挑面 A/B 实测用）**：
+  `exported/crescent_moon/crescent_cyan8.scml` 已换成**官方后缀名**版
+  （slash_downright/down/downleft/left/upleft/up/upright/right）；
+  备份 = `_bak_scml_点名声_20260917.scml` + `anim/_bak_crescent_cyan8_点名声_20260917.zip`；
+  我用 `mod_tools/scml.exe` 编好并**已覆盖 `anim/crescent_cyan8.zip`**（包内动画名实测已被削成基础名 `slash`）。
+  代码 `USE_ENGINE_FACING = true`、`FACING_DEBUG = true` → 重启即测（日志打"旋转角→实际播哪一面"）。
+  回退一步：常量改 false + 备份 zip 拷回去。
+- ✅ **设置页删掉「生命恢复」**（`hp_regen_mult`，0 消费方）：面板 SETTINGS_UI 那一行 +
+  `musha_player_settings.lua` 的 SPEC 都清了（设置页 7→**6 行**，ROW_Y0=134 没动）。
+- ⏳ **等用户"等会做"**：① 把 `exported/musha_skill_scroll/anim/musha_skill_scroll.zip` 拷进 `anim/`
+  ② 跑语法校验 ③ Mod Tool 转技能卷轴图标 tex
+- 用户点名**跳过/延后**：装备页右侧显示（8）、近卫盾+法师/药剂师+武器技能4选2（9）、
+  生命树枝升级（11，等元素法师发布后做、含药剂师）、图鉴/任务扩编（12，暂时忽略）。
+  美术：**除职业书外全跳过**（职业书"全部重做 + 清掉不符合的"仍挂着）。
+### ★★ 2026-09-17 深夜（用户实测反馈后的第二波）
+- 🐛🐛 **崩溃已修（我的错）**：就职仪式发技能卷轴时 `inv:GiveItem(scroll, true)` ——
+  `GiveItem(item, slot, ...)` 的**第 2 个参数是槽位号(number)**，不是 bool →
+  `inventory.lua:1088 attempt to compare boolean with number`（用户实测：第 3 轮做完右键祭坛即崩）。
+  已改成 `inv:GiveItem(scroll)`；并且 `DoAdvanceCeremony` 里那一步改成 **pcall 包起来**
+  （赠礼再出问题也不会把"仪式待办"卡死 → 不会每次右键都崩同一个地方）。
+  半途崩掉的存档能自愈：carrer_special/has_advanced 已写、pending 还在 → 再右键一次祭坛就正常走完。
+- 🐛 **「第 3 轮做完没反应」**：第 3 轮完成时 `advance_quest` 被清成 nil，面板上那行转职任务**直接消失**。
+  已在 `SyncToPanel` 里加一支**假任务行**：`{id="ceremony", n="就职仪式：回祭坛右键完成", p=1,t=1,done=true}`
+  → 面板会显示一行打勾的提示，直到仪式做完。
+- ✅ **祭坛"保证是满的"**（用户：「主动去转职…起码保证祂是满的」）：
+  · 祭坛 prefab 落成/读档 `DoTaskInTime(0)` **先塞一卷**（不再等开坛"发现"）
+  · modmain 补卷守卫撤掉两道（留着注释）：① 手上有卷就不补 ② 手头有在跑任务就不补
+  → "转职任务没接到（没提示）"的根因大概率就是坛子空着（没卷轴可展开 → 自然没台词）
+- ✅ **生命树枝合并包（用户选 4A）**：`exported/musha_lifebranch/musha_lifebranch.scml` = 合并版
+  （bank/build = musha_lifebranch，symbol = idle + swap_lifebranch）；旧世界单帧版备份
+  `musha_lifebranch.scml.bak_世界单帧_20260917`；代码 `LIFE_ART_MERGED=true` +
+  `OverrideSymbol("swap_object","musha_lifebranch","swap_lifebranch")`。
+  ⏳ 等用户编译覆盖 `anim/musha_lifebranch.zip`（旧的 `anim/swap_lifebranch.zip` 之后不用了）
+- ⏳ 用户未答：技能书上拉选技能列表（A 只列未解锁 / B 所有未满级）→ 我默认 B，等一句确认
+- 提问约定：**问 musha 待办时不要把明生条目混在一起列**。
+
 ### ★ 2026-09-17 祭坛改版（已写码 + 语法校验全过，**待进游戏实测**）
 【用户要求】"打开祭坛发现里面的卷轴才能接任务，不是触碰祭坛那一下，多走一步，仪式感"
 - 新流程：右键祭坛（动作 **MUSHA_OPEN_ALTAR** "打开祭坛"）→ 打开**祭坛容器**（1 格）
@@ -534,8 +593,8 @@
   · 要不要给"取出卷轴 / 展开卷轴"加音效或光效（要查原版音效路径，别瞎猜）
   · ✅ 已定：旧占位 statuemaxwell 兼容**已删**（容器只加在祭坛自己的建筑上）
   · ⚠️ 职业书美术缺进阶职业那一批（warrior/mage/ranger/rogue 才有）→ 近卫职业书要配套美术
-- 生命恢复 `hp_regen_mult` 现在 0 消费方：留 or 删
-- 设置页 6 行要不要居中/下移（给数字）
+- ~~生命恢复 `hp_regen_mult` 现在 0 消费方：留 or 删~~ → **2026-09-17 已删**
+- 设置页 6 行要不要居中/下移（给数字）—— 用户未点，先不动
 - 上线前清理清单 —— 发布前逐条过（✅ 2026-09-16 核过一遍）：
   · ❌ **未清**：测试用剑士转职书 —— 3 处（`modmain.lua:303` PrefabFiles 里的 `musha_jobbook_saber`
     + `scripts/prefabs/musha_jobbook_saber.lua` + STRINGS 的 `MUSHA_JOBBOOK_SABER`）；**删之前先确认祭坛 3 轮流程能走通**
@@ -544,3 +603,34 @@
   · ✅ 已清：设置页空行（`mp_regen_mult` 行已删，SETTINGS_UI 现有 6 行都是实的）
 - 更新日志：`scripts/musha_changelog.lua`（源）+ 面板内联兜底（`musha_panel_screen.lua:111` 起）**两份都要同步**；
   0.7.7 条目已写（2026-09-16，5 行）。⚠️ 信箱页 `MAIL_PER_PAGE = 3`，**单条行数太多会掉出框外**（每页约 4~5 行/条为上限）
+### ★★ 2026-09-17 23:00（用户口述决定，**先记下不改**）
+- ✅ **生命树枝合并包已验证可用**（用户："能看到了"）；但"**太大**" → scml 里给 swap 那个 object
+  加 `scale_x/scale_y = 0.45`（实测图里树枝本体 372x380 px ≈3.8 单位 → 0.45 ≈1.7 单位，跟矛差不多）。
+  ⏳ 等用户重编 `anim/musha_lifebranch.zip`；要更大改 0.6 / 更小 0.35（就这两个数）。
+  顺手删了 scml 里两条**空引用**（swap_lifebranch-1/-2.png 根本不存在；根目录那份与 -0 字节相同）。
+- 📌 **职业书美术**：战士那本**换成 ChatGPT 给的那本**（图还没给我 → 要路径/再贴一次）；
+  **法师 / 游侠两本 = 仅作展示，不上线**（当废案展示），除非以后改转职计划。
+- 📌 **生命树枝 / 重剑贴图：保留**（不换新贴图）。
+- 📌 **「选择职业」开场弹窗/规则：保留**（先不动，**做完法师再议**）。
+- ❓ 待问清：用户报「2转没法放职业技能书 需要检查一下」—— 具体指"二转该发一本职业技能书但没发"
+  还是"面板里职业技能书没位置"？→ **用户已答：A**「我指的是剑气斩，二转完成应该给一本属于剑气斩的技能树」
+### ★★ 2026-09-17 23:20（职业书美术 + 二转赠礼改成职业技能书）
+- ✅ **ChatGPT 三本书大图切完**：源图 `images/591fb365-dd9b-42d8-8180-4819ffdb5d9e.png`（1508x680）
+  经视觉确认三本依次是 **战士 WARRIOR(红) / 剑士 SWORDSMAN(蓝) / 近卫 GUARDIAN(白蓝)**（不是法师/游侠！）
+  工具：`exported/_tools/make_jobbook_art.py`（自动按空列切三本 + 按"书/字幕"空白带切掉底部字幕，
+  预乘 alpha 缩图）→ 预览 `exported/_tools/_test_out/jobbook_art_preview.png`
+  · **战士** → `images/inventoryimages/musha_jobbook_warrior.png`(64²，旧图备份到
+    `images/inventoryimages/_bak/musha_jobbook_warrior_旧版_20260917.png`) +
+    `exported/musha_jobbook_warrior/{png 128², scml}` → 打包覆盖 `anim/musha_jobbook_warrior.zip`
+  · **剑士** → `images/inventoryimages/musha_skillbook_saber.png`(64²) +
+    `exported/musha_skillbook_saber/{png 128², scml}` → 打包成 `anim/musha_skillbook_saber.zip`
+  · **近卫** → 只导出备用：`exported/jobbook_guardian_未上线/`（**没接任何代码**，等以后真要上近卫再说）
+- ✅ **二转赠礼 = 职业技能书**（用户选 A）：新物品 `musha_skillbook_saber`（"剑士基础技能书"，
+  名字/简介走现成的 `STRINGS.MUSHA_SKILLBOOK_SWORDSMAN`，中英都有）；右键 → 解锁剑气斩 Lv1 → 消耗。
+  组件侧 `ADVANCE_GIFT_MODE = "career_book"`（可选 "scroll" 通用卷轴 / "level" 旧行为直接+1级）
+  + `CAREER_BOOK = { saber = "musha_skillbook_saber" }`（其它职业没书 → 自动退回通用技能卷轴）
+  `modmain` PrefabFiles 已加 `musha_skillbook_saber`。素材没打包时自动退回通用技能书图标/贴图（不崩）。
+- ⏳ 用户要打包的清单：① musha_jobbook_warrior.png → tex/xml（覆盖）
+  ② musha_skillbook_saber.png → tex/xml（新增）③ 两个 scml → 各自 zip
+  ④ 生命树枝 scml（scale 0.45）重编覆盖 anim/musha_lifebranch.zip
+  ⑤ （顺手）musha_skill_scroll.zip
