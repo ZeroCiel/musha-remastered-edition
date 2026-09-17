@@ -115,14 +115,17 @@ local FX_ROT_OFFSET = 0                       -- 贴图朝向补偿（度）—�
 --   的映射在本机无法验证 —— 实测两次施法旋转都对（世界 165.5° / 256.4°），但月牙朝向是错的。
 --   → 唯一能保证准的：8 条动画我们自己点名播；方向的来源 = **引擎已设好的真实旋转**
 --     （DirIndexFromRotation，这才是"方向不准"的真根因：旧代码问的是落点靶子，实测恒为 0 区）。
--- ★★ 2026-09-17 用户：「引擎挑面 待定，你做一个 8 面的 scml 我去试试效果」→ **本次开 true 做 A/B 实测**
---   · 8 面 scml = `exported/crescent_moon/crescent_cyan8.scml`（8 条动画名带官方后缀
---     slash_downright/down/downleft/left/upleft/up/upright/right）→ 我这边已用命令行
---     `Don't Starve Mod Tools/mod_tools/scml.exe crescent_cyan8.scml .` 编译并覆盖
---     `anim/crescent_cyan8.zip`（包里动画名已被编译器削成基础名 `slash` + 朝向掩码，实测确认）
---   · 回退（一步）：① 本行改回 false；② `cp anim/_bak_crescent_cyan8_点名声_20260917.zip anim/crescent_cyan8.zip`
---     （点名声版的 scml 也留着：`exported/crescent_moon/_bak_scml_点名声_20260917.scml`）
-local USE_ENGINE_FACING = true    -- true = 回到"引擎按掩码挑面"（需要官方后缀名版 scml）
+-- ★★ 2026-09-18 用户实测结论：「**月牙斩方向错位**」→ **切回"代码按方向点名播"（= 本行 false）**
+--   · 为什么切回：引擎那层"旋转 → 挑哪一面"的映射在 C++ 里，本机既没有官方样例也验不了；
+--     点名播这条路的**方向源是我们自己算的**（DirIndexFromRotation，floor(角/45)），错了也能用数字修。
+--   · 已同步换包：`anim/crescent_cyan8.zip` = **点名声版**（动画名 slash_dir0..7，实测确认）
+--     8 面版备份 = `anim/_bak_crescent_cyan8_8面_20260918.zip`
+--     （8 面版 scml 还留着：`exported/crescent_moon/crescent_cyan8_bak_官方名.scml`）
+--   · 想再回 8 面版：① 本行改 true ② 把上面那个 _bak...8面.zip 拷回 anim/crescent_cyan8.zip
+--   · ⚠️ 常量与 zip **必须配对**：只改常量不换包 = 月牙看不见（包里没有那个名字的动画）
+--   · 若点名播仍整体偏：偏 45° 整数倍 → 改素材相位（crescent_gen.py 的 PHASE_DEG）重出图，
+--     别动 Transform 旋转（DST 的飞行方向就是实体旋转，一动就偏航）
+local USE_ENGINE_FACING = false   -- true = 引擎按掩码挑面（需要官方后缀名版 scml）
 local FACING_ANIM       = "slash" -- 仅 USE_ENGINE_FACING = true 时才用（官方名版 scml 的基础名）
 local FACING_DEBUG      = true    -- 实测期打印"旋转角 → 引擎实际选中哪一面"；定稿后改 false
 
