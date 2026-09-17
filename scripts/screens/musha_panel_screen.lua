@@ -233,6 +233,16 @@ local function SendSkillUpgrade(skill_id)
     pcall(function() SendModRPCToServer(rpc, skill_id) end)
 end
 
+-- ★ 2026-09-18 客户端 → 服务端：**用背包里的技能书解锁**
+--   面板技能页里"点锁"和"点 +"都走这条（用户：「点加点和图片都可以打开的，消耗物品栏里面的技能书」）；
+--   另一条等价入口 = 背包里右键那本书（各 prefab 自己的 OnUse，服务端直接调 UnlockSkillWithItem）
+local function SendSkillUnlock(skill_id)
+    if not skill_id then return end
+    local ok, rpc = pcall(function() return GetModRPC("musha", "musha_skill_unlock") end)
+    if not ok or rpc == nil then return end
+    pcall(function() SendModRPCToServer(rpc, skill_id) end)
+end
+
 -- 通用小按钮（用 square.tex 拼，不依赖美术）
 local function MakeTextButton(parent, w, h, str, onclick)
     local b = parent:AddChild(ImageButton("images/global.xml", "square.tex"))
@@ -304,7 +314,8 @@ end
 
 -- ★ 2026-09-17 技能书锁（用户）：技能书解锁技在 0 级时不显示加号，改显示这把小锁；
 --   鼠标悬停 → 提示"需要 N 本技能书才能解锁"（给新手建立认知）。贴图用**官方技能树的挂锁**，不新增素材。
-local function MakeLockButton(parent, size, x, y, tipfn)
+--   ★ 2026-09-18 加 onclick：锁本身也能点（点它 = 用背包里的技能书解锁）
+local function MakeLockButton(parent, size, x, y, tipfn, onclick)
     local b = parent:AddChild(ImageButton("images/skilltree.xml", "locked.tex"))
     b:SetSize(size, size)
     b:SetPosition(x, y)
@@ -319,6 +330,7 @@ local function MakeLockButton(parent, size, x, y, tipfn)
         b:SetScale(1, 1, 1)
         if tipfn then tipfn(false) end
     end)
+    if onclick then b:SetOnClick(onclick) end
     return b
 end
 
@@ -928,15 +940,23 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                 if not maxed then
                     if book_lock then
                         local needn = data.book_lock
+                        local sid   = data.id
+                        -- ★★ 2026-09-18 用户：「点加点和图片都可以打开的」→
+                        --   【锁】(图片) 和 【+】两处都能点，两处都走"用背包里的技能书解锁"。
+                        --   + 故意画成灰色（不能让玩家以为花技能点也能买 —— 服务端也拦了这道，见 CanUpgradeSkill）
                         row.btn_lock_w = MakeLockButton(row, SKILL_BTN, SKILL_ROW_W / 2 - 56, -6,
                             function(over)
                                 if over then
-                                    row.t_lock_tip:SetString(string.format("需要 %d 本技能书才能解锁", needn))
+                                    row.t_lock_tip:SetString(string.format(
+                                        "点这里（或 +）用背包里的技能书解锁 · 需要 %d 本", needn))
                                     row.t_lock_tip:Show()
                                 else
                                     row.t_lock_tip:Hide()
                                 end
-                            end)
+                            end,
+                            function() SendSkillUnlock(sid) end)
+                        row.btn = MakePlusButton(row, SKILL_BTN, false, function() SendSkillUnlock(sid) end)
+                        row.btn:SetPosition(SKILL_ROW_W / 2 - 56 - SKILL_BTN - 10, -6)
                     else
                         local sid = data.id
                         row.btn = MakePlusButton(row, SKILL_BTN, can_add, function() SendSkillUpgrade(sid) end)

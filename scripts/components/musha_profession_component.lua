@@ -850,6 +850,13 @@ function Musha_Profession_Component:CanUpgradeSkill(skill_tree, skill_name)
         return false, "已达技能最大等级"
     end
 
+    -- ★★ 2026-09-18 技能书锁（补漏）：0 级的"技能书解锁技"**不能用技能点买**
+    --   原来只锁了面板显示（画小锁），服务端这道没写 → 花 1 点也能学 → 用户看到的
+    --   "没有技能书学习，我也能直接看到这个技能（已解锁）"。判定必须放服务端（客户端改包绕不过）。
+    if (skill.current_level or 0) == 0 and BOOK_UNLOCK_SKILL[skill_tree] == skill_name then
+        return false, "需要一本技能书才能解锁"
+    end
+
     local next_level = skill.current_level + 1
 
     -- 检查等级要求
@@ -1042,6 +1049,58 @@ function Musha_Profession_Component:UnlockSkillByBook()
         return true, "unlocked"
     end
     return false, "already"
+end
+
+-- ====== 用背包里的技能书解锁（2026-09-18 用户：「点加点和图片都可以打开的，
+--          消耗物品栏里面的技能书；或者右键自行解锁」）======
+--   入口：① 面板技能页 点【锁】或【+】→ RPC musha_skill_unlock ② 背包里右键那本书（各 prefab 自己的 OnUse）
+--   两处最终都落到本函数：拿 1 本背包里的书 → 把 0 级的"技能书解锁技"提到 1 级 → 消耗掉那本
+local SKILL_BOOK_PREFABS = {
+    musha_skillbook       = true,   -- 通用技能书（一转给的）
+    musha_skill_scroll    = true,   -- 通用技能卷轴（可制作/可掉落）
+    musha_skillbook_saber = true,   -- 剑士技能书（二转赠礼）
+}
+
+-- 背包里有没有能用的技能书？返回那个物品（没有 = nil）
+function Musha_Profession_Component:FindSkillBookItem()
+    local inv = self.inst.components.inventory
+    if inv == nil then return nil end
+    return inv:FindItem(function(item)
+        if item == nil or not item:IsValid() then return false end
+        if SKILL_BOOK_PREFABS[item.prefab] then return true end
+        -- 兜底：以后新增的书只要挂这两个 tag 之一，也认（不用回来改这里）
+        return item:HasTag("musha_skillbook") or item:HasTag("musha_scroll")
+    end)
+end
+
+-- 用背包里的技能书解锁某个技能（只针对"技能书解锁技"的 0 级；成功 = 消耗 1 本）
+function Musha_Profession_Component:UnlockSkillWithItem(skill_tree, skill_name)
+    local skill = self[skill_tree] and self[skill_tree][skill_name]
+    if skill == nil then return false, "技能不存在" end
+    if BOOK_UNLOCK_SKILL[skill_tree] ~= skill_name then
+        return false, "这个技能不用技能书，直接加点就行"
+    end
+    if (skill.current_level or 0) >= 1 then
+        return false, "已经解锁过了"
+    end
+
+    local book = self:FindSkillBookItem()
+    if book == nil then
+        return false, "需要一本技能书（背包里没有）"
+    end
+
+    if not self:GrantSkillLevel1(skill_tree, skill_name) then
+        return false, "解锁失败"
+    end
+    -- 消耗一本（堆叠就只减 1）
+    if book.components.stackable and book.components.stackable:StackSize() > 1 then
+        book.components.stackable:Get(1):Remove()
+    else
+        if book:IsValid() then book:Remove() end
+    end
+
+    self:PushSettings()     -- 技能页等级/锁状态要跟着变
+    return true, "已解锁"
 end
 
 -- ====== 二转赠礼（2026-09-17 用户：「A 我指的是剑气斩，二转完成应该给一本属于剑气斩的技能树」）======

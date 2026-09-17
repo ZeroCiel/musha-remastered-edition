@@ -138,6 +138,28 @@ GLOBAL.AddModRPCHandler(NS, "musha_skill_upgrade", function(player, skill_id)
     end
 end)
 
+-- 用背包里的技能书解锁（客户端 → 服务端）
+--   ★ 2026-09-18：面板技能页「点锁 / 点 +」走这条（用户："点加点和图片都可以打开"）；
+--   失败原因原样回给玩家（没有书 / 已经解锁过 / 这技能不用书）
+GLOBAL.AddModRPCHandler(NS, "musha_skill_unlock", function(player, skill_id)
+    if not player or not player:IsValid() then return end
+    if not GLOBAL.TheWorld.ismastersim then return end
+
+    local pc = player.components.musha_profession_component
+    if not pc then return end
+
+    local tree, name = skill_id and skill_id:match("^(%w+)_(.+)$")
+    if not tree or not name then
+        if player.components.talker then player.components.talker:Say("无效技能", 3) end
+        return
+    end
+
+    local ok, reason = pc:UnlockSkillWithItem(tree, name)
+    if not ok and player.components.talker then
+        player.components.talker:Say(tostring(reason), 3)
+    end
+end)
+
 -- 服务端→客户端：发送技能数据刷新 UI
 GLOBAL.AddModRPCHandler(NS, "musha_skill_data_update", function(player, data_str)
     if GLOBAL.TheWorld.ismastersim then return end
