@@ -1,9 +1,12 @@
 -- =====================================================
--- musha_advance_altar.lua — 进阶祭坛（2026-09-12 新建）
--- 作用：接取【转职任务】（3 轮，第 3 轮完成 → 进阶）
--- 交互链：SCENE 右键 → MUSHA_QUEST_INTERACT
---          → musha_action:InteractScene(doer)
---          → modmain 里 AddPrefabPostInit 绑定的 OnAltarInteract
+-- musha_advance_altar.lua — 进阶祭坛（2026-09-12 新建 · 2026-09-17 改成"开坛取卷轴"）
+-- 作用：**装**转职任务的容器（3 轮，第 3 轮完成 → 进阶）
+-- 交互链（2026-09-17 改版）：
+--   右键 → MUSHA_OPEN_ALTAR（"打开祭坛"）→ musha_action:InteractScene
+--        → modmain 的 OnAltarOpen → 打开本祭坛的【容器】（1 格）
+--        → 里面躺着【转职卷轴 musha_advance_scroll】→ 取出 → 右键卷轴"展开" → 接取本轮任务
+--   ⚠️ 容器本体（container 组件 + WidgetSetup + 补卷 onopenfn）挂在 **modmain 的 BindAltar** 里，
+--      和旧占位 statuemaxwell 共用同一套（本文件只管实体外观 + 客户端要有的 tag/组件）
 --
 -- ★★★ 模型开关（唯一需要动的地方）★★★
 --   贴图+scml 已经做好了，在 exported/musha_advance_altar/（打包步骤见那个目录的 README.txt）：
@@ -58,7 +61,7 @@ local function fn()
     end
 
     -- ★ tag 必须在 SetPristine() 之前加：客户端也要有这个 tag，
-    --   否则客机右键不出 MUSHA_QUEST_INTERACT（旧版占位就吃了这个亏）
+    --   否则客机右键不出 MUSHA_OPEN_ALTAR（旧版占位就吃了这个亏）
     inst:AddTag("musha_altar")
     -- 注：不加 "structure" tag —— 会被 Deerclops 当建筑砸，而祭坛不该被破坏
 
@@ -76,7 +79,7 @@ local function fn()
     -- ===== 服务端专用 =====
     inst:AddComponent("inspectable")
     -- 注：动作回调（SetFn / SetCanUseCheck）在 modmain 的 AddPrefabPostInit 里绑定，
-    --     因为 OnAltarInteract 要用到 modmain 作用域的任务池 / 职业组件
+    --     因为 OnAltarOpen / 补卷逻辑要用到 modmain 作用域的任务池 / 职业组件
 
     return inst
 end

@@ -116,6 +116,10 @@ end)
 --   保证纯客户端（别人开 musha 角色时）也一定加载到这个 build
 table.insert(Assets, Asset("ANIM", "anim/energy.zip"))
 
+-- ★ 2026-09-17 技能页"技能书锁"用的挂锁图标 = **官方技能树图集**里的 locked.tex
+--   在 mod 的 Assets 里全局声明一次，保证纯客户端也有人加载过这张图集（否则 ImageButton 找不到图集会报错）
+table.insert(Assets, Asset("ATLAS", "images/skilltree.xml"))
+
 -- 剑气素材（2026-09-14）—— 全局声明，这样**每个客户端**都一定有这个 build：
 --   剑气的「本地粒子」是在客户端用 CreateEntity() 直接建的（不联网，
 --   照原版 FX 那套 `--[[Non-networked entity]]` 写法），那时不能再依赖
@@ -300,7 +304,7 @@ end)
 -- 注册 Prefab
 -- =====================
 print("[Musha TRACE] 8 - PrefabFiles 前")
-PrefabFiles = {"musha_jobbook_warrior", "musha_jobbook_saber", "musha_skillbook", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_slash_qi_fx", "musha_skill_point"}
+PrefabFiles = {"musha_jobbook_warrior", "musha_jobbook_saber", "musha_skillbook", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point"}
 -- ⚠️ "musha_jobbook_saber" = **测试专用**（右键直通二转，跳过祭坛 3 轮任务）
 --    上线前删除 3 处：这一项 + scripts/prefabs/musha_jobbook_saber.lua + STRINGS 的 MUSHA_JOBBOOK_SABER
 print("[Musha TRACE] 9 - PrefabFiles 后")
@@ -649,10 +653,15 @@ Safe("复制组件", function()
 end)
 
 -- =====================
--- 进阶祭坛（2026-09-08 占位 → 2026-09-12 独立 prefab 落地）
--- 实体：scripts/prefabs/musha_advance_altar.lua（占位动画=原版雕像，模型待移植）
--- 旧占位 statuemaxwell(麦斯威尔雕像) 继续兼容老存档
--- 交互动作链：SCENE 右键 → MUSHA_QUEST_INTERACT → musha_action:InteractScene → 本函数
+-- 进阶祭坛（2026-09-08 占位 → 09-12 独立 prefab → 09-17 仪式化：打开祭坛取卷轴）
+-- 实体：scripts/prefabs/musha_advance_altar.lua（模型已移植）；旧占位 statuemaxwell(麦斯威尔雕像) 同流程兼容老存档
+--
+-- ★ 2026-09-17 交互链改版（用户要求"多走一步、仪式感"）：
+--   旧：右键祭坛 → 直接接取转职任务（一碰就到手）
+--   新：右键祭坛 → 动作 MUSHA_OPEN_ALTAR（"打开祭坛"）→ musha_action:InteractScene → OnAltarOpen
+--        → 打开【祭坛容器】（1 格）→ 里面躺着 1 卷【转职卷轴 musha_advance_scroll】
+--        → 玩家把卷轴拿出来 → 右键卷轴（MUSHA_UNROLL_SCROLL "展开卷轴"）→ 才接取本轮任务
+--   容器补卷规则（onopenfn）：空坛 + 玩家【有基础职业 / 未进阶 / 身上没有没用掉的卷轴】→ 补 1 卷
 -- =====================
 print("[Musha TRACE] 20.6 - 祭坛绑定前")
 Safe("祭坛占位", function()
@@ -663,6 +672,31 @@ Safe("祭坛占位", function()
         assassin = "moonshadow",
         rogue = "moonshadow",
     }
+
+    -- ---------------------------------------------------------------
+    -- 祭坛容器参数（2026-09-17 新增）
+    --   1 格、只收卷轴；外观抄原版 yots_lantern_post（ui_chest_1x1）
+    --   ⚠️ containers.params 必须在 prefab 构造前登记（WidgetSetup 要来查这张表），
+    --      而且**客户端也要有**（容器 widget 靠它画框和格子）→ 所以写在 modmain（双端都跑）
+    -- ---------------------------------------------------------------
+    local containers_lib = GLOBAL.require("containers")
+    containers_lib.params.musha_advance_altar = {
+        widget = {
+            slotpos = { GLOBAL.Vector3(0, 0, 0) },
+            animbank = "ui_chest_1x1",
+            animbuild = "ui_chest_1x1",
+            pos = GLOBAL.Vector3(0, 160, 0),
+            side_align_tip = 100,
+        },
+        acceptsstacks = false,
+        type = "chest",
+    }
+    function containers_lib.params.musha_advance_altar.itemtestfn(container, item, slot)
+        -- 祭坛只认卷轴（玩家塞不进别的东西）
+        return item:HasTag("musha_scroll") and not container.inst:HasTag("burnt")
+    end
+    containers_lib.MAXITEMSLOTS = math.max(containers_lib.MAXITEMSLOTS or 0, 1)
+    print("[Musha] 祭坛容器参数已登记: musha_advance_altar（1 格 / ui_chest_1x1）")
 
     -- 从任务池抽 count 个，跳过 heal_skill（技能系统暂 .bak 未启用）
     local function PickAdvanceQuests(pool_index, count)
@@ -694,51 +728,103 @@ Safe("祭坛占位", function()
         return out
     end
 
-    local function OnAltarInteract(inst, doer)
-        if not doer or not doer:IsValid() then return end
+    local function Say(doer, msg, t)
+        if doer ~= nil and doer:IsValid() and doer.components.talker then
+            doer.components.talker:Say(msg, t or 3)
+        end
+    end
+
+    -- 能不能进阶 + 进阶目标（职业侧判断，开坛补卷轴 / 展开卷轴 共用同一套）
+    local function GetAdvanceTarget(doer)
         local pc = doer.components.musha_profession_component
         if not pc then
-            if doer.components.talker then doer.components.talker:Say("Musha 职业系统未就绪。", 3) end
-            return
+            return nil, "Musha 职业系统未就绪。"
         end
-
-        -- 条件：有基础职业、未进阶
         local base = pc:GetCarrer_base()
         if not base then
-            if doer.components.talker then doer.components.talker:Say("还没有职业，先去使用职业书转职吧！", 3) end
-            return
+            return nil, "还没有职业，先去使用职业书转职吧！"
         end
-        if pc:GetCarrer_special() or pc.userdata.has_advanced then
-            if doer.components.talker then doer.components.talker:Say("已经完成进阶了！", 3) end
-            return
+        if pc:GetCarrer_special() or (pc.userdata and pc.userdata.has_advanced) then
+            return nil, "已经完成进阶了！"
         end
-
-        local quest = doer.components.musha_quest
-        if not quest then
-            if doer.components.talker then doer.components.talker:Say("任务系统未就绪。", 3) end
-            return
-        end
-
         local target = BASE_TO_ADVANCE[base]
         if not target then
-            if doer.components.talker then doer.components.talker:Say("当前职业暂无可进阶方向。", 3) end
-            return
+            return nil, "当前职业暂无可进阶方向。"
         end
+        return target
+    end
 
-        -- 转职轮次已满？(3轮完成后应在 CompleteAdvanceQuest 已设 carrer_special，正常不会到这)
-        -- 接取当前轮（1 个任务；round 由 quest 组件维护）
-        local ok, reason = quest:AcceptAdvanceQuest(target)
-        if not ok then
-            if doer.components.talker then doer.components.talker:Say(reason or "暂无法接取。", 3) end
+    -- 玩家身上（背包）还有没展开的卷轴吗？→ 防止重复补卷
+    local function HasScrollOnPerson(doer)
+        local inv = doer.components.inventory
+        return inv ~= nil and inv:FindItem("musha_advance_scroll") ~= nil
+    end
+
+    -- ★ 打开祭坛时"发现里面的卷轴"：空坛 + 够资格 → 坛里补 1 卷
+    --   ⚠️ onopenfn 的第 2 个参数是 { doer = doer } 这张表，不是 doer 本人（原版 container.lua:659）
+    local function RefillAltarScroll(inst, doer)
+        local c = inst.components.container
+        if c == nil or doer == nil or not doer:IsValid() then return end
+        if not c:IsEmpty() then return end            -- 坛里已经有一卷了
+        if HasScrollOnPerson(doer) then return end    -- 手上那一卷还没用 → 不重复给
+        local target, reason = GetAdvanceTarget(doer)
+        if target == nil then
+            Say(doer, reason, 3)                      -- 还没一转 / 已进阶 / 无方向 → 空坛 + 说明
             return
         end
-        -- 通知客户端刷新面板（接取后 advance_quest 数据已由 SyncToPanel 推送）
+        local quest = doer.components.musha_quest
+        if quest == nil then return end
+        if quest.advance_quest ~= nil and not quest.advance_quest.done then
+            Say(doer, "祭坛里空空如也——先完成手头的转职任务（第 " .. tostring(quest.advance_round or 1) .. "/3 轮）。", 4)
+            return
+        end
+        local scroll = SpawnPrefab("musha_advance_scroll")
+        if scroll ~= nil then
+            c:GiveItem(scroll)
+            Say(doer, "祭坛深处，一卷古老的卷轴静静躺在那里……", 4)
+            print("[Musha] 祭坛补入转职卷轴 → " .. tostring(doer))
+        end
+    end
+
+    -- 右键祭坛：开 / 关（容器本体在 BindAltar 里挂）
+    local function OnAltarOpen(inst, doer)
+        if doer == nil or not doer:IsValid() then return end
+        local c = inst.components and inst.components.container
+        if c == nil then return end
+        if c:IsOpenedBy(doer) then
+            c:Close(doer)
+        else
+            c:Open(doer)
+        end
+    end
+
+    -- ★ 接取入口（scripts/prefabs/musha_advance_scroll.lua 的"展开卷轴"调这个）
+    --   返回 true = 已接取（调用方消耗卷轴）；false = 不消耗（原因已由台词说明）
+    GLOBAL.MUSHA_AltarUseScroll = function(doer)
+        if doer == nil or not doer:IsValid() then return false end
+        local target, reason = GetAdvanceTarget(doer)
+        if target == nil then
+            Say(doer, reason, 3)
+            return false
+        end
+        local quest = doer.components.musha_quest
+        if quest == nil then
+            Say(doer, "任务系统未就绪。", 3)
+            return false
+        end
+        -- 等级门槛 / 重复接取 等判断都在 AcceptAdvanceQuest 里（单一来源，别在这重复写一套）
+        local ok, why = quest:AcceptAdvanceQuest(target)
+        if not ok then
+            Say(doer, why or "暂无法接取。", 3)
+            return false
+        end
+        return true
     end
 
     -- 祭坛绑定（2026-09-12 起有独立 prefab 了）
     --   musha_advance_altar = 新祭坛（真正的 prefab，见 scripts/prefabs/musha_advance_altar.lua）
     --   statuemaxwell       = 旧占位（老存档里已经摆着的麦斯威尔雕像，继续兼容）
-    -- 注意：tag + 组件要在**客户端也加上**，否则客机右键不出 MUSHA_QUEST_INTERACT。
+    -- 注意：tag + 组件要在**客户端也加上**，否则客机右键不出 MUSHA_OPEN_ALTAR。
     --       新 prefab 自己在 fn 里 pristine 之前加了；这里补 tag 只为旧占位 statuemaxwell。
     local function BindAltar(inst)
         if not inst:HasTag("musha_altar") then
@@ -750,7 +836,16 @@ Safe("祭坛占位", function()
         if not GLOBAL.TheWorld or not GLOBAL.TheWorld.ismastersim then
             return
         end
-        inst.components.musha_action:SetFn(OnAltarInteract)
+        -- ★ 容器：右键"打开祭坛"= 开这个容器（1 格，只放卷轴）
+        --   容器只在服务端加（原版/参考 mod 都这么写：客户端靠 replica 自动获得）
+        if not inst.components.container then
+            inst:AddComponent("container")
+            inst.components.container:WidgetSetup("musha_advance_altar")
+            inst.components.container.onopenfn = function(altar, data)
+                RefillAltarScroll(altar, data and data.doer or nil)
+            end
+        end
+        inst.components.musha_action:SetFn(OnAltarOpen)
         inst.components.musha_action:SetCanUseCheck(function(_, doer)
             return doer and doer:IsValid() and doer.components.musha_profession_component ~= nil
         end)
@@ -758,7 +853,7 @@ Safe("祭坛占位", function()
 
     AddPrefabPostInit("musha_advance_altar", BindAltar)
     AddPrefabPostInit("statuemaxwell", BindAltar)
-    print("[Musha] 祭坛已绑定: musha_advance_altar (新) + statuemaxwell (旧占位兼容)")
+    print("[Musha] 祭坛已绑定: musha_advance_altar (新) + statuemaxwell (旧占位兼容) → 右键=打开祭坛取卷轴")
 end)
 print("[Musha TRACE] 20.7 - 祭坛占位后")
 

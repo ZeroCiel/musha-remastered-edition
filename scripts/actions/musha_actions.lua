@@ -33,14 +33,16 @@ end
 ACTIONS.MUSHA_USE_JOBBOOK.priority = 5
 print("[Musha Actions] + AddAction MUSHA_USE_JOBBOOK")
 
--- 动作2：任务交互（SCENE 右键点击建筑）
-AddAction("MUSHA_QUEST_INTERACT", STRINGS.ACTIONS.MUSHA_QUEST_INTERACT, function(act)
+-- 动作2：打开祭坛（SCENE 右键点击建筑）
+--   ★ 2026-09-17 改名：原来叫 MUSHA_QUEST_INTERACT（"查看任务"），那时右键祭坛 = 直接接任务。
+--     现在祭坛是【容器】：右键 = 打开祭坛 → 里面躺着转职卷轴 → 取出来再"展开卷轴"接任务。
+AddAction("MUSHA_OPEN_ALTAR", STRINGS.ACTIONS.MUSHA_OPEN_ALTAR, function(act)
     if act.target and act.target.components.musha_action then
         act.target.components.musha_action:InteractScene(act.doer)
     end
     return true
 end)
-print("[Musha Actions] + AddAction MUSHA_QUEST_INTERACT")
+print("[Musha Actions] + AddAction MUSHA_OPEN_ALTAR")
 
 -- 动作3：学习技能书（INVENTORY 右键）
 AddAction("MUSHA_LEARN_SKILL", STRINGS.ACTIONS.MUSHA_LEARN_SKILL, function(act)
@@ -78,6 +80,16 @@ AddAction("MUSHA_READ_NOTE", STRINGS.ACTIONS.MUSHA_READ_NOTE, function(act)
 end)
 print("[Musha Actions] + AddAction MUSHA_READ_NOTE")
 
+-- 动作7：展开卷轴（INVENTORY 右键 — 进阶祭坛里取出的【转职卷轴】）
+--   ★ 2026-09-17 新增：祭坛改成"打开取卷轴"流程后，接任务这一步落在卷轴身上
+AddAction("MUSHA_UNROLL_SCROLL", STRINGS.ACTIONS.MUSHA_UNROLL_SCROLL, function(act)
+    if act.invobject and act.invobject.components.musha_action then
+        act.invobject.components.musha_action:UseItem(act.doer)
+    end
+    return true
+end)
+print("[Musha Actions] + AddAction MUSHA_UNROLL_SCROLL")
+
 print("[Musha Actions] 动作注册完成，开始注册 ComponentAction...")
 
 -- =============================================
@@ -101,16 +113,19 @@ AddComponentAction("INVENTORY", "musha_action", function(inst, doer, actions, ri
     if inst:HasTag("musha_panel") then
         table.insert(actions, ACTIONS.MUSHA_OPEN_PANEL)
     end
+    if inst:HasTag("musha_scroll") then
+        table.insert(actions, ACTIONS.MUSHA_UNROLL_SCROLL)
+    end
 end)
-print("[Musha Actions] + ComponentAction INVENTORY musha_action (整合: musha_jobbook/musha_learnable/musha_rest_skill/musha_note)")
+print("[Musha Actions] + ComponentAction INVENTORY musha_action (整合: musha_jobbook/musha_learnable/musha_rest_skill/musha_note/musha_panel/musha_scroll)")
 
 -- SCENE 动作
 AddComponentAction("SCENE", "musha_action", function(inst, doer, actions, right)
     if inst:HasTag("musha_altar") then
-        table.insert(actions, ACTIONS.MUSHA_QUEST_INTERACT)
+        table.insert(actions, ACTIONS.MUSHA_OPEN_ALTAR)
     end
 end)
-print("[Musha Actions] + ComponentAction SCENE musha_action → musha_altar → MUSHA_QUEST_INTERACT")
+print("[Musha Actions] + ComponentAction SCENE musha_action → musha_altar → MUSHA_OPEN_ALTAR")
 
 print("[Musha Actions] ComponentAction 注册完成，开始注册 Stategraph...")
 
@@ -123,10 +138,10 @@ AddStategraphActionHandler("wilson", ActionHandler(ACTIONS.MUSHA_USE_JOBBOOK, "d
 AddStategraphActionHandler("wilson_client", ActionHandler(ACTIONS.MUSHA_USE_JOBBOOK, "doshortaction"))
 print("[Musha Actions] + Stategraph MUSHA_USE_JOBBOOK")
 
--- 进阶建筑 SCENE 右键
-AddStategraphActionHandler("wilson", ActionHandler(ACTIONS.MUSHA_QUEST_INTERACT, "doshortaction"))
-AddStategraphActionHandler("wilson_client", ActionHandler(ACTIONS.MUSHA_QUEST_INTERACT, "doshortaction"))
-print("[Musha Actions] + Stategraph MUSHA_QUEST_INTERACT")
+-- 进阶建筑 SCENE 右键（打开祭坛）
+AddStategraphActionHandler("wilson", ActionHandler(ACTIONS.MUSHA_OPEN_ALTAR, "doshortaction"))
+AddStategraphActionHandler("wilson_client", ActionHandler(ACTIONS.MUSHA_OPEN_ALTAR, "doshortaction"))
+print("[Musha Actions] + Stategraph MUSHA_OPEN_ALTAR")
 
 -- 技能书 INVENTORY 右键
 AddStategraphActionHandler("wilson", ActionHandler(ACTIONS.MUSHA_LEARN_SKILL, "doshortaction"))
@@ -142,6 +157,11 @@ print("[Musha Actions] + Stategraph MUSHA_REST")
 AddStategraphActionHandler("wilson", ActionHandler(ACTIONS.MUSHA_READ_NOTE, "doshortaction"))
 AddStategraphActionHandler("wilson_client", ActionHandler(ACTIONS.MUSHA_READ_NOTE, "doshortaction"))
 print("[Musha Actions] + Stategraph MUSHA_READ_NOTE")
+
+-- 转职卷轴 INVENTORY 右键（展开卷轴）
+AddStategraphActionHandler("wilson", ActionHandler(ACTIONS.MUSHA_UNROLL_SCROLL, "doshortaction"))
+AddStategraphActionHandler("wilson_client", ActionHandler(ACTIONS.MUSHA_UNROLL_SCROLL, "doshortaction"))
+print("[Musha Actions] + Stategraph MUSHA_UNROLL_SCROLL")
 
 -- 职业面板 INVENTORY 右键
 AddStategraphActionHandler("wilson", ActionHandler(ACTIONS.MUSHA_OPEN_PANEL, "doshortaction"))
