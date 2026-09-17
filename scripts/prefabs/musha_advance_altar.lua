@@ -87,13 +87,15 @@ local function fn()
     inst.components.container:WidgetSetup("musha_advance_altar")
     inst.components.container.onopenfn = function(altar, data)
         -- ⚠️ onopenfn 第 2 个参数是 { doer = doer } 这张表，不是 doer 本人（原版 container.lua:659）
-        --    补卷逻辑在 modmain 的祭坛段（要查职业/任务状态），这里只负责转交
-        local refill = GLOBAL.MUSHA_AltarRefillScroll
+        --    补卷逻辑在 modmain 的祭坛段（要查职业/任务状态），函数经 TUNING 传进来。
+        --    ★ 这里**不能**写 `GLOBAL.xxx`：prefab 环境里 GLOBAL 是未声明全局，
+        --      一读就被 scripts/strict.lua 抛 "variable 'GLOBAL' is not declared"（2026-09-17 实测崩过）
+        local refill = TUNING.MUSHA_ALTAR_REFILL
         if type(refill) == "function" then
             refill(altar, data and data.doer or nil)
         elseif not altar._warned_no_refill then
             altar._warned_no_refill = true
-            print("[Musha ERROR] musha_advance_altar: 取不到 GLOBAL.MUSHA_AltarRefillScroll（modmain 祭坛段没跑？）")
+            print("[Musha ERROR] musha_advance_altar: TUNING.MUSHA_ALTAR_REFILL 没挂上（modmain 祭坛段没跑？）")
         end
     end
 

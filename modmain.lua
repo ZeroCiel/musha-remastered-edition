@@ -777,11 +777,14 @@ Safe("祭坛占位", function()
 
     -- ★ 开坛补卷入口（scripts/prefabs/musha_advance_altar.lua 里 container.onopenfn 调这个）
     --   容器 + 开/关动作都在祭坛自己的 prefab 上（照 Musha-beta 的写法），这里只给它一个"后厨"函数
-    GLOBAL.MUSHA_AltarRefillScroll = RefillAltarScroll
+    --   ⚠️ 必须挂 TUNING，**不能挂 GLOBAL**：prefab 环境里 `GLOBAL` 是未声明的全局，
+    --      一读就被 scripts/strict.lua 抛 "variable 'GLOBAL' is not declared"（2026-09-17 实测崩过）
+    TUNING.MUSHA_ALTAR_REFILL = RefillAltarScroll
 
     -- ★ 接取入口（scripts/prefabs/musha_advance_scroll.lua 的"展开卷轴"调这个）
     --   返回 true = 已接取（调用方消耗卷轴）；false = 不消耗（原因已由台词说明）
-    GLOBAL.MUSHA_AltarUseScroll = function(doer)
+    --   ⚠️ 挂 TUNING 不挂 GLOBAL，原因同上（prefab 读 GLOBAL 会被 strict.lua 抛错）
+    TUNING.MUSHA_ALTAR_USE_SCROLL = function(doer)
         if doer == nil or not doer:IsValid() then return false end
         local target, reason = GetAdvanceTarget(doer)
         if target == nil then

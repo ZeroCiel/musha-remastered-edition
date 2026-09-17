@@ -2,7 +2,7 @@
 -- musha_advance_scroll.lua — 转职卷轴（2026-09-17 新建）
 -- 来源：右键【进阶祭坛】打开它 → 里面躺着这一卷 → 拿出来 → 右键"展开卷轴"接取转职任务
 -- 交互链：INVENTORY 右键 → MUSHA_UNROLL_SCROLL → musha_action:UseItem → OnUseScroll
---          → GLOBAL.MUSHA_AltarUseScroll(doer)（在 modmain 的祭坛段里定义）
+--          → TUNING.MUSHA_ALTAR_USE_SCROLL(doer)（在 modmain 的祭坛段里挂上）
 --          → 成功接取 → 消耗本卷；失败（没职业/已进阶/等级不够/已有任务）→ 台词说明 + 卷轴留在手里
 --
 -- ⚠️ 美术占位：现在用的是**原版莎草纸（papyrus）**的贴图 + 图标。
@@ -15,12 +15,13 @@ local assets =
     Asset("ANIM", "anim/papyrus.zip"),
 }
 
--- modmain 的祭坛段把接取逻辑挂在这里（跨文件调用：prefab 文件拿不到 modmain 的 local）
--- ⚠️ prefab 环境里 GLOBAL 可能取不到 → 用防御式取法，取不到就明着报错（别静默失败）
+-- modmain 的祭坛段把接取逻辑挂到 TUNING 上（跨文件调用：prefab 拿不到 modmain 的 local）
+-- ⚠️ **不能读 `GLOBAL`**：prefab 环境里 GLOBAL 是未声明的全局，一读就被 scripts/strict.lua
+--    抛 "variable 'GLOBAL' is not declared"（2026-09-17 实测崩过）。TUNING 是游戏注入的全局，两端都在。
 local function GetAltarAccept()
-    local g = GLOBAL
-    if g ~= nil and type(g.MUSHA_AltarUseScroll) == "function" then
-        return g.MUSHA_AltarUseScroll
+    local f = TUNING.MUSHA_ALTAR_USE_SCROLL
+    if type(f) == "function" then
+        return f
     end
     return nil
 end
@@ -40,7 +41,7 @@ local function OnUseScroll(inst, doer)
 
     local accept = GetAltarAccept()
     if accept == nil then
-        print("[Musha ERROR] musha_advance_scroll: 取不到 GLOBAL.MUSHA_AltarUseScroll（modmain 祭坛段没跑？）")
+        print("[Musha ERROR] musha_advance_scroll: TUNING.MUSHA_ALTAR_USE_SCROLL 没挂上（modmain 祭坛段没跑？）")
         if doer.components.talker then
             doer.components.talker:Say("卷轴上的咒文失效了……", 3)
         end
