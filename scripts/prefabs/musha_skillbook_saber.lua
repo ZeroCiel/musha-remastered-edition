@@ -25,6 +25,10 @@ end
 local HAS_ANIM = asset_exists("anim/musha_skillbook_saber.zip")
 local HAS_ICON = asset_exists("images/inventoryimages/musha_skillbook_saber.xml")
                  and asset_exists("images/inventoryimages/musha_skillbook_saber.tex")
+-- ★ 2026-09-17 发布前自检抓到：兜底包 `anim/musha_skillbook.zip` **本身就不存在**
+--   （老技能书从来只有图标、没有世界贴图）→ 原来那句无条件 Asset(...) 会让整个 mod 被禁。
+--   所以兜底也要先探。
+local HAS_FALLBACK_ANIM = asset_exists("anim/musha_skillbook.zip")
 
 if not (HAS_ANIM and HAS_ICON) then
     print("[Musha] 剑士技能书：专属素材还没打包，先借通用技能书（不会崩）。缺："
@@ -32,17 +36,15 @@ if not (HAS_ANIM and HAS_ICON) then
         .. (HAS_ICON and "" or " images/inventoryimages/musha_skillbook_saber.{xml,tex}"))
 end
 
-local BANK  = HAS_ANIM and "musha_skillbook_saber" or "musha_skillbook"
-local BUILD = HAS_ANIM and "musha_skillbook_saber" or "musha_skillbook"
+local USE_FALLBACK_ANIM = (not HAS_ANIM) and HAS_FALLBACK_ANIM
+local HAS_ANY_ANIM      = HAS_ANIM or USE_FALLBACK_ANIM
+local BANK  = HAS_ANIM and "musha_skillbook_saber" or (USE_FALLBACK_ANIM and "musha_skillbook" or nil)
+local BUILD = BANK
 
 local assets = HAS_ANIM and
 {
     Asset("ANIM", "anim/musha_skillbook_saber.zip"),
-} or
-{
-    -- 兜底：通用技能书的世界贴图（2026-05 就有，一直用着）
-    Asset("ANIM", "anim/musha_skillbook.zip"),
-}
+} or (USE_FALLBACK_ANIM and { Asset("ANIM", "anim/musha_skillbook.zip") } or {})
 
 if HAS_ICON then
     table.insert(assets, Asset("ATLAS", "images/inventoryimages/musha_skillbook_saber.xml"))
@@ -102,9 +104,12 @@ local function fn()
 
     MakeInventoryPhysics(inst)
 
-    inst.AnimState:SetBank(BANK)
-    inst.AnimState:SetBuild(BUILD)
-    inst.AnimState:PlayAnimation("idle")
+    -- 两个包都没有时**不能** SetBank（会 assert）→ 干脆不设，物品就是空白贴图（不崩）
+    if HAS_ANY_ANIM then
+        inst.AnimState:SetBank(BANK)
+        inst.AnimState:SetBuild(BUILD)
+        inst.AnimState:PlayAnimation("idle")
+    end
 
     inst:AddTag("musha_skillbook")
     inst:AddTag("musha_panel")      -- INVENTORY 右键 → MUSHA_OPEN_PANEL → musha_action:UseItem

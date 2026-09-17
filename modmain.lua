@@ -3,9 +3,15 @@
 -- 雪儿 (Ciel) © 2026
 -- ==========================================
 print("[Musha] ★ 模组开始加载...")
+-- ★ 2026-09-17 发布前清理：33 处 [Musha TRACE] 全部改走这个开关
+--   默认 false = 发布版日志安静；要定位闪退时改成 true，那 33 条追踪就全回来
+local MUSHA_TRACE = false
+local function TRACE(msg)
+    if MUSHA_TRACE then print(msg) end
+end
 
 -- print 追踪：闪退定位
-print("[Musha TRACE] 1 - modmain 开始")
+TRACE("[Musha TRACE] 1 - modmain 开始")
 
 -- 全局调试标记
 local DEBUG_MODE = false
@@ -39,13 +45,13 @@ print(string.format("[Musha] 环境: 服务器=%s 客户端=%s", tostring(is_ser
 -- =====================
 -- 设置全局环境访问
 -- =====================
-print("[Musha TRACE] 2 - setmetatable 前")
+TRACE("[Musha TRACE] 2 - setmetatable 前")
 GLOBAL.setmetatable(env, {
     __index = function(t, k)
         return GLOBAL.rawget(GLOBAL, k)
     end
 })
-print("[Musha TRACE] 3 - setmetatable 后")
+TRACE("[Musha TRACE] 3 - setmetatable 后")
 
 -- =====================
 -- 兼容 JSON 模块
@@ -265,24 +271,24 @@ end)
 -- =====================
 -- 聊天命令（职业面板）
 -- =====================
-print("[Musha TRACE] 4 - 聊天命令前")
+TRACE("[Musha TRACE] 4 - 聊天命令前")
 Safe("聊天命令", function()
     modimport "scripts/commands/musha_panel"
     print("[Musha] 聊天命令已加载")
 end)
-print("[Musha TRACE] 5 - 聊天命令后")
+TRACE("[Musha TRACE] 5 - 聊天命令后")
 
 -- =====================
 -- HUD 注册（便签 UI 等）
 -- =====================
-print("[Musha TRACE] 6 - HUD注册前")
+TRACE("[Musha TRACE] 6 - HUD注册前")
 Safe("HUD注册", function()
-    print("[Musha TRACE] 6.1 - HUD modimport 开始")
+    TRACE("[Musha TRACE] 6.1 - HUD modimport 开始")
     modimport "scripts/widgets/musha_note_registered"
-    print("[Musha TRACE] 6.2 - HUD modimport 完成")
+    TRACE("[Musha TRACE] 6.2 - HUD modimport 完成")
     print("[Musha] HUD 已注册")
 end)
-print("[Musha TRACE] 7 - HUD注册后")
+TRACE("[Musha TRACE] 7 - HUD注册后")
 
 -- =====================
 -- 职业面板注册
@@ -311,42 +317,42 @@ end)
 -- =====================
 -- 注册 Prefab
 -- =====================
-print("[Musha TRACE] 8 - PrefabFiles 前")
-PrefabFiles = {"musha_jobbook_warrior", "musha_jobbook_saber", "musha_skillbook", "musha_skillbook_saber", "musha_skill_scroll", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point"}
--- ⚠️ "musha_jobbook_saber" = **测试专用**（右键直通二转，跳过祭坛 3 轮任务）
---    上线前删除 3 处：这一项 + scripts/prefabs/musha_jobbook_saber.lua + STRINGS 的 MUSHA_JOBBOOK_SABER
-print("[Musha TRACE] 9 - PrefabFiles 后")
+TRACE("[Musha TRACE] 8 - PrefabFiles 前")
+PrefabFiles = {"musha_jobbook_warrior", "musha_skillbook", "musha_skillbook_saber", "musha_skill_scroll", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point"}
+-- ✅ 2026-09-17 发布前：测试专用 "musha_jobbook_saber" 已从 PrefabFiles 移除
+--    （3 处已处理：这里 + prefab 改名 ._bak + STRINGS 注释掉；要恢复测试把这三处改回来即可）
+TRACE("[Musha TRACE] 9 - PrefabFiles 后")
 print("[Musha] PrefabFiles 已设置")
-print("[Musha TRACE] 10 - AddModCharacter 前")
+TRACE("[Musha TRACE] 10 - AddModCharacter 前")
 
 AddMinimapAtlas("images/map_icons/musha.xml")
 AddModCharacter("musha", "FEMALE")
-print("[Musha TRACE] 11 - AddModCharacter 后")
+TRACE("[Musha TRACE] 11 - AddModCharacter 后")
 print("[Musha] 角色注册完成")
 
 -- =====================
 -- 玩家初始化
 -- =====================
-print("[Musha TRACE] 12 - 玩家初始化前")
+TRACE("[Musha TRACE] 12 - 玩家初始化前")
 Safe("玩家初始化", function()
     local function InitMushaPlayer(inst)
         if not GLOBAL.TheWorld or not GLOBAL.TheWorld.ismastersim then
             return
         end
-        print("[Musha TRACE] InitMushaPlayer 触发: " .. tostring(inst))
+        TRACE("[Musha TRACE] InitMushaPlayer 触发: " .. tostring(inst))
         if not inst:HasTag("musha") then
             return
         end
 
         local first_time = not inst.components.musha_profession_component
         if not inst.components.musha_profession_component then
-            print("[Musha TRACE] InitMushaPlayer 添加组件前")
+            TRACE("[Musha TRACE] InitMushaPlayer 添加组件前")
             inst:AddComponent("musha_profession_component")
-            print("[Musha TRACE] InitMushaPlayer + musha_profession_component")
+            TRACE("[Musha TRACE] InitMushaPlayer + musha_profession_component")
         end
         if not inst.components.musha_quest then
             inst:AddComponent("musha_quest")
-            print("[Musha TRACE] InitMushaPlayer + musha_quest")
+            TRACE("[Musha TRACE] InitMushaPlayer + musha_quest")
         end
         -- 局内设置（玩家级，随玩家存档）
         if not inst.components.musha_player_settings then
@@ -379,7 +385,7 @@ Safe("玩家初始化", function()
         print("[Musha] 玩家组件已添加: " .. tostring(inst) .. " (first=" .. tostring(first_time) .. ")")
     end
     AddPrefabPostInit("musha", InitMushaPlayer)
-    print("[Musha TRACE] 12.5 - AddPrefabPostInit('musha') 已注册")
+    TRACE("[Musha TRACE] 12.5 - AddPrefabPostInit('musha') 已注册")
 
     -- 世界级设置组件（随世界存档走）：世界 prefab 创建时就挂，
     -- 保证组件在存档 Load 阶段已存在，OnSave/OnLoad 才生效
@@ -391,14 +397,14 @@ Safe("玩家初始化", function()
     AddPrefabPostInit("world", AddWorldSettings)
     AddPrefabPostInit("forest", AddWorldSettings)
     AddPrefabPostInit("cave", AddWorldSettings)
-    print("[Musha TRACE] 12.6 - musha_world_settings 世界挂载已注册")
+    TRACE("[Musha TRACE] 12.6 - musha_world_settings 世界挂载已注册")
 end)
-print("[Musha TRACE] 13 - 玩家初始化后")
+TRACE("[Musha TRACE] 13 - 玩家初始化后")
 
 -- =====================
 -- 职业武器配方
 -- =====================
-print("[Musha TRACE] 14 - 武器配方前")
+TRACE("[Musha TRACE] 14 - 武器配方前")
 -- ★ 2026-09-16 用户拍板「不给剑配方」→ 整块注册取消（表留空，方便以后想给再加回来）
 --   注：旧代码那行配方写的是 Ingredient("ruby", 4) —— 原版没有 ruby 这个东西（原版是 redgem），
 --       所以就算留着也永远点不出来。要恢复的话记得把材料名改对。
@@ -489,11 +495,11 @@ AddRecipe2("musha_skill_scroll",
     { "CHARACTER" })
 print("[Musha] 技能卷轴配方已注册（莎草纸x2+蜘蛛丝x2 / 科学机器）")
 
-print("[Musha TRACE] 15 - 武器配方后/任务收集前")
+TRACE("[Musha TRACE] 15 - 武器配方后/任务收集前")
 -- =====================
 -- 任务收集监听
 -- =====================
-print("[Musha TRACE] 16 - 噩梦燃料监听前")
+TRACE("[Musha TRACE] 16 - 噩梦燃料监听前")
 Safe("噩梦燃料监听", function()
     AddPrefabPostInit("nightmarefuel", function(inst)
         if not TheWorld or not TheWorld.ismastersim then
@@ -566,7 +572,7 @@ end)
 -- =====================
 -- 发现检测
 -- =====================
-print("[Musha TRACE] 17 - 发现检测前")
+TRACE("[Musha TRACE] 17 - 发现检测前")
 Safe("发现检测", function()
     AddPlayerPostInit(function(inst)
         if not GLOBAL.TheWorld or not GLOBAL.TheWorld.ismastersim then
@@ -618,7 +624,7 @@ end)
 -- =====================
 -- 多语言
 -- =====================
-print("[Musha TRACE] 18 - 语言加载前")
+TRACE("[Musha TRACE] 18 - 语言加载前")
 Safe("语言加载", function()
     local loc = Profile and Profile:GetLanguageID()
     if loc == 21 or loc == 22 or loc == 23 then
@@ -660,7 +666,7 @@ end)
 -- =====================
 -- 技能数据
 -- =====================
-print("[Musha TRACE] 18.5 - 技能数据加载前")
+TRACE("[Musha TRACE] 18.5 - 技能数据加载前")
 Safe("技能数据", function()
     modimport "scripts/skills/musha_skill_data"
     print("[Musha] 技能数据已加载")
@@ -669,7 +675,7 @@ end)
 -- =====================
 -- 动作注册
 -- =====================
-print("[Musha TRACE] 19 - 动作注册前")
+TRACE("[Musha TRACE] 19 - 动作注册前")
 Safe("动作注册", function()
     modimport "scripts/actions/musha_actions"
     print("[Musha] 动作注册已加载")
@@ -678,7 +684,7 @@ end)
 -- =====================
 -- RPC 注册
 -- =====================
-print("[Musha TRACE] 19.5 - RPC 注册前")
+TRACE("[Musha TRACE] 19.5 - RPC 注册前")
 Safe("RPC注册", function()
     modimport "scripts/rpcs/musha_rpcs"
     print("[Musha] RPC 注册已加载")
@@ -688,7 +694,7 @@ end)
 -- 客机复制组件注册（必须在所有 AddComponent 之后）
 -- 缺这行 → 客户端没有 replica，面板 owner.replica.musha_profession_component 恒 nil → 不显示
 -- =====================
-print("[Musha TRACE] 19.6 - 客机复制组件注册前")
+TRACE("[Musha TRACE] 19.6 - 客机复制组件注册前")
 Safe("复制组件", function()
     AddReplicableComponent("musha_profession_component")
     print("[Musha] 客机复制组件已注册: musha_profession_component")
@@ -707,7 +713,7 @@ end)
 --   本段只留"后厨"：跨文件的补卷函数 / 接取函数（挂 GLOBAL，给 prefab 那边调）
 --   容器补卷规则：空坛 + 玩家【有基础职业 / 未进阶 / 身上没有没用掉的卷轴 / 无在跑任务】→ 补 1 卷
 -- =====================
-print("[Musha TRACE] 20.6 - 祭坛绑定前")
+TRACE("[Musha TRACE] 20.6 - 祭坛绑定前")
 Safe("祭坛占位", function()
     local BASE_TO_ADVANCE = {
         warrior = "saber",   -- 战士 → 剑士（多目标职业选择后续做）
@@ -856,12 +862,12 @@ Safe("祭坛占位", function()
     -- ⚠️ 旧占位兼容（statuemaxwell 麦斯威尔雕像当祭坛）**已删除**：
     --    容器不能挂在别人家建筑上；老存档里那座雕像现在就是普通雕像，重新打造一座进阶祭坛即可。
 end)
-print("[Musha TRACE] 20.7 - 祭坛占位后")
+TRACE("[Musha TRACE] 20.7 - 祭坛占位后")
 
 -- =====================
 -- 背刺判定 (Assassin Backstab)
 -- =====================
-print("[Musha TRACE] 20.5 - 背刺Hook前")
+TRACE("[Musha TRACE] 20.5 - 背刺Hook前")
 
 -- 判断攻击者是否在目标的背后
 local function IsBehindTarget(attacker, target)
