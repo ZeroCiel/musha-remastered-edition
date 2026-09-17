@@ -755,9 +755,13 @@ Safe("祭坛占位", function()
     end
 
     -- 玩家身上（背包）还有没展开的卷轴吗？→ 防止重复补卷
+    --   ⚠️ Inventory:FindItem(fn) 收的是**判断函数**，不是 prefab 名字符串（原版 inventory.lua:623）
     local function HasScrollOnPerson(doer)
         local inv = doer.components.inventory
-        return inv ~= nil and inv:FindItem("musha_advance_scroll") ~= nil
+        if inv == nil then return false end
+        return inv:FindItem(function(item)
+            return item ~= nil and item.prefab == "musha_advance_scroll"
+        end) ~= nil
     end
 
     -- ★ 打开祭坛时"发现里面的卷轴"：空坛 + 够资格 → 坛里补 1 卷
