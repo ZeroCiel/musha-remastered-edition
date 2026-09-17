@@ -15,9 +15,21 @@
     "exported/",
     "references/",
     "front/",
-    "musha-log-2026-09.md",
+    "*.md",
+    "README.md",
+    "panel-bg-redraw-spec.md",
+    "ui-redesign-plan.md",
+    "musha-backlog.md",
     "musha-current-state.md",
-    "musha-backlog.md"
+    "musha-dayrewards-plan.md",
+    "musha-design-equip-panel.md",
+    "musha-log-2026-09.md",
+    "musha-panel-tabs-and-settings-design.md",
+    "musha-rightclick-spec.md",
+    "musha-weapon-skill-plan.md",
+    "musha-部件总注释.md",
+    "musha-药剂师大锅-design.md",
+    "musha-职业估期与排期.md"
   ],
   "keep": []
 }
