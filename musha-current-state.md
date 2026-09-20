@@ -1471,3 +1471,18 @@ method 'RefreshSkill' (a nil value)`）。原因：面板里的方法真名是 *
 3. 顺带确认：容器**真格数 = 12**（`params.musha_mailbox` 没写 numslots → 取 `#slotpos` = 12），所以格子本身不会少
 遗留（与 #21 同源）：未解锁格的**叉号底图是静态的**（`musha_containers.lua:117-120` 按默认 3 格写死 slotbg）
 → 升到 5/7/9/12 后叉号不跟着退；要按用户口径（组件 + replica）做成 netvar + 客户端 containerwidget 重填。
+
+### ✅ 2026-09-21 02:xx 收件箱：叉号格随升级动态变化（任务 21 完成，用户说"一起吧"）
+口径落地（用户："容器图一旦要改变，必须从组件里改，还得是 replica"）：
+- **新组件 `scripts/components/musha_maillevel.lua`**：构造函数里建 `net_smallbyte(inst.GUID,
+  "musha_mailbox.unlocked", "musha_mailbox_unlocked_dirty")`，**双端都挂**（prefab 的 SetPristine 之前 AddComponent），
+  只有服务端能 `SetUnlocked()`，客户端 `GetUnlocked()` 读同步值（读不到/0 → 退 3）。
+  ⚠️ 为什么不用官方 replica：DST 的 replica 是**白名单制**（`entityreplica.lua` 的 REPLICATABLE_COMPONENTS
+  只认 builder/container/health/… 官方名）→ 第三方组件名进不去，所以用"组件双端 + netvar"等价实现。
+- `prefabs/musha_mailbox_shadow.lua`：SetPristine 前 AddComponent；建档 / OnPreLoad 恢复时都 `SetUnlocked`
+- `scripts/musha_mail.lua`：新增 `M.SetShadowUnlocked(shadow, n)`，**建档（:111）和升级（:175）都走它**（不再直接写裸字段）
+- `modmain.lua`：`AddClassPostConstruct("widgets/containerwidget")` 包住 `Open` → 若 container 带
+  `musha_mail_shadow` tag，就按组件的同步值重填每个 `slot.bgimage`（已解锁 = `images/hud.xml/inv_slot.tex`；
+  未解锁 = `images/musha_mail_x.xml`），并监听 `musha_mailbox_unlocked_dirty` 在开着时也重填。
+- 语法 74 文件全过；全局扫描仍只剩 TRACE 误报。
+- 待用户实测：升到 5/7/9/12 后**打开收件箱**看叉号是否跟着退（客机也要看），读完档再确认一次。

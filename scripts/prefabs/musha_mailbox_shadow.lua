@@ -27,6 +27,10 @@ local function fn()
     inst:AddComponent("container")
     inst.components.container:WidgetSetup("musha_mailbox")
 
+    -- ★ 已解锁格数：组件 + 网络变量（客户端要按真实值画叉号格）
+    --   用户口径「容器图一旦要改变，必须从组件里改，还得是 replica」→ 做法见组件注释
+    inst:AddComponent("musha_maillevel")
+
     inst.entity:SetPristine()
 
     if not TheWorld.ismastersim then
@@ -36,6 +40,7 @@ local function fn()
     -- ===== 服务端专用 =====
     inst.owner_userid = nil             -- 谁的收件箱（玩家 userid）
     inst.unlocked     = 3               -- 已解锁格数（3 起步，最高 12；2026-09-20 起 12 格全可用）
+    inst.components.musha_maillevel:SetUnlocked(inst.unlocked)   -- 建档时先把网络值推给客户端
 
     -- ⚠️⚠️ 这里**绝对不能**再写 `inst.components.container.itemtestfn = ...`
     --   原版 container.lua：`Container:WidgetSetup()` 里会把下面这些名字**锁成只读**：
@@ -72,6 +77,10 @@ local function fn()
         if data ~= nil then
             inst.owner_userid = data.owner_userid
             inst.unlocked     = data.unlocked or 3
+        end
+        -- 网络值也要跟着恢复（客户端按它画叉号格；_loading 期间先放行塞物品）
+        if inst.components.musha_maillevel ~= nil then
+            inst.components.musha_maillevel:SetUnlocked(inst.unlocked)
         end
     end
 
