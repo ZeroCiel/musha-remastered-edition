@@ -168,9 +168,14 @@ function MushaItemInfo:BuildLines(inst)
         --   ★ 预留接口：优先用"运行时算出来的最终伤害"（服务端权威，见 modmain 的 MushaGetLiveWeaponStats）；
         --     没有就走静态表的基础值（客户端读不到 weapon 组件的原因见文件头）
         local live = nil
+        -- ⚠️ 2026-09-21 修：这里原来读 `MUSHA_LIVE_STATS`，但**这个全局从头到尾没人定义过**
+        --    （全工程只有这处引用 + modmain 的一句注释）→ 裸读被 strict.lua 报"未声明变量"，
+        --    又被外面的 pcall 吞掉 → 这段功能一直是死的。
+        --    正确接法：直接调 modmain 里的 MushaGetLiveWeaponStats（服务端权威；客机上
+        --    weapon 组件为 nil 会返回 nil，自动退回静态表的基础值）。
         pcall(function()
-            if MUSHA_LIVE_STATS and MUSHA_LIVE_STATS.get then
-                live = MUSHA_LIVE_STATS.get(inst, ThePlayer)
+            if MushaGetLiveWeaponStats ~= nil then
+                live = MushaGetLiveWeaponStats(inst, ThePlayer)
             end
         end)
         if live and live.final then

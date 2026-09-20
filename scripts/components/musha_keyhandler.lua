@@ -6,6 +6,11 @@
 
 -- 默认按键绑定（通用 namespace: "musha_skill"）
 -- 玩家调用 ChangeKeybind 修改后存入本地配置
+-- ★ 2026-09-21：原版 constants.lua 里**没有** KEY_COMMA / KEY_QUOTE（只有 KEY_PERIOD=46、
+--   KEY_SLASH=47、KEY_SEMICOLON=59 这些）→ 裸用会让 strict.lua 直接报
+--   "variable 'KEY_COMMA' is not declared"。它俩是 SDL 标准键值，本地补上即可。
+local KEY_COMMA = 44
+local KEY_QUOTE = 39
 local DEFAULT_KEYBINDS = {
     -- 技能快捷键（1-5）
     skill_1 = KEY_1,
@@ -159,8 +164,9 @@ function KeyHandler:StartListeningForBind(callback)
     self._bind_listener = TheInput:AddKeyHandler(function(key, down)
         if not down then return end  -- 按下瞬间触发
 
-        -- 跳过鼠标按键
-        if key >= MOUSEBUTTON_LEFT and key <= MOUSEBUTTON_LAST then return end
+        -- 跳过鼠标按键（鼠标键值都 ≥ MOUSEBUTTON_LEFT=1000）
+        --   ⚠️ 原版 constants.lua 里**没有 MOUSEBUTTON_LAST** → 写它会 strict.lua 报未声明变量
+        if key >= MOUSEBUTTON_LEFT then return end
 
         -- 查找这个键当前绑定了什么动作
         local old_action = self:GetActionForKey(key)

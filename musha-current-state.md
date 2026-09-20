@@ -1440,3 +1440,19 @@ method 'RefreshSkill' (a nil value)`）。原因：面板里的方法真名是 *
 | 22 | 用户口径（2026-09-21）：**容器图一旦要改，必须从组件里改，而且必须是 replica** —— 照他 musha 3.0 / 北欧神话（`references/norse_mythology_portablepot.lua`，用 `fueled:GetCurrentSection()` 分档驱动 `PlayAnimation(anim..level)`）那套「强化」写法：**等级存组件、表现由等级驱动、客户端读 replica** | 口径 | 已记 |
 | 23 | 头发要加一层**厚厚的黑边**（美术层，他管） | 用户/美术 | 待 |
 | 24 | 「想要在信箱里改图」+「常规首段目前没有」（**含义待确认**：我理解为信箱页要能放插图、且引导/常规版首段文案还缺） | 待定 | 待确认 |
+
+### ★ 2026-09-21 02:xx 修：技能页崩溃（用户截图报错）+ 全工程「未声明全局」扫查
+用户截图报错：`musha_skill_tree.lua:189: variable 'CONTROL_SCROLLFORWARD' is not declared`
+→ 原版常量叫 **CONTROL_SCROLLFWD**（constants.lua:149 = 32；SCROLLBACK = 31）。写错 → 技能页里**任何一次按键/滚轮**都会崩。
+修完顺手写了个扫描脚本 `~/musha_globals_check.py`（查「裸读的、全工程没人定义的 ALL_CAPS 全局」= strict.lua 必报的那类），
+又揪出 2 个同类隐患，一并修掉：
+| 文件 | 问题 | 修法 |
+|---|---|---|
+| `scripts/widgets/musha_skill_tree.lua:189` | `CONTROL_SCROLLFORWARD` 不存在 | 改 `CONTROL_SCROLLFWD` |
+| `scripts/components/musha_keyhandler.lua` | `KEY_COMMA`/`KEY_QUOTE` 原版**没有**（只有 PERIOD/SLASH/SEMICOLON）；`MOUSEBUTTON_LAST` 也没有 | 本地补 `local KEY_COMMA=44 / KEY_QUOTE=39`；鼠标判断改 `key >= MOUSEBUTTON_LEFT` |
+| `scripts/widgets/musha_item_info.lua:172` | 裸读 `MUSHA_LIVE_STATS` —— **这个全局全工程从未定义**（只有这处 + modmain 一句注释）→ 被 pcall 吞掉，武器「最终伤害」一直是死的 | 改调 modmain 的 `MushaGetLiveWeaponStats(inst, ThePlayer)`（主机会显示实时最终伤害；客机 weapon 组件为 nil 自动退回静态表） |
+- 语法 73 文件全过；全局扫描现在只剩 `modmain.lua -> TRACE`（误报：`local function TRACE`）。
+- ⚠️ 改完**必须重启游戏**（不是重进世界）。
+- 待确认（用户 09-21 口述，未回话）：技能页「红框不该显示」、「文字要鼠标移上去才看得见 很奇怪」、
+  「横排文字显示方式错了（他说他自己弄）」。游戏里现有三处框：节点描边（灰/金/选中深橙）、右栏详情外描边（灰）、加点按钮粉框
+  —— 没有红色框，怀疑他指的是 ChatGPT 稿里那个红框或选中态深橙框，等他指认。

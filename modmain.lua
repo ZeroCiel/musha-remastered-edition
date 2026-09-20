@@ -118,6 +118,62 @@ Safe("导航图标 assets", function()
     print("[Musha] 导航图标 assets 注册: " .. #NAVICON .. " 张")
 end)
 
+-- ★ 2026-09-19 技能图标（用户给的 128x128）—— images/skill_icons/<技能id>.{png,xml,tex}
+--   做法同导航图标：清单在 scripts/musha_skill_icons.lua（唯一真源）
+--   自检：**只注册已经转好 tex/xml 的那几张**（缺的不写进 Assets，绝不 assert 崩 mod）；
+--        已注册的 id 挂到 TUNING.MUSHA_SKILL_ICONS → 技能树/技能页只给这些画图标，其余退回占位
+Safe("技能图标 assets", function()
+    local function SoftExists(path)
+        local f = rawget(_G, "softresolvefilepath")
+        if f == nil then return false end
+        local ok, r = pcall(f, path)
+        return ok and r ~= nil
+    end
+    local ids = require("musha_skill_icons")
+    local registered = {}
+    for _, id in ipairs(ids) do
+        local xml = "images/skill_icons/" .. id .. ".xml"
+        local tex = "images/skill_icons/" .. id .. ".tex"
+        if SoftExists(xml) and SoftExists(tex) then
+            table.insert(Assets, Asset("ATLAS", xml))
+            table.insert(Assets, Asset("IMAGE", tex))
+            table.insert(registered, id)
+        end
+    end
+    TUNING.MUSHA_SKILL_ICONS = registered
+    print("[Musha] 技能图标 assets 注册: " .. #registered .. " / " .. #ids .. " 张（缺的等 Mod Tool 转 tex）")
+end)
+
+-- ★ 2026-09-20 物品图标图集：全局声明进 mod 的 Assets（清单唯一真源 scripts/musha_item_icons.lua）
+--   为什么：Too Many Items(TMI+) 这类辅助 mod 是这样找物品贴图的 ——
+--     ① 扫"所有启用 mod 的 mod 级 Assets"，把所有含 ".xml" 的路径收进一张表；
+--     ② 拿到物品名后，用 TheSim:AtlasContains(xml路径, "<物品名>.tex") 逐个试，命中即用。
+--   → 所以物品图标图集**必须在 mod 级 Assets 里声明**，
+--     只在各自 prefab 的 assets 里声明，TMI 是扫不到的（图标就不显示）。
+--   → 顺带好处：纯客户端也一定提前加载到这些图集。
+--   规则：图标里的元素名必须 == prefab 名（musha_mailbox.xml 里得是 musha_mailbox.tex）。
+--   自检：只登记 xml+tex **都真实存在**的那几套，缺的跳过（绝不往 Assets 里写不存在的文件 → 会 assert 崩 mod）。
+Safe("物品图标 assets", function()
+    local function SoftExists(path)
+        local f = rawget(_G, "softresolvefilepath")
+        if f == nil then return false end
+        local ok, r = pcall(f, path)
+        return ok and r ~= nil
+    end
+    local ids = require("musha_item_icons")
+    local registered = 0
+    for _, id in ipairs(ids) do
+        local xml = "images/inventoryimages/" .. id .. ".xml"
+        local tex = "images/inventoryimages/" .. id .. ".tex"
+        if SoftExists(xml) and SoftExists(tex) then
+            table.insert(Assets, Asset("ATLAS", xml))
+            table.insert(Assets, Asset("IMAGE", tex))
+            registered = registered + 1
+        end
+    end
+    print("[Musha] 物品图标 assets 注册: " .. registered .. " / " .. #ids .. " 张（TMI 兼容）")
+end)
+
 -- 能量条动画（2026-09-13）—— 挂同名的 prefab assets 之外这里再声明一次，
 --   保证纯客户端（别人开 musha 角色时）也一定加载到这个 build
 table.insert(Assets, Asset("ANIM", "anim/energy.zip"))
@@ -318,7 +374,13 @@ end)
 -- 注册 Prefab
 -- =====================
 TRACE("[Musha TRACE] 8 - PrefabFiles 前")
-PrefabFiles = {"musha_jobbook_warrior", "musha_skillbook", "musha_skillbook_saber", "musha_skill_scroll", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point"}
+PrefabFiles = {"musha_jobbook_warrior", "musha_skillbook", "musha_skillbook_saber", "musha_skill_scroll", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point", "musha_crest_saber", "musha_crest_guardian", "musha_mailbox", "musha_mailbox_shadow", "musha_mailbag", "musha_mailkit_1", "musha_mailkit_2", "musha_mailkit_3", "musha_mailkit_4", "musha_recall_stone"}
+-- ★ 2026-09-19 新增：信箱 + 信差包（邮包系统）
+--   实现：scripts/musha_mail.lua（共用）+ prefabs/musha_mailbox*.lua + prefabs/musha_mailbag.lua
+--        + components/musha_mail.lua（挂玩家身上）；容器参数在 scripts/musha_containers.lua
+--   升级套件（3→5→7→9→11 格）：scripts/musha_mailkit.lua（共用）+ prefabs/musha_mailkit_{1..4}.lua
+-- ★ 2026-09-18 新增：进阶方向徽记（就职仪式发两枚，用掉一枚 = 选定剑士/近卫方向）
+-- 实现：scripts/musha_crest.lua（共用）+ scripts/prefabs/musha_crest_{saber,guardian}.lua
 -- ✅ 2026-09-17 发布前：测试专用 "musha_jobbook_saber" 已从 PrefabFiles 移除
 --    （3 处已处理：这里 + prefab 改名 ._bak + STRINGS 注释掉；要恢复测试把这三处改回来即可）
 TRACE("[Musha TRACE] 9 - PrefabFiles 后")
@@ -382,10 +444,53 @@ Safe("玩家初始化", function()
                 end
             end)
         end
+        -- 信箱 / 信差包（2026-09-19）：邮包系统挂在玩家身上
+        if not inst.components.musha_mail then
+            inst:AddComponent("musha_mail")
+            TRACE("[Musha TRACE] InitMushaPlayer + musha_mail")
+        end
         print("[Musha] 玩家组件已添加: " .. tostring(inst) .. " (first=" .. tostring(first_time) .. ")")
     end
     AddPrefabPostInit("musha", InitMushaPlayer)
     TRACE("[Musha TRACE] 12.5 - AddPrefabPostInit('musha') 已注册")
+
+    -- ★ 2026-09-19 邮包系统：**所有玩家**都挂（不只 musha），否则客机/其他角色摸信箱摸不动
+    -- ★ 2026-09-20 用户定案：信差包 = **出生自带**（跟便签一套：prefabs/musha.lua 的 starting_inventory），
+    --   所以这里不自动发；没包的人（老玩家 / 死了丢了）= 走配方合成，想要的人让 musha 给他做。
+    --   下面这套是**全服自动补发**的备用开关（一人一次：标记存 musha_mail 的存档字段 starter_bag，
+    --   老存档没这字段会补发一次）；当前 false = 谁也不发。
+    local GIVE_STARTER_MAILBAG = false
+
+    local function InitMushaMail(inst)
+        if inst.components.musha_mail == nil then
+            inst:AddComponent("musha_mail")
+        end
+        -- ★ 客机进游戏时拉一次职业数据：
+        --   光标上的动作名（触摸/触摸（绑定）/触摸（打开）/升级）读的是客户端的 cached_data，
+        --   之前只有"开一次 musha 面板"才会推 → 重进世界后动作名会一直显示成旧状态。
+        --   这里开局拉一次，绑定状态当场就是准的。（没有职业组件的角色忽略）
+        if TheNet ~= nil and TheNet:GetIsClient() and inst == ThePlayer then
+            inst:DoTaskInTime(2, function()
+                if inst == nil or not inst:IsValid() then return end
+                pcall(function()
+                    local rpc = GetModRPC("musha", "musha_request_settings")
+                    if rpc ~= nil then SendModRPCToServer(rpc) end
+                end)
+            end)
+        end
+        if not GIVE_STARTER_MAILBAG then return end
+        -- 延迟 0.5s：玩家实体读档时组件的 OnLoad 在构造之后才跑，等它跑完再判"有没有发过"
+        inst:DoTaskInTime(0.5, function()
+            if inst == nil or not inst:IsValid() then return end
+            if not TheWorld.ismastersim then return end
+            local mc = inst.components.musha_mail
+            if mc ~= nil and mc.GrantStarterBag ~= nil then
+                pcall(function() mc:GrantStarterBag() end)
+            end
+        end)
+    end
+    AddPlayerPostInit(InitMushaMail)
+    TRACE("[Musha TRACE] 12.7 - AddPlayerPostInit(musha_mail) 已注册")
 
     -- 世界级设置组件（随世界存档走）：世界 prefab 创建时就挂，
     -- 保证组件在存档 Load 阶段已存在，OnSave/OnLoad 才生效
@@ -423,7 +528,7 @@ print("[Musha] 武器配方已注册（当前 0 条：用户要求不给剑配�
 -- =====================
 -- 转职建筑（进阶祭坛）配方 —— 方案 A（用户 2026-09-12 拍板）
 --   石块12 + 木头8 + 金块6 + 硝石2 ｜ 科学机器解锁 ｜ 挖矿砍树顺手就有（5 天内绝对够）
---   ⚠️ 图标暂用 musha_note 占位 —— 美术待补真祭坛图标（换图只需改下面 atlas/image 两行）
+--   ✅ 图标已补：images/inventoryimages/musha_advance_altar.png（2026-09-20，祭坛本体缩的 64²）
 --   placer 在 scripts/prefabs/musha_advance_altar.lua 里 MakePlacer 生成
 -- =====================
 AddRecipe2("musha_advance_altar",
@@ -437,12 +542,76 @@ AddRecipe2("musha_advance_altar",
     {
         placer = "musha_advance_altar_placer",
         min_spacing = 3,
-        atlas = "images/inventoryimages/musha_note.xml",
-        image = "musha_note.tex",
+        atlas = "images/inventoryimages/musha_advance_altar.xml",   -- ★ 2026-09-20 换成真祭坛图标
+        image = "musha_advance_altar.tex",                            --   （旧占位 musha_note 已作废）
         builder_tag = "musha",
     },
     { "CHARACTER" })
 print("[Musha] 进阶祭坛配方已注册（石块12+木头8+金块6+硝石2 / 科学机器）")
+
+-- =====================
+-- 信箱配方（2026-09-19，邮包系统）—— 材料我拍的，用户还没定，随时改
+--   木板4 + 草8 + 金块2 ｜ 科学机器 ｜ placer 在 prefabs/musha_mailbox.lua 里生成
+--   ✅ 图标已补（2026-09-20）：images/inventoryimages/musha_mailbox.png（信箱本体缩的 64²）
+-- =====================
+AddRecipe2("musha_mailbox",
+    {
+        Ingredient("boards", 4),
+        Ingredient("cutgrass", 8),
+        Ingredient("goldnugget", 2),
+    },
+    GLOBAL.TECH.SCIENCE_ONE,
+    {
+        placer = "musha_mailbox_placer",
+        min_spacing = 2,
+        atlas = "images/inventoryimages/musha_mailbox.xml",   -- ★ 2026-09-20 真信箱图标（旧 papyrus 占位作废）
+        image = "musha_mailbox.tex",
+        builder_tag = "musha",
+    },
+    { "CHARACTER" })
+-- =====================
+-- 信差包配方（★ 2026-09-20 用户问"配方给了吗" → 之前**根本没有配方**，包只能靠送）
+--   草8 + 木板2 + 蜘蛛丝2 ｜ 科学机器 ｜ CHARACTER 页
+--   材料是拍的（和信箱同一档"手边就有"），要改就改这几行
+--   没加 builder_tag → 谁都能做（邮包系统对所有玩家开放）；要像信箱那样只让 musha 做，加回 builder_tag = "musha"
+-- =====================
+AddRecipe2("musha_mailbag",
+    {
+        Ingredient("cutgrass", 8),
+        Ingredient("boards", 2),
+        Ingredient("silk", 2),
+    },
+    GLOBAL.TECH.SCIENCE_ONE,
+    {
+        atlas = "images/inventoryimages/musha_mailbag.xml",
+        image = "musha_mailbag.tex",
+    },
+    { "CHARACTER" })
+print("[Musha] 信差包配方已注册（草8+木板2+蜘蛛丝2 / 科学机器 / 谁都能做）")
+
+print("[Musha] 信箱配方已注册（木板4+草8+金块2 / 科学机器；图标已换真信箱图）")
+
+-- =====================
+-- 邮包升级套件配方（2026-09-19）—— 用户拍板"做成套件，拿着它右键信箱 = 升级"
+--   消耗表来自用户：5 木板 → 10 木板 → 20 木板 → 20 木板 + 2 宝石
+--   （木板到 20 封顶，之后每档额外加 2 颗宝石）
+--   ⚠️ 第 12 格（同材料只 +1 格）用户说"放到以后做" → 现在最高就是 11 格
+--   ⚠️ 图标/地上贴图暂无 → 借原版莎草纸占位（见 musha_mailkit.lua 的素材自检）
+-- =====================
+local MAILKIT_RECIPES = {
+    { "musha_mailkit_1", { Ingredient("boards", 5) },                      GLOBAL.TECH.SCIENCE_ONE },
+    { "musha_mailkit_2", { Ingredient("boards", 10) },                     GLOBAL.TECH.SCIENCE_ONE },
+    { "musha_mailkit_3", { Ingredient("boards", 20) },                     GLOBAL.TECH.SCIENCE_ONE },
+    { "musha_mailkit_4", { Ingredient("boards", 20), Ingredient("redgem", 2) }, GLOBAL.TECH.SCIENCE_TWO },
+}
+for _, def in ipairs(MAILKIT_RECIPES) do
+    AddRecipe2(def[1], def[2], def[3], {
+        atlas = "images/inventoryimages.xml",
+        image = "papyrus.tex",
+        builder_tag = "musha",
+    }, { "CHARACTER" })
+end
+print("[Musha] 邮包升级套件配方已注册（木板5 / 10 / 20 / 20+红宝石2）")
 
 -- =====================
 -- 基础职业书配方（一转前置）—— 用户 2026-09-12：8 个草
@@ -494,6 +663,49 @@ AddRecipe2("musha_skill_scroll",
     },
     { "CHARACTER" })
 print("[Musha] 技能卷轴配方已注册（莎草纸x2+蜘蛛丝x2 / 科学机器）")
+
+-- =====================
+-- 回城石配方（★ 2026-09-20 用户需求）
+--   用户原话："配方 绿宝石或者红宝石 + 2 个金子，其余的写任意"
+--   · "或者"怎么实现：DST 的合成原料是**按 prefab 名精确匹配**的
+--     （Container:GetCraftingIngredient 是 `v.prefab == item`，不吃 tag）→ 不能写"任一宝石"
+--     ⇒ 做成**两条配方**：红宝石版 + 绿宝石版，两条都产出 musha_recall_stone
+--       （第二条靠 config.product 覆盖产物，见 recipe.lua:98 `self.product = product or name`）
+--   · "其余的写任意"→ 我挑的：石头 x10（基础料）+ 炼金引擎（有宝石的东西放二本）
+--   · 没加 builder_tag → 谁都能做（要只让 musha 做，加 builder_tag = "musha"）
+--   图标：专属图还没出 → 先借原版红宝石图标（images/inventoryimages.xml / redgem.tex）
+-- =====================
+local RECALL_ICON = MushaAssetExists("images/inventoryimages/musha_recall_stone.xml")
+    and { atlas = "images/inventoryimages/musha_recall_stone.xml", image = "musha_recall_stone.tex" }
+    or  { atlas = "images/inventoryimages.xml",                    image = "redgem.tex" }
+
+AddRecipe2("musha_recall_stone",
+    {
+        Ingredient("redgem", 1),
+        Ingredient("goldnugget", 2),
+        Ingredient("rocks", 10),
+    },
+    GLOBAL.TECH.SCIENCE_TWO,
+    {
+        atlas = RECALL_ICON.atlas,
+        image = RECALL_ICON.image,
+    },
+    { "CHARACTER" })
+
+AddRecipe2("musha_recall_stone_green",
+    {
+        Ingredient("greengem", 1),
+        Ingredient("goldnugget", 2),
+        Ingredient("rocks", 10),
+    },
+    GLOBAL.TECH.SCIENCE_TWO,
+    {
+        product = "musha_recall_stone",        -- ★ 产物还是回城石（recipe.lua:98 支持）
+        atlas = RECALL_ICON.atlas,
+        image = RECALL_ICON.image,
+    },
+    { "CHARACTER" })
+print("[Musha] 回城石配方已注册（红宝石x1 或 绿宝石x1 + 金块x2 + 石头x10 / 炼金引擎 / 谁都能做）")
 
 TRACE("[Musha TRACE] 15 - 武器配方后/任务收集前")
 -- =====================
@@ -988,8 +1200,10 @@ end)
 --   现状（2026-09-12）：只留接口 + 静态表兜底，显示层已经接好：
 --     1) 服务端：装备/技能变化时调下面这个函数，把结果存进 pc.userdata（如 d.weapon）
 --     2) 同步：**复用** PushSettings() 的 userdata 通道 → 面板/悬停两边都能读到（不用新开网络变量）
---     3) 客机：`scripts/widgets/musha_item_info.lua` 里会优先读 `MUSHA_LIVE_STATS.get(item, viewer)`，
+--     3) 客机：`scripts/widgets/musha_item_info.lua` 会调 `MushaGetLiveWeaponStats(item, viewer)`，
 --        读不到就退回 scripts/musha_item_stats.lua 里的基础值
+--        （★ 2026-09-21 更正：原来注释里写的 `MUSHA_LIVE_STATS.get(...)` 那个全局从未定义过，
+--          是死代码，已改成直接调本函数）
 -- =====================
 function MushaGetLiveWeaponStats(item, viewer)
     if not item or not item.components or not viewer or not viewer.IsValid or not viewer:IsValid() then
