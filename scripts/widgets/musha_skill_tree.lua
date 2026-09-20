@@ -64,6 +64,25 @@ local function MakeText(parent, size, str, colour, x, y)
     return t
 end
 
+-- 中文按字数折行（DST 的 Text 不自动换行 → 手动插 \n；UTF-8 逐字取）
+local function WrapText(str, per)
+    str = tostring(str or "")
+    local out, line, cnt = {}, "", 0
+    for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
+        if ch == "\n" then
+            table.insert(out, line); line, cnt = "", 0
+        else
+            line = line .. ch
+            cnt = cnt + 1
+            if cnt >= per then
+                table.insert(out, line); line, cnt = "", 0
+            end
+        end
+    end
+    if line ~= "" then table.insert(out, line) end
+    return table.concat(out, "\n")
+end
+
 local MushaSkillTree = Class(Widget, function(self, opts)
     Widget._ctor(self, "MushaSkillTree")
     opts = opts or {}
@@ -339,10 +358,41 @@ function MushaSkillTree:SetSkills(list)
                 MakeText(node, 18, "满", C_GOLD_TXT, -NODE / 2 + 13, NODE / 2 - 10)
             end
 
-            -- 悬停一句话（详细内容点开看右边详情）
-            local tip = string.format("%s（%d/%d）", tostring(e.name or e.key), e.cur or 0, e.max or 0)
-            if (e.tip or "") ~= "" then tip = tip .. "\n" .. e.tip end
-            node:SetTooltip(tip)
+            -- ★ 2026-09-21 用户口径：**鼠标移到图标上 → 用原版 SetHoverText 出信息**
+            --   （跟 beta 版 MushaLevel_UI.lua 一个写法：widget 自带方法，widget.lua:708）
+            --   内容跟右栏详情同一套：名字/树·等级、当前、下一级、条件、（tip）
+            local hl = {}
+            table.insert(hl, string.format("%s（%s · %d/%d）",
+                tostring(e.name or e.key or "?"),
+                (e.tree_name ~= nil and e.tree_name ~= "") and e.tree_name or tostring(e.tree or ""),
+                e.cur or 0, e.max or 0))
+            if (e.cur or 0) > 0 then
+                table.insert(hl, "当前：" .. (((e.effect or "") ~= "") and e.effect or "—"))
+            else
+                table.insert(hl, "当前：未学习")
+            end
+            if e.maxed then
+                table.insert(hl, "已满级")
+            else
+                table.insert(hl, "下一级：" .. (((e.nextfx or "") ~= "") and e.nextfx or "—"))
+            end
+            local need = {}
+            if (e.req or 0) > 0 then table.insert(need, string.format("角色等级 %d", e.req)) end
+            if (e.book_lock or 0) > 0 then
+                table.insert(need, string.format("%d 本技能书", e.book_lock))
+            elseif not e.maxed then
+                table.insert(need, string.format("%d 技能点", e.cost or 1))
+            end
+            if e.pre and #e.pre > 0 then
+                local ps = {}
+                for _, p in ipairs(e.pre) do
+                    table.insert(ps, string.format("%s %d/%d", p.name, p.cur or 0, p.need or 1))
+                end
+                table.insert(need, "前置：" .. table.concat(ps, "、"))
+            end
+            if #need > 0 then table.insert(hl, "条件：" .. table.concat(need, " · ")) end
+            if (e.tip or "") ~= "" then table.insert(hl, e.tip) end
+            local hover_txt = WrapText(table.concat(hl, "\n"), 13)
 
             -- 点击 = 选中（加点在右栏详情里的按钮上，防误点）
             local btn = node:AddChild(ImageButton("images/global.xml", "square.tex"))
@@ -356,6 +406,15 @@ function MushaSkillTree:SetSkills(list)
             btn:SetImageFocusColour(1, 1, 1, 0.08)
             if btn.image then btn.image:SetTint(1, 1, 1, 0) end
             btn:SetOnClick(function() self:Select(e.id, true) end)
+
+            -- 悬停出信息：**原版 SetHoverText**（widget.lua:708）——比 SetTooltip 轻、跟随鼠标位置，
+            --   写法跟 beta 版 MushaLevel_UI.lua 一致（那边也是 icon:SetHoverText(text)）
+            --   ⚠️ 必须挂在**能获得焦点**的 widget 上（这里是盖住节点的 ImageButton），挂纯 Widget 上不会触发
+            btn:SetHoverText(hover_txt, {
+                font_size = 20,
+                region_w  = 300,
+                offset_y  = -NODE / 2 - 10,     -- 默认 +26 会盖住图标 → 往下放到节点外侧
+            })
 
             node._entry = e
             self.nodes[e.id]   = node
