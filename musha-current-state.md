@@ -1434,3 +1434,9 @@ method 'RefreshSkill' (a nil value)`）。原因：面板里的方法真名是 *
 | 16 | 近卫 P1+P3（钢铁意志口径 #4 / 生命偷取重复 #10 / 盾·嘲讽·反击 25%·400 血·无硬直） | 我 | 待开工 |
 | 17 | 面板「两条树都打锁」（未选方向时同时列剑士/近卫） | 我 | 待做 |
 | 18 | 游戏内测脸调试（强制 face-5 / face-7 笑表情） | 我 | 待做（用户点名要） |
+| 19 | 回城石专属素材**已到位且名字全对**（`anim/musha_recall_stone.zip` = bank/build `musha_recall_stone` + anim `idle`；图标 `musha_recall_stone.xml` 元素名对）→ 只需**重启游戏**；仍不换再看日志 | 用户重启 / 我查日志 | 待确认 |
+| 20 | 信箱升级：**套件放在「背包」容器里时 `M.FindKit` 扫不到**（`scripts/musha_mail.lua:59-72` 只 `inv:ForEachItem` 主物品栏 15 格 + 手，不扫穿戴背包容器）→ 右键信箱不变成「升级」 | 我 | 待修 |
+| 21 | 升级后**容器图/叉号不更新**：方案已写在 `scripts/musha_containers.lua:137-149`（shadow 的 `unlocked` 走 netvar + 客户端 `AddClassPostConstruct("widgets/containerwidget")` 按真实 unlocked 重填槽底图） | 我 | 待做 |
+| 22 | 用户口径（2026-09-21）：**容器图一旦要改，必须从组件里改，而且必须是 replica** —— 照他 musha 3.0 / 北欧神话（`references/norse_mythology_portablepot.lua`，用 `fueled:GetCurrentSection()` 分档驱动 `PlayAnimation(anim..level)`）那套「强化」写法：**等级存组件、表现由等级驱动、客户端读 replica** | 口径 | 已记 |
+| 23 | 头发要加一层**厚厚的黑边**（美术层，他管） | 用户/美术 | 待 |
+| 24 | 「想要在信箱里改图」+「常规首段目前没有」（**含义待确认**：我理解为信箱页要能放插图、且引导/常规版首段文案还缺） | 待定 | 待确认 |
