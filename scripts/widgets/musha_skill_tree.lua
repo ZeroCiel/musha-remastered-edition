@@ -272,8 +272,8 @@ function MushaSkillTree:SetSkills(list)
         bg:SetSize(w, h)
         bg:SetPosition(x0, y0)
         bg:SetTint(1, 1, 1, 0.5)
-        MakeText(self.canvas, 24, (g[1] and g[1].tree_name) or t, { 0.42, 0.34, 0.24, 1 },
-            PAD + (tree_offx[t] or 0) * COL_DX + NODE / 2, 16)
+        -- ★ 2026-09-21 用户：「左边的横排 不显示职业名称的字 如 战士…等」→ 组标题不画了
+        --   （树与树之间的分隔只靠这块淡底 + 空一列 GAP_COL，不再写"战士/剑士"）
     end
 
     -- ③ 连线（画在节点下面）
@@ -362,10 +362,9 @@ function MushaSkillTree:SetSkills(list)
             --   （跟 beta 版 MushaLevel_UI.lua 一个写法：widget 自带方法，widget.lua:708）
             --   内容跟右栏详情同一套：名字/树·等级、当前、下一级、条件、（tip）
             local hl = {}
-            table.insert(hl, string.format("%s（%s · %d/%d）",
-                tostring(e.name or e.key or "?"),
-                (e.tree_name ~= nil and e.tree_name ~= "") and e.tree_name or tostring(e.tree or ""),
-                e.cur or 0, e.max or 0))
+            -- 第一行：技能名（当前/上限）—— 按用户 2026-09-21 口径：**不显示职业名**
+            table.insert(hl, string.format("%s（%d/%d）",
+                tostring(e.name or e.key or "?"), e.cur or 0, e.max or 0))
             if (e.cur or 0) > 0 then
                 table.insert(hl, "当前：" .. (((e.effect or "") ~= "") and e.effect or "—"))
             else

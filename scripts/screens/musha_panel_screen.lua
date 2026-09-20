@@ -878,13 +878,8 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             row.t_l3_tip = SkillText(row, 18, -58, "", 0.52, 0.46, 0.38)
             row.t_l3_next = SkillText(row, 22, -58, "", 0.52, 0.30, 0.36)
 
-            -- ★ 2026-09-21 用户口径：说明**不直接写在框里**，鼠标悬停整行才高亮显示
-            --   （他喜欢彩虹岛 / 旧版 musha 那种 hover 高亮出字的味道）
-            --   → 四行说明默认 Hide，apply_fn 只负责填字 + 记「该显哪一行第三行」(row._l3)
-            row.t_l1:Hide()
-            row.t_l2:Hide()
-            row.t_l3_tip:Hide()
-            row.t_l3_next:Hide()
+            -- ★★ 2026-09-21 用户改口：说明**常显**（原来只在悬停时出现 → 他："恢复鼠标不在上面也可显示"）
+            --   → 四行说明一直显示；悬停只把卡片提亮一档（SetHover 只管 tint，不再控制可见性）
             row.hovered = false
             row._l3 = "tip"
 
@@ -897,20 +892,12 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                         r.card:SetTint(1.000, 0.995, 0.985, 0.95)
                     end
                 end
-                if r.hovered then
-                    r.t_l1:Show()
-                    r.t_l2:Show()
-                    if r._l3 == "next" then
-                        r.t_l3_next:Show()
-                        r.t_l3_tip:Hide()
-                    else
-                        r.t_l3_tip:Show()
-                        r.t_l3_next:Hide()
-                    end
-                else
-                    r.t_l1:Hide()
-                    r.t_l2:Hide()
+                -- 第三行两套字号：按 _l3 决定显哪一条（与悬停无关）
+                if r._l3 == "next" then
+                    r.t_l3_next:Show()
                     r.t_l3_tip:Hide()
+                else
+                    r.t_l3_tip:Show()
                     r.t_l3_next:Hide()
                 end
             end
