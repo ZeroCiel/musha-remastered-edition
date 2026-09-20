@@ -54,6 +54,17 @@ local BG_W = 1232
 local BG_H = 832
 local PANEL_ZOOM = 0.93
 
+-- ★ 导航位置（2026-09-21 用户拍板：「左边」）
+--   原来导航在**右侧**（三角 536 / 列表 458，点开才出现）。现改**左竖排常驻**：
+--   · 位置只是把原右侧坐标镜像成负值，按钮仍是 114x40
+--   · 实测底图 bookpage_bg.png（1644x1109 → 显示 1232x832）：左侧木框竖线在 content x≈-563，
+--     纸面左缘 ≈-519 → 按钮占 -515..-401，压在框带和纸面左边缘上，**不遮挡页内内容**
+--     （所以主页任务行 ITEM_W=860 不用缩，之前估的"要缩到 730"是错的）
+--   · 竖向居中避开了左上角的木牌装饰（y≈+306 以上）和左下角装饰（y≈-277 以下）
+--   想改回右侧：NAV_LEFT = false；想让导航回到"点三角才展开"：NAV_ALWAYS_SHOW = false
+local NAV_LEFT = true
+local NAV_ALWAYS_SHOW = true
+
 -- 任务行尺寸（ScrollingGrid item）
 local ITEM_W = 860          -- 行 widget 宽（含框外扩）
 local ITEM_H = 78           -- 行高 = 行距
@@ -855,6 +866,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             local card = row:AddChild(Image("images/global.xml", "square.tex"))
             card:SetSize(SKILL_ROW_W, SKILL_ROW_H)
             card:SetTint(1.000, 0.995, 0.985, 0.95)
+            row.card = card
             FrameLines(row, SKILL_ROW_W, SKILL_ROW_H, 0, 2, 0.80, 0.78, 0.73, 0.90)
 
             -- 技能名
@@ -865,6 +877,57 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             -- 第三行有两套字号（18 = tip 灰字 / 22 = 下一级粉字），建两个只显示一个
             row.t_l3_tip = SkillText(row, 18, -58, "", 0.52, 0.46, 0.38)
             row.t_l3_next = SkillText(row, 22, -58, "", 0.52, 0.30, 0.36)
+
+            -- ★ 2026-09-21 用户口径：说明**不直接写在框里**，鼠标悬停整行才高亮显示
+            --   （他喜欢彩虹岛 / 旧版 musha 那种 hover 高亮出字的味道）
+            --   → 四行说明默认 Hide，apply_fn 只负责填字 + 记「该显哪一行第三行」(row._l3)
+            row.t_l1:Hide()
+            row.t_l2:Hide()
+            row.t_l3_tip:Hide()
+            row.t_l3_next:Hide()
+            row.hovered = false
+            row._l3 = "tip"
+
+            row.SetHover = function(r, on)
+                r.hovered = on and true or false
+                if r.card then
+                    if r.hovered then
+                        r.card:SetTint(1.000, 1.000, 0.972, 1)      -- 高亮一档
+                    else
+                        r.card:SetTint(1.000, 0.995, 0.985, 0.95)
+                    end
+                end
+                if r.hovered then
+                    r.t_l1:Show()
+                    r.t_l2:Show()
+                    if r._l3 == "next" then
+                        r.t_l3_next:Show()
+                        r.t_l3_tip:Hide()
+                    else
+                        r.t_l3_tip:Show()
+                        r.t_l3_next:Hide()
+                    end
+                else
+                    r.t_l1:Hide()
+                    r.t_l2:Hide()
+                    r.t_l3_tip:Hide()
+                    r.t_l3_next:Hide()
+                end
+            end
+
+            -- 悬停接盘：垫在卡片上、加点按钮**下面**（按钮后建 → 在更上层，不会挡住点击）
+            local hover = row:AddChild(ImageButton("images/global.xml", "square.tex"))
+            hover:ForceImageSize(SKILL_ROW_W, SKILL_ROW_H)
+            hover:SetPosition(0, 0)
+            hover.scale_on_focus = false
+            hover.move_on_click  = false
+            hover.normal_scale   = { 1, 1, 1 }
+            hover.focus_scale    = { 1, 1, 1 }
+            hover:SetImageNormalColour(1, 1, 1, 0)
+            hover:SetImageFocusColour(1, 1, 1, 0)       -- 高亮靠卡片 tint，不另画白块
+            if hover.image then hover.image:SetTint(1, 1, 1, 0) end
+            hover:SetOnGainFocus(function() row:SetHover(true) end)
+            hover:SetOnLoseFocus(function() row:SetHover(false) end)
 
             -- ★ 2026-09-17 技能书锁的悬停提示（默认隐藏，鼠标移到锁上才显示）
             row.t_lock_tip = SkillText(row, 20, -58, "", 0.62, 0.28, 0.24)
@@ -894,8 +957,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                 row.t_l1:SetColour(0.40, 0.34, 0.26, 1)
                 row.t_l2:SetString("当前：" .. (data.effect or ""))
                 row.t_l2:SetColour(0.30, 0.24, 0.16, 1)
-                row.t_l3_tip:Hide()
-                row.t_l3_next:Show()
+                row._l3 = "next"                    -- ★ 只记该显哪一行，真显不显看悬停
                 row.t_l3_next:SetString(data.maxed and "已满级" or ("下一级：" .. (data.nextfx or "")))
             else
                 -- 未学习：需求等级 / 消耗 / 学完后的效果（有 tip 就补一句灰字）
@@ -913,10 +975,13 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                 row.t_l1:SetColour(0.40, 0.34, 0.26, 1)
                 row.t_l2:SetString("学完后：" .. (data.nextfx or ""))
                 row.t_l2:SetColour(0.30, 0.24, 0.16, 1)
-                row.t_l3_next:Hide()
-                row.t_l3_tip:Show()
+                row._l3 = "tip"                     -- ★ 同上：只记该显哪一行
                 row.t_l3_tip:SetString(data.tip or "")
             end
+
+            -- ★ 2026-09-21 说明文字只在悬停时出现 → 填完字同步一次可见性
+            --   （悬停中的行立刻显新字；没悬停的行保持只有技能名，干净）
+            row:SetHover(row.hovered == true)
 
             -- 2026-09-13 用户：不能加点的整行按灰色处理（已满级那档不灰，走下面"隐藏加号"）
             local GRAY = (not data.maxed) and not (data.can == true)
@@ -1000,6 +1065,77 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         foot:SetColour(0.46, 0.40, 0.32, 1)
         foot:SetString("技能书学习的技能 · 后续开放")
         foot:SetPosition(0, -PAGE_H / 2 + 34)
+        self.skill_foot = foot
+
+        -- ============================================================
+        -- ★★ 2026-09-20 横排技能树（新）—— 见图表 spec：musha-技能树UI-spec.md
+        --   · 图标 only + 按住空白左右拖动 + 滚轮/小箭头；横竖线 = 前置（金=已达标 / 灰=未达标）
+        --   · 点节点 → 右栏出「技能详情」（加点按钮在右栏，防误点）
+        --   · 旧版竖排列表**保留**：右上两颗小按钮切（默认横排）
+        -- ============================================================
+        self.skill_mode = "tree"            -- "tree" 横排（默认） / "list" 旧版竖排
+        do
+            local SkillTree = require("widgets/musha_skill_tree")
+
+            -- ① 右栏「技能详情」（默认收起，点节点才出）
+            local DW, DH = 232, 380
+            self.skill_detail = root:AddChild(Widget("skill_detail"))
+            self.skill_detail:SetPosition(298, -14)
+            local dbg = self.skill_detail:AddChild(Image("images/global.xml", "square.tex"))
+            dbg:SetSize(DW, DH)
+            dbg:SetTint(0.995, 0.99, 0.975, 0.99)
+            FrameLines(self.skill_detail, DW, DH, 0, 2, 0.80, 0.78, 0.73, 0.95)
+
+            self.skill_detail_title = self.skill_detail:AddChild(Text(UIFONT, 28))
+            self.skill_detail_title:SetColour(0.26, 0.20, 0.13, 1)
+            self.skill_detail_title:SetPosition(0, DH / 2 - 32)
+
+            self.skill_detail_lines = {}
+            for i = 1, 5 do
+                local t = self.skill_detail:AddChild(Text(UIFONT, 20))
+                t:SetColour(0.36, 0.30, 0.22, 1)
+                t:SetPosition(0, DH / 2 - 72 - (i - 1) * 44)
+                t:SetString("")
+                table.insert(self.skill_detail_lines, t)
+            end
+
+            -- 加点 / 用技能书解锁（同一颗按钮，按数据决定干啥；满级直接隐藏）
+            self.skill_detail_btn = MakeTextButton(self.skill_detail, 132, 34, "加点", function()
+                local e = self.skill_sel
+                if not e then return end
+                if (e.book_lock or 0) > 0 then
+                    SendSkillUnlock(e.id)
+                else
+                    SendSkillUpgrade(e.id)
+                end
+            end)
+            self.skill_detail_btn:SetPosition(0, -DH / 2 + 34)
+            self.skill_detail:Hide()
+
+            -- ② 横排树
+            self.skill_tree = root:AddChild(SkillTree({
+                w = 596, h = 424,
+                on_select = function(e) self:ShowSkillDetail(e) end,
+            }))
+            self.skill_tree:SetPosition(-124, -26)
+
+            -- ③ 版式切换（右上两颗小按钮：横排 / 竖排）
+            self.skill_mode_btns = {}
+            for i, d in ipairs({ { key = "tree", label = "横排" }, { key = "list", label = "竖排" } }) do
+                local b = root:AddChild(ImageButton("images/global.xml", "square.tex"))
+                b:ForceImageSize(76, 30)
+                b:SetPosition(252 + (i - 1) * 84, PAGE_H / 2 - 24)
+                b.scale_on_focus = false
+                b.normal_scale = { 1, 1, 1 }
+                b.focus_scale  = { 1, 1, 1 }
+                FrameLines(b, 76, 30, 0, 2, 0.80, 0.78, 0.73, 0.90)
+                local t = b:AddChild(Text(UIFONT, 21))
+                t:SetString(d.label)
+                t:SetColour(0.36, 0.30, 0.22, 1)
+                b:SetOnClick(function() self:SetSkillMode(d.key) end)
+                self.skill_mode_btns[d.key] = { btn = b, text = t }
+            end
+        end
     end
 
     -- 礼包页（2026-09-12 用户选 b：面板导航里加一页；节日活动期间发放）
@@ -1423,14 +1559,13 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         table.insert(self.setting_rows, entry)
     end
 
-    -- 右上三角 + 展开列表
-    -- 2026-09-10：三角 70% 且**无底色**（只留淡黄符号）；展开列表文字**不缩**（列表整体不再 SetScale）
+    -- 三角 + 列表（2026-09-21：整体挪到**左侧**并默认展开，见文件顶部 NAV_LEFT / NAV_ALWAYS_SHOW）
     local NAV_TRI_SCALE = 0.7
 
     self.nav_triangle = self.content:AddChild(ImageButton("images/global.xml", "square.tex"))
     self.nav_triangle:ForceImageSize(46, 46)
-    self.nav_triangle:SetPosition(536, 310)
-    self.nav_triangle:SetScale(NAV_TRI_SCALE, NAV_TRI_SCALE, NAV_TRI_SCALE)
+    self.nav_triangle:SetPosition(NAV_LEFT and -536 or 536, NAV_LEFT and 154 or 310)
+
     self.nav_triangle.scale_on_focus = false          -- 否则 hover 会被 focus_scale 拉回 1
     self.nav_triangle.normal_scale = { NAV_TRI_SCALE, NAV_TRI_SCALE, NAV_TRI_SCALE }
     self.nav_triangle.focus_scale  = { NAV_TRI_SCALE, NAV_TRI_SCALE, NAV_TRI_SCALE }
@@ -1449,12 +1584,16 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         line:SetTint(1, 1, 1, 0.9)
     end
     self.nav_tri_label = self.nav_triangle:AddChild(Text(UIFONT, 30))
-    self.nav_tri_label:SetString(">")
+    self.nav_tri_label:SetString(NAV_ALWAYS_SHOW and "v" or ">")
     self.nav_tri_label:SetColour(0.97, 0.92, 0.70, 1)       -- 淡黄符号
 
     self.nav_list = self.content:AddChild(Widget("musha_nav_list"))
-    self.nav_list:SetPosition(458, 266)
-    self.nav_list:Hide()
+    self.nav_list:SetPosition(NAV_LEFT and -458 or 458, NAV_LEFT and 107 or 266)
+    if NAV_ALWAYS_SHOW then
+        self.nav_list:Show()          -- 左竖排常驻：开面板就能直接点页
+    else
+        self.nav_list:Hide()
+    end
     self.nav_items = {}
 
     -- 导航图标（2026-09-13）：清单在 scripts/musha_nav_icons.lua（唯一真源）
@@ -1566,7 +1705,14 @@ function MushaPanelScreen:Refresh()
         self.exp_bg:SetTint(0.35, 0.35, 0.35, 0.4)
     end
 
-    self.job_text:SetString(JobName(md.carrer_base))
+    -- ★★ 2026-09-19 修（用户实测：转职后主面板还显示"战士"）：
+    --   原来只读 carrer_base → 二转（剑士/近卫…）在面板上完全看不出来。
+    --   现在：二转后显示「基础 → 进阶」（例：战士 → 近卫）；没二转只显示基础职业。
+    local title = JobName(md.carrer_base)
+    if md.carrer_special ~= nil and md.carrer_special ~= "" then
+        title = title .. " → " .. JobName(md.carrer_special)
+    end
+    self.job_text:SetString(title)
 
     local lv = md.level or 0
     local exp = md.exp or 0
@@ -1733,6 +1879,16 @@ function MushaPanelScreen:RefreshSkills(md)
     -- 重建：现在由 ScrollingGrid 管（SetItemsData 会重排/复用 item，不用手动 KillAllChildren）
     self:RefreshSkillTabs()
 
+    -- ★ 2026-09-20 横排技能树：喂**全量**技能（树本来就是整棵，不分「未学习/已学习」子页）
+    --   放在这里（下面的空列表提前 return 之前），否则子页空的时候树会被漏刷
+    if self.skill_tree then
+        local full = {}
+        for _, s in ipairs((data and data.skills) or {}) do
+            table.insert(full, s)
+        end
+        self.skill_tree:RefreshKeepSelection(full)
+    end
+
     local job  = data and data.carrer_base
     local spec = data and data.carrer_special
     local lv   = (data and data.level) or 0
@@ -1779,6 +1935,135 @@ function MushaPanelScreen:RefreshSkills(md)
 
     -- 交给滚动网格渲染（行内容在 SKILL_apply_fn 里填；网格自己管滚动条/滚轮）
     self.skill_grid:SetItemsData(list)
+end
+
+-- ================================================================
+-- ★ 2026-09-20 技能页两套版式：tree = 横排技能树（默认） / list = 旧版竖排列表
+--   用户口径：新版先上，旧版留一个一键切回的退路（法师版验证过再拆掉旧版＋这两颗按钮）
+-- ================================================================
+function MushaPanelScreen:SetSkillMode(mode)
+    mode = (mode == "list") and "list" or "tree"
+    self.skill_mode = mode
+    local tree_mode = (mode == "tree")
+
+    if self.skill_tree then
+        if tree_mode then self.skill_tree:Show() else self.skill_tree:Hide() end
+    end
+    if self.skill_detail then self.skill_detail:Hide() end      -- 详情每次切换都收起，点节点才出
+    if self.skill_grid then
+        if tree_mode then self.skill_grid:Hide() else self.skill_grid:Show() end
+    end
+    -- ★ 2026-09-21 修：原来只写了 Hide 分支 → 切回竖排后这两行再也显不回来
+    if self.skill_empty then
+        if tree_mode then self.skill_empty:Hide() else self.skill_empty:Show() end
+    end
+    if self.skill_foot then
+        if tree_mode then self.skill_foot:Hide() else self.skill_foot:Show() end
+    end
+
+    for _, key in ipairs({ "unlearned", "learned" }) do
+        local tb = self.skill_tabs and self.skill_tabs[key]
+        if tb and tb.btn then
+            if tree_mode then tb.btn:Hide() else tb.btn:Show() end
+        end
+    end
+
+    for key, e in pairs(self.skill_mode_btns or {}) do
+        local on = (key == mode)
+        e.text:SetColour(on and 0.86 or 0.44, on and 0.30 or 0.41, on and 0.08 or 0.33, 1)
+        e.btn:SetImageNormalColour(on and 1.00 or 0.94, on and 0.96 or 0.92, on and 0.90 or 0.88, 1)
+    end
+
+    self:RefreshSkills(nil)        -- 用最近一次 md 重画（树 + 旧列表一起刷）
+end
+
+-- ================================================================
+-- ★ 2026-09-20 右栏「技能详情」：点树上的节点才填内容 + 显示
+--   e = nil 时收起（取消选中）
+-- ================================================================
+function MushaPanelScreen:ShowSkillDetail(e)
+    if not self.skill_detail then return end
+    self.skill_sel = e
+    if not e then
+        self.skill_detail:Hide()
+        return
+    end
+    self.skill_detail:Show()
+
+    -- 中文按字数折行（DST 的 Text 不会自动换行，手动插 \n；UTF-8 逐字取）
+    local function Wrap(str, n)
+        str = tostring(str or "")
+        local out, line, cnt = {}, "", 0
+        for ch in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
+            if ch == "\n" then
+                table.insert(out, line); line, cnt = "", 0
+            else
+                line = line .. ch
+                cnt = cnt + 1
+                if cnt >= n then
+                    table.insert(out, line); line, cnt = "", 0
+                end
+            end
+        end
+        if line ~= "" then table.insert(out, line) end
+        return table.concat(out, "\n")
+    end
+
+    self.skill_detail_title:SetString(Wrap(e.name or e.key or "?", 6))
+
+    local L = self.skill_detail_lines
+    L[1]:SetString(string.format("%s · 等级 %d / %d",
+        (e.tree_name and e.tree_name ~= "") and e.tree_name or (e.tree or ""), e.cur or 0, e.max or 0))
+
+    if (e.cur or 0) > 0 then
+        L[2]:SetString(Wrap("当前：" .. ((e.effect or "") ~= "" and e.effect or "—"), 12))
+    else
+        L[2]:SetString(Wrap("当前：未学习", 12))
+    end
+
+    if e.maxed then
+        L[3]:SetString("已满级")
+    else
+        L[3]:SetString(Wrap("下一级：" .. ((e.nextfx or "") ~= "" and e.nextfx or "—"), 12))
+    end
+
+    -- 条件（角色等级 / 技能点 / 技能书 / 前置）
+    local need = {}
+    if (e.req or 0) > 0 then table.insert(need, string.format("角色等级 %d", e.req)) end
+    if (e.book_lock or 0) > 0 then
+        table.insert(need, string.format("%d 本技能书", e.book_lock))
+    elseif not e.maxed then
+        table.insert(need, string.format("%d 技能点", e.cost or 1))
+    end
+    if e.pre and #e.pre > 0 then
+        local ps = {}
+        for _, p in ipairs(e.pre) do
+            table.insert(ps, string.format("%s %d/%d", p.name, p.cur or 0, p.need or 1))
+        end
+        table.insert(need, "前置：" .. table.concat(ps, "、"))
+    end
+    L[4]:SetString(Wrap("条件：" .. table.concat(need, " · "), 12))
+    L[5]:SetString(Wrap((e.tip or "") ~= "" and e.tip or "", 13))
+
+    -- 按钮：满级直接隐藏（用户口径：满级不留按钮）；不可用的灰掉 + 不可点
+    local unlock = ((e.book_lock or 0) > 0)
+    local usable = unlock or (e.can == true and not e.maxed)
+    if e.maxed then
+        self.skill_detail_btn:Hide()
+    else
+        self.skill_detail_btn:Show()
+        if self.skill_detail_btn._label then
+            self.skill_detail_btn._label:SetString(unlock and "用技能书解锁" or "加点")
+        end
+        if usable then
+            self.skill_detail_btn:SetImageNormalColour(0.62, 0.34, 0.14, 1)
+            self.skill_detail_btn:SetImageFocusColour(0.72, 0.42, 0.18, 1)
+        else
+            self.skill_detail_btn:SetImageNormalColour(0.72, 0.69, 0.65, 1)
+            self.skill_detail_btn:SetImageFocusColour(0.72, 0.69, 0.65, 1)
+        end
+        self.skill_detail_btn:SetClickable(usable)
+    end
 end
 
 -- ================================================================
@@ -2153,18 +2438,29 @@ function MushaPanelScreen:SetActivePage(name)
         end
     end
 
-    -- 选完自动收起
-    if self.nav_list then
-        self.nav_list:Hide()
-    end
-    if self.nav_tri_label then
-        self.nav_tri_label:SetString(">")
+    -- 选完自动收起（★ 左竖排常驻时**不**收：见文件顶部 NAV_ALWAYS_SHOW）
+    if not NAV_ALWAYS_SHOW then
+        if self.nav_list then
+            self.nav_list:Hide()
+        end
+        if self.nav_tri_label then
+            self.nav_tri_label:SetString(">")
+        end
     end
 
     if name == "home" then
         self.default_focus = self.list
         -- 空状态字样由 Refresh 管可见性；切回来时补刷一次，免得被 Show 出来
         self:Refresh()
+    elseif name == "skill" then
+        -- ★ 2026-09-20 技能树页：默认横排（导航上一步已经自动收起，树可以往右伸展）
+        self:SetSkillMode(self.skill_mode or "tree")
+        if self.skill_mode == "tree" and self.skill_tree then
+            self.default_focus = self.skill_tree
+            self.skill_tree:SetFocus()
+        else
+            self.default_focus = self.skill_grid or self.nav_triangle
+        end
     elseif name == "mail" then
         self.default_focus = self.nav_triangle
         self:RefreshMail()
