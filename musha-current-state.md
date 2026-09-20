@@ -1456,3 +1456,18 @@ method 'RefreshSkill' (a nil value)`）。原因：面板里的方法真名是 *
 - 待确认（用户 09-21 口述，未回话）：技能页「红框不该显示」、「文字要鼠标移上去才看得见 很奇怪」、
   「横排文字显示方式错了（他说他自己弄）」。游戏里现有三处框：节点描边（灰/金/选中深橙）、右栏详情外描边（灰）、加点按钮粉框
   —— 没有红色框，怀疑他指的是 ChatGPT 稿里那个红框或选中态深橙框，等他指认。
+
+### ★★ 2026-09-21 02:xx 信箱「读档后超过 3 格的东西会丢」→ 确认会丢，已修（重要）
+用户问：重载后之前存进超出限度（3 格以上）的内容会被加载还是消失？**答：旧代码会丢。**
+根因（原版加载顺序，entityscript.lua:1954-1988）：
+`OnPreLoad` → **各组件 OnLoad**（容器就是在这里把物品往格子里塞）→ **最后**才跑实体 `inst.OnLoad`。
+我们原来把 `unlocked` 的恢复写在实体 OnLoad 里 → 容器塞物品时 `unlocked` 还是 prefab 里的默认 3
+→ `params.musha_mailbox.itemtestfn` 把第 4~12 格判为"未解锁"→ `Container:OnLoad`（container.lua:996-1005）
+里的 `GiveItem(inst, k)` **直接返回 false（无兜底槽）** → 物品不进箱子、变散落实体 ⇒ 玩家看到"东西没了"。
+⚠️ 关键认知：不是"格子超限被裁掉"，而是**塞的时候门槛还没放下来**；只要物品在第 4~12 格，读档必中招。
+修法（双保险，提交 `7ec645f`）：
+1. `unlocked` / `owner_userid` 提前到 **`inst.OnPreLoad`** 恢复（它在所有组件 OnLoad 之前）
+2. 加载期间 `inst._loading = true` → `itemtestfn` 一律放行，实体 OnLoad 里解除
+3. 顺带确认：容器**真格数 = 12**（`params.musha_mailbox` 没写 numslots → 取 `#slotpos` = 12），所以格子本身不会少
+遗留（与 #21 同源）：未解锁格的**叉号底图是静态的**（`musha_containers.lua:117-120` 按默认 3 格写死 slotbg）
+→ 升到 5/7/9/12 后叉号不跟着退；要按用户口径（组件 + replica）做成 netvar + 客户端 containerwidget 重填。
