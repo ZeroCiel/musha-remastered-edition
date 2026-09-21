@@ -64,11 +64,11 @@ function MushaMail:UseMailbox(mailbox, doer)
     if mailbox == nil or not mailbox:IsValid() then return end
     if Mail == nil then return end
 
-    -- ★ 拿着【邮包升级套件】→ 右键 = 升级（用户 2026-09-19 拍板）
-    --   套件不管用（等级不匹配 / 已满）= 也在这里处理并 return，不去开箱子，免得两个动作叠一起
+    -- ★★ 2026-09-21 用户口径：**只有"套件真能升级"时才走升级**。
+    --   档位不对 / 已经满级 / 还不是我的收件箱 → 当作普通右键 = 正常开（或绑定/关闭）箱子，
+    --   不再弹"这件套件对不上：现在的收件箱要用第 N 档套件"那种提示。
     local kit = Mail.FindKit(doer)
-    if kit ~= nil then
-        self:UpgradeMailbox(mailbox, doer, kit)
+    if kit ~= nil and self:UpgradeMailbox(mailbox, doer, kit) then
         return
     end
 
@@ -157,19 +157,17 @@ function MushaMail:UpgradeMailbox(mailbox, doer, kit)
         shadow = self:ResolveShadow()
     end
     if shadow == nil then
-        say("（这块信箱还不是我的收件箱 —— 先摸一下绑定，再拿套件来升级）")
-        return true
+        -- 还不是我的收件箱 → 不是"升级失败"，交给调用方走正常的绑定/开箱流程
+        return false
     end
 
     local unlocked = shadow.unlocked or Mail.BOX_SLOT_INIT
     local need = Mail.KitStepFor(unlocked)
     if need == nil then
-        say("（收件箱已经扩到 " .. unlocked .. " 格了 —— 再往上还没做）")
-        return true
+        return false                      -- 已满级 → 直接开箱（用户 09-21 口径）
     end
     if kit.mail_kit_step ~= need then
-        say("（这件套件对不上：现在的收件箱要用第 " .. need .. " 档套件）")
-        return true
+        return false                      -- 档位不对 → 直接开箱，不提示（用户 09-21 口径）
     end
 
     local new_unlocked = kit.mail_kit_to or (unlocked + 2)

@@ -1107,22 +1107,10 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             }))
             self.skill_tree:SetPosition(-124, -26)
 
-            -- ③ 版式切换（右上两颗小按钮：横排 / 竖排）
+            -- ③ 版式切换按钮 —— ★ 2026-09-21 用户拍板「直接横排 不要竖排了」→ **不再创建这两颗按钮**
+            --   竖排列表相关的 widget（skill_grid / skill_tabs / skill_foot / skill_empty）仍在，
+            --   但永久隐藏（见 SetSkillMode 里强制 tree）；代码留着当退路，将来要加法师大技能树再动。
             self.skill_mode_btns = {}
-            for i, d in ipairs({ { key = "tree", label = "横排" }, { key = "list", label = "竖排" } }) do
-                local b = root:AddChild(ImageButton("images/global.xml", "square.tex"))
-                b:ForceImageSize(76, 30)
-                b:SetPosition(252 + (i - 1) * 84, PAGE_H / 2 - 24)
-                b.scale_on_focus = false
-                b.normal_scale = { 1, 1, 1 }
-                b.focus_scale  = { 1, 1, 1 }
-                FrameLines(b, 76, 30, 0, 2, 0.80, 0.78, 0.73, 0.90)
-                local t = b:AddChild(Text(UIFONT, 21))
-                t:SetString(d.label)
-                t:SetColour(0.36, 0.30, 0.22, 1)
-                b:SetOnClick(function() self:SetSkillMode(d.key) end)
-                self.skill_mode_btns[d.key] = { btn = b, text = t }
-            end
         end
     end
 
@@ -1937,7 +1925,9 @@ end
 --   用户口径：新版先上，旧版留一个一键切回的退路（法师版验证过再拆掉旧版＋这两颗按钮）
 -- ================================================================
 function MushaPanelScreen:SetSkillMode(mode)
-    mode = (mode == "list") and "list" or "tree"
+    -- ★★ 2026-09-21 用户拍板：「直接横排 不要竖排了」→ 传什么进来都强制 tree
+    --   （竖排列表的代码/控件先留着当退路，但入口没了、永远隐藏）
+    mode = "tree"
     self.skill_mode = mode
     local tree_mode = (mode == "tree")
 
