@@ -1545,3 +1545,19 @@ method 'RefreshSkill' (a nil value)`）。原因：面板里的方法真名是 *
    `ApplyWidget()`（首帧 netvar 可能还没同步 → 会先套 3 格那套）。
 4. 待用户回：**是"第 1~3 格也放不进"还是"只有第 4 格往后放不进"** ——
    后者=没升级时叉号格本来就放不进（设计如此，先塞前 3 格 / 拿套件右键信箱升级再重开箱）。
+
+### 2026-09-21 14:xx 技能页「只留横排」+ 信箱三条（提交 `f8e71de`）
+用户拍板（先说要砍横排，随即改口）：「直接横排 不要竖排了」→
+- `musha_panel_screen.lua`：**不再创建"横排/竖排"两颗切换按钮**；`SetSkillMode()` 里强制 `mode="tree"`。
+  竖排列表的控件（skill_grid/skill_tabs/skill_foot/skill_empty）**代码留着当退路**，但永久隐藏、无入口。
+信箱三条：
+1. **关闭时动作名不显示"关闭"** → `musha_actions.lua` 的 `MUSHA_OPEN_MAILBOX.strfn` 新增 ⓪ 分支：
+   用 `doer.replica.inventory:GetOpenContainers()` 找带 `musha_mail_shadow` tag 的容器，找到就返回
+   `S("CLOSE", "触摸（关闭）")`（STRINGS 里没 CLOSE 键 → 走这个默认字，之后要改文案在语言文件加键即可）。
+2. **带套件但档位不对应该开箱**（用户 09-21 口径）→ `components/musha_mail.lua`：
+   `UseMailbox` 改成"只有 `UpgradeMailbox()` 返回 true（=真升级了）才 return"，其余继续走正常开/绑定/关箱；
+   `UpgradeMailbox` 的三条失败路径（还不是我的收件箱 / 已满级 / 套件档位不对）**全部改成 return false 且不提示**。
+3. **锁格设计保持现状**（用户选 1）：没升级的格子打叉 + 放不进。
+4. ❓未决（已问用户）："右键移动物品进去没用，需要手动" —— 原版 DST 往容器放东西的正规手势是**拖拽**／
+   拿着物品对容器用；`itemtile.lua:463` 那套 **Shift(交易) + 左键**是原版"放进开着的容器"的写法，
+   **右键物品 = 使用**，所以"右键塞进箱子"不是原版行为。要的话可以给收件箱加这个快捷（属于新增交互）。
