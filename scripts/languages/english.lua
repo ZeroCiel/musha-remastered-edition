@@ -59,6 +59,35 @@ S.ACTIONS.MUSHA_USE_JOBBOOK_STR = {
 }
 S.ACTIONS.MUSHA_OPEN_ALTAR = "Open Altar"          -- 2026-09-17: was MUSHA_QUEST_INTERACT ("View Quest")
 S.ACTIONS.MUSHA_UNROLL_SCROLL = "Unroll Scroll"    -- 2026-09-17: advance scroll from the altar
+-- 2026-09-18 advance-direction crests (two handed out at the ceremony: Swordsman / Guardian)
+S.ACTIONS.MUSHA_USE_CREST = "Use Crest"
+-- ★ 2026-09-19 邮包系统（信箱 + 信差包）
+--   Action label: default "Touch"; becomes "Upgrade" when a mail kit is carried (see strfn).
+--   BIND / OPEN are spares until the "already bound" state is synced to the client.
+S.ACTIONS.MUSHA_OPEN_MAILBOX = "Touch"
+S.ACTIONS.MUSHA_PUT_MAILBOX = "Store in Mailbox"
+S.ACTIONS.MUSHA_OPEN_MAILBOX_STR = {
+    UPGRADE = "Upgrade",
+    BIND    = "Touch (Bind)",
+    OPEN    = "Touch (Open)",
+}
+S.ACTIONS.MUSHA_OPEN_MAILBAG = "Open Mail Bag"
+S.NAMES.MUSHA_MAILBOX = "Mailbox"
+S.NAMES.MUSHA_MAILBAG = "Mail Bag"
+S.NAMES.MUSHA_MAILKIT_1 = "Mail Upgrade Kit I (3 to 5 slots)"
+S.NAMES.MUSHA_MAILKIT_2 = "Mail Upgrade Kit II (5 to 7 slots)"
+S.NAMES.MUSHA_MAILKIT_3 = "Mail Upgrade Kit III (7 to 9 slots)"
+S.NAMES.MUSHA_MAILKIT_4 = "Mail Upgrade Kit IV (9 to 11 slots)"
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_MAILBOX = "Touch it once and your inbox lives here. It stays here."
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_MAILBAG = "Fill it, close it -- and it all goes home."
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_MAILKIT_1 = "Hold it at the mailbox and say 'upgrade'."
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_MAILKIT_2 = "Hold it at the mailbox and say 'upgrade'."
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_MAILKIT_3 = "Hold it at the mailbox and say 'upgrade'."
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_MAILKIT_4 = "Hold it at the mailbox and say 'upgrade'."
+S.NAMES.MUSHA_CREST_SABER = "Swordsman Crest"
+S.NAMES.MUSHA_CREST_GUARDIAN = "Guardian Crest"
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_CREST_SABER = "A crest marked with a blade. Use it and you walk the swordsman's path -- the choice is final."
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_CREST_GUARDIAN = "A crest marked with a shield. Use it and you walk the guardian's path -- the choice is final."
 S.ACTIONS.MUSHA_LEARN_SKILL = "Learn Skill"
 S.ACTIONS.MUSHA_REST = "Rest"
 S.ACTIONS.MUSHA_OPEN_PANEL = "Open Panel"
@@ -89,3 +118,15 @@ S.MUSHA_QUEST_ACCEPTED = "You have accepted a quest. Go complete it!"
 S.MUSHA_QUEST_ABORTED = "You gave up the current quest, losing 80 experience."
 S.MUSHA_QUEST_COMPLETE = "Quest complete!"
 S.MUSHA_QUEST_ALL_DONE = "You have completed all advancement quests!"
+
+
+-- ============================================================
+-- Recall Stone (2026-09-20)
+--   Hold it and use on anything to bind; right-click in inventory to return home
+--   360s cooldown / 3 uses / destroyed when used up
+-- ============================================================
+S.NAMES.MUSHA_RECALL_STONE = "Recall Stone"
+S.ACTIONS.MUSHA_RECALL_HOME = "Go Home"
+S.ACTIONS.MUSHA_BIND_STONE = "Bind"
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_RECALL_STONE = "A warm little stone. Show it a place and say 'here', then right-click to come back."
+S.NAMES.MUSHA_RECALL_STONE_GREEN = "Recall Stone (Green Gem)"

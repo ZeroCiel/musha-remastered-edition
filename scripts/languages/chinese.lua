@@ -60,6 +60,35 @@ S.ACTIONS.MUSHA_USE_JOBBOOK_STR = {
 }
 S.ACTIONS.MUSHA_OPEN_ALTAR = "打开祭坛"          -- 2026-09-17：原 MUSHA_QUEST_INTERACT("查看任务")，祭坛改成容器后重命名
 S.ACTIONS.MUSHA_UNROLL_SCROLL = "展开卷轴"      -- 2026-09-17：转职卷轴（祭坛里取出来的）
+-- ★ 2026-09-18 进阶方向徽记（就职仪式发两枚：剑士 / 近卫；用掉一枚 = 选定方向，不可更改）
+S.ACTIONS.MUSHA_USE_CREST = "使用徽记"
+-- ★ 2026-09-19 邮包系统（信箱 + 信差包）
+--   动作名：默认「触摸」；背包里带着升级套件时 strfn 会改成「升级」
+--   （BIND / OPEN 两条备用文案：等"是否已绑定"同步到客户端后再启用 —— 见 musha_actions.lua 的 strfn）
+S.ACTIONS.MUSHA_OPEN_MAILBOX = "触摸"
+S.ACTIONS.MUSHA_PUT_MAILBOX = "存入信箱"
+S.ACTIONS.MUSHA_OPEN_MAILBOX_STR = {
+    UPGRADE = "升级",
+    BIND    = "触摸（绑定）",
+    OPEN    = "触摸（打开）",
+}
+S.ACTIONS.MUSHA_OPEN_MAILBAG = "打开信差包"
+S.NAMES.MUSHA_MAILBOX = "信箱"
+S.NAMES.MUSHA_MAILBAG = "信差包"
+S.NAMES.MUSHA_MAILKIT_1 = "邮包升级套件 I（收件箱 3→5 格）"
+S.NAMES.MUSHA_MAILKIT_2 = "邮包升级套件 II（收件箱 5→7 格）"
+S.NAMES.MUSHA_MAILKIT_3 = "邮包升级套件 III（收件箱 7→9 格）"
+S.NAMES.MUSHA_MAILKIT_4 = "邮包升级套件 IV（收件箱 9→11 格）"
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_MAILBOX = "第一次摸它，你的收件箱就落在这儿了。之后它一直在。"
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_MAILBAG = "往里面塞东西，合上——它们就自己回家。"
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_MAILKIT_1 = "拿着它对信箱说「升级」。"
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_MAILKIT_2 = "拿着它对信箱说「升级」。"
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_MAILKIT_3 = "拿着它对信箱说「升级」。"
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_MAILKIT_4 = "拿着它对信箱说「升级」。"
+S.NAMES.MUSHA_CREST_SABER = "剑士徽记"
+S.NAMES.MUSHA_CREST_GUARDIAN = "近卫徽记"
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_CREST_SABER = "刻着剑纹的徽记。用掉它，你就是剑士了——方向不可更改。"
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_CREST_GUARDIAN = "刻着盾纹的徽记。用掉它，你就是近卫了——方向不可更改。"
 S.ACTIONS.MUSHA_LEARN_SKILL = "学习技能"
 S.ACTIONS.MUSHA_REST = "休息"
 S.ACTIONS.MUSHA_OPEN_PANEL = "打开面板"
@@ -90,3 +119,16 @@ S.MUSHA_QUEST_ACCEPTED = "我接取了任务，去完成它吧！"
 S.MUSHA_QUEST_ABORTED = "我放弃了当前任务，损失了 80 点经验。"
 S.MUSHA_QUEST_COMPLETE = "任务完成！"
 S.MUSHA_QUEST_ALL_DONE = "我已完成了所有转职任务！"
+
+
+-- ============================================================
+-- 回城石（2026-09-20 用户需求）
+--   拿在手上对任何东西用 = 绑定它；背包里右键石头 = 回家
+--   冷却 360 秒 / 可用 3 次 / 用完自毁
+-- ============================================================
+S.NAMES.MUSHA_RECALL_STONE = "回城石"
+S.ACTIONS.MUSHA_RECALL_HOME = "回家"
+S.ACTIONS.MUSHA_BIND_STONE = "绑定"
+S.CHARACTERS.GENERIC.DESCRIBE.MUSHA_RECALL_STONE = "一块温热的石头。拿着它对一个地方说「就这儿」，之后右键就能回来——它认路，也认人。"
+-- 第二条配方（绿宝石版）在合成栏里单独列一条，名字区分开
+S.NAMES.MUSHA_RECALL_STONE_GREEN = "回城石（绿宝石）"

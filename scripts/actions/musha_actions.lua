@@ -109,7 +109,30 @@ AddAction("MUSHA_OPEN_MAILBOX", STRINGS.ACTIONS.MUSHA_OPEN_MAILBOX, function(act
     end
     return true
 end)
-print("[Musha Actions] + AddAction MUSHA_OPEN_MAILBOX")
+-- 动作2：右键物品自动放入信箱（INVENTORY 右键）
+AddAction("MUSHA_PUT_MAILBOX", STRINGS.ACTIONS.MUSHA_PUT_MAILBOX, function(act)
+    if act.invobject and act.doer and act.target then
+        -- 检查目标是不是信箱
+        if act.target:HasTag("musha_mailbox") or act.target.prefab == "musha_mailbox_shadow" then
+            -- 检查物品能不能放进信箱
+            local container = act.target.components.container
+            if container and container:IsOpenedBy(act.doer) then
+                -- 尝试把物品放进信箱
+                local slot = container:GetOpenSlotForItem(act.invobject)
+                if slot and container:GiveItem(act.invobject, slot) then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end)
+
+ACTIONS.MUSHA_PUT_MAILBOX.strfn = function(act)
+    return STRINGS.ACTIONS.MUSHA_PUT_MAILBOX
+end
+
+print("[Musha Actions] + AddAction MUSHA_PUT_MAILBOX")
 
 -- ★ 动作名动态化（照 MUSHA_USE_JOBBOOK 的 strfn 写法）：
 --   ① 背包里带着【邮包升级套件】        → 「升级」
@@ -308,7 +331,10 @@ print("[Musha Actions] + Stategraph MUSHA_USE_CREST")
 -- 信箱 SCENE 右键（摸一下）
 AddStategraphActionHandler("wilson", ActionHandler(ACTIONS.MUSHA_OPEN_MAILBOX, "doshortaction"))
 AddStategraphActionHandler("wilson_client", ActionHandler(ACTIONS.MUSHA_OPEN_MAILBOX, "doshortaction"))
+AddStategraphActionHandler("wilson", ActionHandler(ACTIONS.MUSHA_PUT_MAILBOX, "doshortaction"))
+AddStategraphActionHandler("wilson_client", ActionHandler(ACTIONS.MUSHA_PUT_MAILBOX, "doshortaction"))
 print("[Musha Actions] + Stategraph MUSHA_OPEN_MAILBOX")
+print("[Musha Actions] + Stategraph MUSHA_PUT_MAILBOX")
 
 -- 信差包 INVENTORY 右键（开 / 关）
 AddStategraphActionHandler("wilson", ActionHandler(ACTIONS.MUSHA_OPEN_MAILBAG, "doshortaction"))

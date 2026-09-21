@@ -136,6 +136,37 @@ function MushaMail:UseMailbox(mailbox, doer)
     end
 end
 
+-- ---------- 右键物品自动放入信箱 ----------
+function MushaMail:PutItemToMailbox(mailbox, doer, item)
+    if not self:IsServer() or Mail == nil then return false end
+    
+    -- 收件箱优先看"眼前这块信箱脚下"，其次看自己早先绑定的那个
+    local shadow = nil
+    if mailbox ~= nil and mailbox:IsValid() then
+        local p = mailbox:GetPosition()
+        shadow = Mail.FindShadow(p.x, p.y, p.z, self:GetUserID())
+    end
+    if shadow == nil then
+        shadow = self:ResolveShadow()
+    end
+    if shadow == nil then
+        return false  -- 还不是我的收件箱
+    end
+    
+    local c = shadow.components.container
+    if c == nil or not c:IsOpenedBy(doer) then
+        return false  -- 容器没打开或不是我的
+    end
+    
+    -- 尝试把物品放进信箱
+    local slot = c:GetOpenSlotForItem(item)
+    if slot and slot <= (shadow.unlocked or 3) then
+        return c:GiveItem(item, slot) == true
+    end
+    
+    return false
+end
+
 -- ---------- 用升级套件扩容收件箱 ----------
 --   返回 true = 这件事已经处理掉（不管成没成），调用方不要再走"开箱"分支
 function MushaMail:UpgradeMailbox(mailbox, doer, kit)
