@@ -22,13 +22,10 @@ local function fn()
 
     inst:AddTag("musha_mail_shadow")
     inst:AddTag("NOCLICK")              -- 点不到、不进鼠标目标
+    -- ★ 客机要靠这个 tag 建 container_replica（entityreplica.lua 的 ReplicateEntity 按 tag 建）
+    inst:AddTag("_container")
 
-    -- ★ 双端都要有 container（客户端要靠 replica 画格子），所以放在 SetPristine 之前
-    inst:AddComponent("container")
-    inst.components.container:WidgetSetup("musha_mailbox")
-
-    -- ★ 已解锁格数：组件 + 网络变量（客户端要按真实值画叉号格）
-    --   用户口径「容器图一旦要改变，必须从组件里改，还得是 replica」→ 做法见组件注释
+    -- ★ 已解锁格数组件：**双端都挂**（构造函数里建 netvar，客机才能读到档位）
     inst:AddComponent("musha_maillevel")
 
     inst.entity:SetPristine()
@@ -38,9 +35,20 @@ local function fn()
     end
 
     -- ===== 服务端专用 =====
+    -- ★★ 2026-09-21 修崩溃 ★★：container **只能在这里（服务端）加**，跟原版 chest/backpack 一样。
+    --   原来放在 SetPristine 之前 → 客机构造这个实体时：
+    --     container.lua:31 `self.canbeopened = true` 触发属性 setter
+    --     → container.lua:4 `self.inst.replica.container:SetCanBeOpened()` → 客机上 replica 还没建 → 崩：
+    --     `container.lua:4: attempt to index field 'container' (a nil value)`
+    --   （client_log 2026-09-21 13-33 / 13-47 实证，栈里正是 addcomponent → _ctor → setter）
+    --   客机不需要真的 container 组件，它靠上面那个 `_container` tag 建 replica。
+    inst:AddComponent("container")
+    -- WidgetSetup 的名字 = params 的 key，**必须等于 prefab 名**（客机 replica 按 inst.prefab 查表）
+    inst.components.container:WidgetSetup("musha_mailbox_shadow")
+
     inst.owner_userid = nil             -- 谁的收件箱（玩家 userid）
     inst.unlocked     = 3               -- 已解锁格数（3 起步，最高 12；2026-09-20 起 12 格全可用）
-    inst.components.musha_maillevel:SetUnlocked(inst.unlocked)   -- 建档时先把网络值推给客户端
+    inst.components.musha_maillevel:SetUnlocked(inst.unlocked)   -- 建档时把档位推给客户端（会顺带换 widget）
 
     -- ⚠️⚠️ 这里**绝对不能**再写 `inst.components.container.itemtestfn = ...`
     --   原版 container.lua：`Container:WidgetSetup()` 里会把下面这些名字**锁成只读**：

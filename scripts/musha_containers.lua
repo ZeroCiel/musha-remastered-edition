@@ -87,48 +87,69 @@ params.musha_mailbag = {
 --      → 这里先把 animbank/animbuild 摘掉（格子自己带底图，功能完全正常），
 --        用户画好 4x3 底板后：填回 animbank/animbuild（或者用 bgatlas/bgimage 挂一张静态底图）即可。
 -- ============================================================
-params.musha_mailbox = {
-    widget = {
-        slotpos = {},
-        -- animbank = "ui_chester_shadow_3x4",   -- ← 3x4 的旧占位框，跟 4x3 的格子对不上，先摘掉等新底板
-        -- animbuild = "ui_chester_shadow_3x4",
-        pos = Vector3(0, 220, 0),
-        side_align_tip = 160,
-    },
-    acceptsstacks = true,
-    type = "chest",
-}
-
--- 4 列 x 3 行 = 12：格距 75（单格 64），整块居中（X = ±112.5 / ±37.5，Y = 75 / 0 / -75）
---   格子顺序 = 行优先：1~4 是上面那行，9~12 是最下面那行（解锁按 1→12 顺序走）
-for row = 0, 2 do
-    for col = 0, 3 do
-        table.insert(params.musha_mailbox.widget.slotpos,
-            Vector3(75 * col - 112.5, 75 - 75 * row, 0))
-    end
-end
-
--- ★ 2026-09-20 叉号格（用户说"邮箱 叉号没做"）：
---   未解锁的格子换成「叉号底图」= images/musha_mail_x.png（→ .tex/.xml，槽底+粗叉）
---   已解锁的格子 slotbg 留 nil = 原版槽的样子，不用画
---   ⚠️ slotbg 是**静态**的（WidgetSetup 时照这张表复制一份），这里按默认「解锁 3 格」填 4~12；
---      以后用邮包套件升级（unlocked 3→5→7→9→11）要让叉号跟着退 → 见文件末尾说明
+-- ★★ 2026-09-21 重做：params 的 key 必须**等于实体 prefab 名**（原版契约）
+--   客机上 `container_replica` 的构造函数是 `containers.widgetsetup(self)` →
+--   它取的是 `params[container.inst.prefab]`。我们的收件箱实体叫 `musha_mailbox_shadow`，
+--   而参数原来挂在 `musha_mailbox` 这个名字下 → 客机取不到（widget = nil）→ 客机开箱直接崩。
+--   所以现在 5 张表全部按 prefab 名生成，并按"已解锁档位"给不同的叉号底图：
+--     3 格 = musha_mailbox_shadow        （默认档，客机 ctor 就是取这张）
+--     5/7/9/12 格 = ..._u5 / _u7 / _u9 / _u12
+--   → 服务端换档时用 `container:WidgetSetup("musha_mailbox_shadow_u7")`，
+--     客机由 musha_maillevel 组件监听到网络值变化后对 `replica.container` 做同样调用
+--     （= 原版 firepit.lua:131 的"prefaboverride"那套写法）。
+--   ⚠️ slotbg 是逐格覆盖的钩子（原版 containerwidget.lua:136-142）；每张表只按自己档位标叉号。
 local MAIL_X_ATLAS, MAIL_X_IMAGE = "images/musha_mail_x.xml", "musha_mail_x.tex"
-params.musha_mailbox.widget.slotbg = params.musha_mailbox.widget.slotbg or {}
-for i = 3 + 1, 12 do   -- 3 = musha_mail.BOX_SLOT_INIT（初始解锁格数），改了它这里也要改
-    params.musha_mailbox.widget.slotbg[i] = { atlas = MAIL_X_ATLAS, image = MAIL_X_IMAGE }
+
+local function MakeMailboxParams(unlocked)
+    local t = {
+        widget = {
+            slotpos = {},
+            -- animbank = "ui_chester_shadow_3x4",   -- 3x4 的旧占位框跟 4x3 格子对不上，等 4x3 底板
+            -- animbuild = "ui_chester_shadow_3x4",
+            pos = Vector3(0, 220, 0),
+            side_align_tip = 160,
+            slotbg = {},
+        },
+        acceptsstacks = true,
+        type = "chest",
+    }
+
+    -- 4 列 x 3 行 = 12：格距 75（单格 64），整块居中（X = ±112.5 / ±37.5，Y = 75 / 0 / -75）
+    --   格子顺序 = 行优先：1~4 是上面那行，9~12 是最下面那行（解锁按 1→12 顺序走）
+    for row = 0, 2 do
+        for col = 0, 3 do
+            table.insert(t.widget.slotpos, Vector3(75 * col - 112.5, 75 - 75 * row, 0))
+        end
+    end
+
+    -- 未解锁格 = 叉号底图（已解锁格留空 = 原版槽的样子）
+    for i = unlocked + 1, 12 do
+        t.widget.slotbg[i] = { atlas = MAIL_X_ATLAS, image = MAIL_X_IMAGE }
+    end
+
+    -- 未解锁的格子放不进去（真实判断看 inst.unlocked；这里兜底 + 加载期放行）
+    --   ⚠️ 加载期间（inst._loading，见 prefab 的 OnPreLoad）**一律放行** ——
+    --      不然读档时容器先把物品往格子里塞、unlocked 还没恢复 → 超过 3 格的东西会被这里拦掉丢失。
+    t.itemtestfn = function(container, item, slot)
+        local inst = container ~= nil and container.inst or nil
+        if inst ~= nil and inst._loading then return true end
+        local unlocked_now = (inst ~= nil and inst.unlocked) or 3
+        if slot == nil then return false end
+        return slot <= unlocked_now
+    end
+
+    return t
 end
 
--- 未解锁的格子放不进去（真实判断在 prefab 里，那边能看到 inst.unlocked；这里只兜底）
---   ⚠️ 2026-09-21：加载期间（inst._loading，见 prefab 的 OnPreLoad）**一律放行** ——
---      不然读档时容器先把物品往格子里塞、unlocked 还没恢复 → 超过 3 格的东西会被这里拦掉丢失。
-function params.musha_mailbox.itemtestfn(container, item, slot)
-    local inst = container ~= nil and container.inst or nil
-    if inst ~= nil and inst._loading then return true end
-    local unlocked = (inst ~= nil and inst.unlocked) or 3
-    if slot == nil then return false end
-    return slot <= unlocked
-end
+params.musha_mailbox_shadow     = MakeMailboxParams(3)
+params.musha_mailbox_shadow_u5  = MakeMailboxParams(5)
+params.musha_mailbox_shadow_u7  = MakeMailboxParams(7)
+params.musha_mailbox_shadow_u9  = MakeMailboxParams(9)
+params.musha_mailbox_shadow_u12 = MakeMailboxParams(12)
+params.musha_mailbox = params.musha_mailbox_shadow      -- 兼容旧名字（别处引用不改）
+
+-- （旧的"单独给 params.musha_mailbox 补 slotbg/itemtestfn"那段已删：
+--   现在 5 张档位表都由 MakeMailboxParams() 一次生成，slotbg 与 itemtestfn 自带，别再各写一份。）
 
 -- MAXITEMSLOTS 是原版 containers.lua 末尾按各自 slotpos 算的最大值；
 -- 我们的 params 是**加载完之后**才加进去的 → 手动顶上（最大的那个是包的 14 格）
@@ -138,15 +159,12 @@ containers.MAXITEMSLOTS = math.max(containers.MAXITEMSLOTS or 0, 14)
 print("[Musha] 容器参数已登记: musha_advance_altar（1 格 / ui_chest_1x1）")
 
 -- ============================================================
--- ⚠️ 叉号格什么时候会不准 / 怎么改成动态（2026-09-20 记）
---   slotbg 是 WidgetSetup 时按 params 复制进 widget 的**静态**表，所以：
---     · 默认 3 格解锁 → 现在正好对（4~12 是叉）
---     · 玩家用邮包套件升级到 5/7/9/11 格后，叉号还留在旧位置 → 需要动态重填
---   动态做法（没做，等需要时上）：
---     ① musha_mailbox_shadow 里把 unlocked 用 netvar 同步（net_smallbyte[0..63]），
---        服务端 UpgradeMailbox 时 push；
---     ② 客户端 AddClassPostConstruct("widgets/containerwidget")：widget 建好后，
---        若 container 的 inst 带 musha_mail_shadow tag，就按真实 unlocked 重填
---        self.inv[i] 那格底图（已解锁 = 原版槽图，未解锁 = images/musha_mail_x.xml）。
---   判断"是不是收件箱"只看 tag：inst:HasTag("musha_mail_shadow")
+-- ✅ 叉号格随档位变化（2026-09-21 已实现，替代原来的"动态重填 widget"方案）
+--   做法 = 原版 firepit.lua:131 那套「换容器 widget」：
+--     · params 按 prefab 名 + 档位生成 5 张表（见本文件上部 MakeMailboxParams）
+--     · 服务端换档：`inst.components.container:WidgetSetup("musha_mailbox_shadow_u7")`
+--       —— Container:WidgetSetup 内部会同步调 `self.inst.replica.container:WidgetSetup(name)`
+--     · 客机：`musha_maillevel` 组件监听网络值变化 → 对 `replica.container` 做同样的 WidgetSetup
+--     · widget 打开时（containerwidget.lua:136）读的就是 `widget.slotbg[i]` → 叉号自动对
+--   ⚠️ 换档时箱子如果正开着，已建好的格子还是旧的 → 关掉重开一次即可（升级本来就要重新点信箱）
 -- ============================================================

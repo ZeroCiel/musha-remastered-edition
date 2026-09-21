@@ -1510,3 +1510,27 @@ method 'RefreshSkill' (a nil value)`）。原因：面板里的方法真名是 *
     `panel_badge_guardian_256.png`（近卫·青绿十字）
 - 📌 给 ChatGPT 提要求的口径（能拆的前提）：**元素之间留空隙、不重叠、底色单一、不要阴影/发光溢出到背景**。
 - ⚠️ 内容框那件比例 1.576，面板纸面是 1.483 → 直接当纸面层要横向压 6%（可接受）或重画。
+
+### ★★ 2026-09-21 14:xx 修「客机开信箱必崩」+ 收件箱参数按 prefab 名重做（用户截图报错）
+用户截图报错：`scripts/components/container.lua:4: attempt to index field 'container' (a nil value)`
+（client_log 实证：`backup/client_log/client_log_2026-09-21-13-47-37.txt:1180`，栈 = AddComponent → container _ctor → setter）
+**两个根因，都是"没按原版契约写"**：
+1. **container 组件不能加在 SetPristine 之前**。原版 chest/backpack 都在**服务端段**加。
+   我们原来加在 pristine → **客机构造这个影子实体**时容器构造函数里 `self.canbeopened = true`
+   触发属性 setter → `container.lua:4 self.inst.replica.container:SetCanBeOpened()` → 客机 replica 还没建 → 崩。
+   修：container 移到服务端段；pristine 只加 `_container` tag（客机靠 tag 建 container_replica）。
+2. **params 的 key 必须等于实体 prefab 名**。客机 `container_replica` ctor 走 `containers.widgetsetup(self)`，
+   取的是 `params[container.inst.prefab]`。我们原来挂在 `musha_mailbox` 下、实体却叫 `musha_mailbox_shadow`
+   → 客机取不到参数（widget = nil）→ 就算不崩也开不出格子。
+   修：`scripts/musha_containers.lua` 里改成 `MakeMailboxParams(unlocked)` 生成 **5 张表**
+   （`musha_mailbox_shadow` / `_u5` / `_u7` / `_u9` / `_u12`，各自 slotbg 标对应叉号格），
+   `params.musha_mailbox` 保留为别名；`WidgetSetup("musha_mailbox_shadow")`。
+3. **叉号格随档位变化**（任务 21）改成原版 firepit.lua:131 那套「换容器 widget」：
+   服务端 `container:WidgetSetup(档位名)`（Container:WidgetSetup 内部会自动调 replica 的那份）；
+   客机由 `musha_maillevel` 组件监听 netvar → 对 `inst.replica.container` 做同样 WidgetSetup。
+   → **上一版写在 modmain 的 `AddClassPostConstruct("widgets/containerwidget")` 钩子已删**（要逐个改格底图、
+   跟 widget 内部结构绑死，脆）。
+4. 顺带核对：`musha_mailbag`（params key = prefab 名 ✓，container 在服务端段 ✓）、
+   `musha_advance_altar`（同样 ✓）都没这俩毛病，只有影子信箱中招。
+- ⚠️ 换档时箱子如果正开着，已建好的格子还是旧图 → 关掉重开一次即更新（升级本来就得重开）。
+- 语法 74 文件 / 全局扫描全过。
