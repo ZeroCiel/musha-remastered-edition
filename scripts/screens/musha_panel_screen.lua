@@ -1862,6 +1862,13 @@ function MushaPanelScreen:RefreshSkills(md)
 
     -- md 只在数据刷新时传进来；切子页时传 nil → 复用上一次的数据
     if md then self.skill_md = md end
+    -- ★ 2026-09-21 兜底（用户报"切回去全部不显示"）：如果一次数据都还没收到（skill_md 为 nil），
+    --   切版式/切子页就会拿 nil 重画 → 树空、列表空、连空状态字样都不出现 = 整页空白。
+    --   这里现取一次 userdata（跟 Refresh() 用的是同一个源）。
+    if self.skill_md == nil then
+        local ok, d = pcall(function() return self:GetUserData() end)
+        self.skill_md = ok and d or nil
+    end
     local data = self.skill_md
 
     -- 重建：现在由 ScrollingGrid 管（SetItemsData 会重排/复用 item，不用手动 KillAllChildren）
