@@ -936,7 +936,8 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             row.t_name:SetString(data.name or "?")
 
             local cur = data.cur or 0
-            local tag = (data.tree_name and data.tree_name ~= "") and ("[" .. data.tree_name .. "] ") or ""
+            -- ★ 2026-09-21：行首的 [战士]/[剑士] 标签**去掉**（用户口径：技能页不显示职业名）
+            local tag = ""
 
             if cur > 0 then
                 -- 已学习：等级 / 当前效果 / 下一级（满级写"已满级"）
@@ -1999,8 +2000,9 @@ function MushaPanelScreen:ShowSkillDetail(e)
     self.skill_detail_title:SetString(Wrap(e.name or e.key or "?", 6))
 
     local L = self.skill_detail_lines
-    L[1]:SetString(string.format("%s · 等级 %d / %d",
-        (e.tree_name and e.tree_name ~= "") and e.tree_name or (e.tree or ""), e.cur or 0, e.max or 0))
+    -- ★ 2026-09-21 用户两条口径：技能页**不显示职业名**（"战士/剑士"这种字都不要）
+    --   → 详情框等级行、竖排行首的 [战士] 标签，全部去掉，只留等级数字
+    L[1]:SetString(string.format("等级 %d / %d", e.cur or 0, e.max or 0))
 
     if (e.cur or 0) > 0 then
         L[2]:SetString(Wrap("当前：" .. ((e.effect or "") ~= "" and e.effect or "—"), 12))

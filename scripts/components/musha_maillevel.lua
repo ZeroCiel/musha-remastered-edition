@@ -49,19 +49,17 @@ local MushaMailLevel = Class(function(self, inst)
 
     if not TheWorld.ismastersim then
         -- 客机：档位一变就把 replica 的容器参数换到对应档（叉号格才对）
-        --   ⚠️ prefab fn 阶段 replica.container 可能还没建 → 延后一拍再试
-        inst:ListenForEvent("musha_mailbox_unlocked_dirty", function()
-            inst:DoTaskInTime(0, function(i)
-                if i ~= nil and i:IsValid() and i.components.musha_maillevel ~= nil then
-                    i.components.musha_maillevel:ApplyWidget()
-                end
-            end)
-        end)
-        inst:DoTaskInTime(0, function(i)
+        --   ⚠️ 首帧 netvar 可能还没同步到（读出来是 0 → 会先套 3 格那套）
+        --   → 除了监听 dirty，还在 0 / 1 / 3 秒各补一次（幂等，多调无害）
+        local function try_apply(i)
             if i ~= nil and i:IsValid() and i.components.musha_maillevel ~= nil then
                 i.components.musha_maillevel:ApplyWidget()
             end
-        end)
+        end
+        inst:ListenForEvent("musha_mailbox_unlocked_dirty", function() inst:DoTaskInTime(0, try_apply) end)
+        for _, t in ipairs({ 0, 1, 3 }) do
+            inst:DoTaskInTime(t, try_apply)
+        end
     end
 end)
 

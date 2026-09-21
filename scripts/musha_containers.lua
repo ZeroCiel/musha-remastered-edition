@@ -132,9 +132,14 @@ local function MakeMailboxParams(unlocked)
     --      不然读档时容器先把物品往格子里塞、unlocked 还没恢复 → 超过 3 格的东西会被这里拦掉丢失。
     t.itemtestfn = function(container, item, slot)
         local inst = container ~= nil and container.inst or nil
-        if inst ~= nil and inst._loading then return true end
-        local unlocked_now = (inst ~= nil and inst.unlocked) or 3
         if slot == nil then return false end
+        -- 读档塞回物品时放行（那时 unlocked 还没恢复）
+        if inst ~= nil and inst._loading then return true end
+        -- ★★ 2026-09-21：**客机不做限制**。客机上 `inst.unlocked` 这个字段根本不存在（服务端专用），
+        --   以前这里 `or 3` → 客机永远只认 3 格 → 升级之后"箱子开着但东西放不进"。
+        --   视觉上的叉号由 widget 的档位表负责；能不能放由服务端说了算。
+        if not TheWorld.ismastersim then return true end
+        local unlocked_now = (inst ~= nil and inst.unlocked) or 3
         return slot <= unlocked_now
     end
 
