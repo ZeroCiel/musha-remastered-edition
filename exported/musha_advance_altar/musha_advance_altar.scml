@@ -3,6 +3,10 @@
     <folder id="0" name="musha_advance_altar">
         <file id="0" name="musha_advance_altar-0.png" width="533" height="532" pivot_x="0.5" pivot_y="0.06391"/>
     </folder>
+    <folder id="1">
+        <file id="0" name="musha_advance_altar-0.png" width="533" height="532" pivot_x="0" pivot_y="1"/>
+        <file id="1" name="hotel.png" width="1549" height="1015" pivot_x="0.5" pivot_y="0.5"/>
+    </folder>
     <entity id="0" name="musha_advance_altar">
         <animation id="0" name="idle" length="1000" interval="100">
             <mainline>
@@ -12,7 +16,7 @@
             </mainline>
             <timeline id="0" name="idle">
                 <key id="0" spin="0">
-                    <object folder="0" file="0" x="0" y="0"/>
+                    <object folder="1" file="1" x="-24.667784" y="-28.391195" pivot_x="0.484611" pivot_y="0.132177" angle="0" scale_x="0.49" scale_y="0.49"/>
                 </key>
             </timeline>
         </animation>

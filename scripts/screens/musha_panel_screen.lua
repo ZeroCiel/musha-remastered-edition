@@ -544,24 +544,21 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         print("[Musha Panel] Decor button clicked")
     end)
 
-    -- 右下角天使女孩装饰（缩小版）
-    -- ★ 2026-09-22 坐标回到原版 832 空间：右下角 ≈ (480, -300)
+    -- 右下角天使女孩装饰（放大 3 倍）
+    -- ★ 2026-09-24 用户：放大到 3 倍，去掉左边的小方框
     self.angel_girl = self.content:AddChild(Image("images/angel_girl.xml", "angel_girl.tex"))
-    self.angel_girl:SetSize(120, 160)  -- 缩小到合适尺寸
+    self.angel_girl:SetSize(360, 480)  -- 3 倍放大
     self.angel_girl:SetPosition(480, -300)  -- 右下角
     self.angel_girl:SetTint(1, 1, 1, 0.7)  -- 半透明效果
 
-    -- 荷包装饰（拼接到天使女孩裙子侧边）
+    -- 荷包装饰（随天使女孩放大同步调整）
     self.purse = self.content:AddChild(Image("images/purse.xml", "purse.tex"))
-    self.purse:SetSize(32, 48)  -- 缩小荷包尺寸
-    self.purse:SetPosition(560, -290)  -- 天使女孩右侧
+    self.purse:SetSize(96, 144)  -- 3 倍
+    self.purse:SetPosition(680, -290)  -- 天使女孩右侧
     self.purse:SetTint(1, 1, 1, 0.8)
 
-    -- 赞助二维码框架
-    self.sponsor_frame = self.content:AddChild(Image("images/sponsor_frame.xml", "sponsor_frame.tex"))
-    self.sponsor_frame:SetSize(96, 96)  -- 缩小到合适尺寸
-    self.sponsor_frame:SetPosition(350, -300)  -- 天使女孩左侧
-    self.sponsor_frame:SetTint(1, 1, 1, 0.9)
+    -- ★ 赞助二维码框架：用户要求去掉天使左边的小方框 → 移除
+    --   （代码保留，需要时重新 AddChild 即可）
 
     -- ★ Lv 徽标（灰条已取消 2026-09-22：不再画方形灰底，只留文字）
     --   ★ 2026-09-22 第二轮：用户取消灰条 → level_badge 删掉，只留 level_text
@@ -605,13 +602,26 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     self.exp_text:SetPosition(-33, 105.5)   -- 跟灰条走
     self.exp_text:SetHAlign(ANCHOR_MIDDLE)
 
-    -- ★ 上下区分隔线（缩短并右移到等级徽标右侧，避开 badge：badge 右缘 90）
+-- ★ 上下区分隔线（缩短并右移到等级徽标右侧，避开 badge：badge 右缘 90）
     --   ★ 2026-09-22 上区放大后纵向紧张：badge 中心 108（底 80），分隔线 y=82，list 顶 74
     local HOME_DIV_Y = 82
     self.home_divider = self.content:AddChild(Image("images/global.xml", "square.tex"))
     self.home_divider:SetSize(285, 2)
     self.home_divider:SetPosition(242, HOME_DIV_Y)
     self.home_divider:SetTint(0.88, 0.74, 0.38, 0.55)
+
+    -- ★ 更新预告横幅（常驻，点击可关闭或后续版本移除）
+    self.update_banner = self.content:AddChild(Image("images/global.xml", "square.tex"))
+    self.update_banner:SetSize(285, 26)
+    self.update_banner:SetPosition(0, HOME_DIV_Y - 20)
+    self.update_banner:SetTint(0.18, 0.22, 0.32, 0.85)
+    self.update_banner:Hide()
+
+    self.update_banner_text = self.content:AddChild(Text(UIFONT, 24))
+    self.update_banner_text:SetString("★ 更新预告：部分贴图待补全，下个版本完成")
+    self.update_banner_text:SetColour(0.95, 0.82, 0.45, 1)
+    self.update_banner_text:SetPosition(0, HOME_DIV_Y - 20)
+    self.update_banner_text:SetHAlign(ANCHOR_MIDDLE)
 
     -- 空状态
     -- ★ 2026-09-22：跟着任务列表（中心 -73）摆，两行字上下排
@@ -856,6 +866,92 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         if list.scroll_bar then
             list.scroll_bar.image:ScaleToSize(MARK_W, list.scrollbar_height)
         end
+    end
+
+    -- ======================== 编辑模式 ========================
+    print("[Musha Edit] starting init")
+    local EditMode = nil
+    local _ok, _mod = pcall(require, "screens/musha_edit_mode")
+    if _ok and _mod then
+        EditMode = _mod
+    else
+        print("[Musha Edit] require failed:", _mod)
+    end
+    if not EditMode then
+        local _ok2, _mod2 = pcall(modimport, "scripts/screens/musha_edit_mode")
+        if _ok2 and _mod2 then EditMode = _mod2; print("[Musha Edit] loaded via modimport") end
+    end
+    if not EditMode then
+        print("[Musha Edit] FATAL: 模块加载失败，edit 模式禁用")
+    else
+        local _mpok, _mp = pcall(function() return _G.ModPath end)
+        EditMode.set_log_dir((_mpok and _mp) or "")
+        EditMode.load()
+        EditMode.apply_to_panel(self)
+        self.edit_mode = false
+
+        self.edit_panel = self.root:AddChild(Widget("musha_edit_panel"))
+        self.edit_panel:Hide()
+        self.edit_rows = {}
+        do
+            local function make_row(e, b)
+                local row = self.edit_panel:AddChild(Widget("er_"..e.name))
+                row:SetPosition(-340, 0)
+                local txt = row:AddChild(Text(UIFONT, 22))
+                local function updatetxt()
+                    txt:SetString(("%s x=%.0f y=%.0f w=%d h=%d sx=%.2f sy=%.2f"):format(
+                        e.label, b.x, b.y, b.w, b.h, b.sx, b.sy))
+                end
+                updatetxt()
+                txt:SetColour(1,0.95,0.7,1)
+                txt:SetPosition(-295, 0)
+                local function add_btn(bx, field, step)
+                    local btn = row:AddChild(ImageButton("images/global.xml","square.tex"))
+                    btn:ForceImageSize(20,20); btn:SetPosition(bx,0)
+                    btn:SetImageNormalColour(0.2,0.7,0.2,0.7)
+                    btn:SetOnClick(function()
+                        local cur = b[field]; local nxt = cur + step
+                        EditMode.edit(e.name, field, nxt, "手动调整")
+                        updatetxt(); EditMode.apply_to_panel(self)
+                    end)
+                end
+                add_btn(-250,"x",1); add_btn(-225,"y",1); add_btn(-200,"w",1)
+                add_btn(-175,"h",1); add_btn(-150,"sx",0.1); add_btn(-125,"sy",0.1)
+                self.edit_rows[e.name] = {txt=txt}
+                return row
+            end
+
+            local ey = 0
+            for _, e in ipairs(EditMode.get_elements()) do
+                local b = EditMode.get_buffer()[e.name]
+                local row = make_row(e, b)
+                row:SetPosition(-340, ey)
+                ey = ey - 20
+            end
+            local savebtn = self.edit_panel:AddChild(ImageButton("images/global.xml","square.tex"))
+            savebtn:ForceImageSize(120,28); savebtn:SetPosition(-340, ey - 10)
+            savebtn:SetImageNormalColour(0.2,0.5,0.9,0.8)
+            local st = savebtn:AddChild(Text(UIFONT, 20))
+            st:SetString("保存日志"); st:SetColour(1,1,1,1); st:SetPosition(0,0)
+            savebtn:SetOnClick(function()
+                EditMode.save(); print("[Musha Edit] 日志已保存 -> " .. EditMode._path())
+            end)
+        end
+
+        self.edit_toggle_btn = self.content:AddChild(ImageButton("images/global.xml","square.tex"))
+        self.edit_toggle_btn:ForceImageSize(120,32)
+        self.edit_toggle_btn:SetPosition(555, -365)
+        self.edit_toggle_btn:SetImageNormalColour(0.2,0.85,0.2,0.95)
+        self.edit_toggle_btn:SetImageFocusColour(0.3,1,0.3,1)
+        self.edit_toggle_btn:SetOnClick(function()
+            self.edit_mode = not self.edit_mode
+            self.edit_panel:SetVisible(self.edit_mode)
+            self.edit_toggle_btn:SetImageNormalColour(
+                self.edit_mode and 0.9 or 0.2,
+                self.edit_mode and 0.4 or 0.6,
+                self.edit_mode and 0.2 or 0.6, 0.9)
+        end)
+        print("[Musha Edit] init done")
     end
 
     -- ================================================================
@@ -1682,7 +1778,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     --     ⚠️ 算账：2.2 倍按钮（125.4 高）+ 间隔 17.2 = 总高 838 > 832，末个出框
     --     → 按钮缩小到 1.6 倍（91.2 高）+ 间隔 8px（8.6）= 总高 590，
     --       下移 200px 后末个底 -389 > -416 ✓，首个顶 201 < 416 ✓
-    self.nav_list:SetPosition(NAV_LEFT and -434.1 or 411.1, NAV_LEFT and -297 or 266)
+    self.nav_list:SetPosition(NAV_LEFT and -320 or 411.1, NAV_LEFT and -297 or 266)
     if NAV_ALWAYS_SHOW then
         self.nav_list:Show()          -- 左竖排常驻：开面板就能直接点页
     else
@@ -1788,9 +1884,19 @@ end
 
 function MushaPanelScreen:Refresh()
     local md = self:GetUserData()
-    if not md then return end
+    -- ★ 修复：md 为 nil 时（服务端数据未推送）不直接 return，
+    --   否则所有 HUD 元素停在初始空值，面板打开也看不到内容。
+    --   用空表继续走完刷新流程，各字段都有 `or 默认值` 兜底。
+    if not md then
+        md = {
+            carrer_base = nil, carrer_special = nil,
+            level = 0, exp = 0, exp_to_next = 0,
+            daily_quests = {}, advance_quest = nil, advance_round = nil,
+            settings = nil, skills = nil, gifts = nil, mail = nil,
+        }
+    end
 
-    local has_job = md.carrer_base ~= nil and md.carrer_base ~= ""
+local has_job = md.carrer_base ~= nil and md.carrer_base ~= ""
 
     -- 标题 / 等级 / 经验 颜色
     if has_job then
@@ -1803,6 +1909,12 @@ function MushaPanelScreen:Refresh()
         self.level_text:SetColour(0.75, 0.75, 0.75, 0.8)
         self.exp_fill:SetTint(0.45, 0.45, 0.45, 0.4)
         self.exp_bg:SetTint(0.35, 0.35, 0.35, 0.4)
+    end
+
+    -- ★ 更新预告：常驻显示
+    if self.update_banner then
+        self.update_banner:Show()
+        self.update_banner_text:Show()
     end
 
     -- ★★ 2026-09-19 修（用户实测：转职后主面板还显示"战士"）：

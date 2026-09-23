@@ -21,3 +21,10 @@ images/**/_bak*/
 *_bak_*
 _bak_*
 _bak*/
+
+# ===== .NET 启动器构建产物（2026-09-23）=====
+MushaLauncher.exe
+MushaLauncher.dll
+MushaLauncher.deps.json
+MushaLauncher.runtimeconfig.json
+MushaLauncher.pdb
