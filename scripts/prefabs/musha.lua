@@ -43,11 +43,23 @@ table.insert(assets, Asset("ATLAS", "images/names_" .. Character .. ".xml"))
 -- 能量条（2026-09-13）：bank/build = energy，动画名 = anim（badge 直接吃这个 build）
 table.insert(assets, Asset("ANIM", "anim/energy.zip"))
 
-local item = {"musha_note"}
-TUNING.GAMEMODE_STARTING_ITEMS.DEFAULT.MUSHA = {"musha_note"}
+-- ★ 开局自带（2026-09-20 用户定案）：信差包跟便签一样"出生自带"，走原版 starting_inventory
+--   机制 = 只在**新出生**时给一次（player_common.lua:1480 OnNewSpawn「only if it is a new spawn」）；
+--     读档 / 跨世界（下洞穴、换世界）/ 掉线重连 都走 OnLoad 分支 → **不给**
+--     （player_common.lua:1265-1269 "If this character is being loaded then it isn't a new spawn"
+--       里显式 `inst.starting_inventory = nil`）→ 正好是用户要的「跨世界不给」
+--   其他玩家想要 → 用配方做（谁都能做；也可以让 musha 给他做）
+local item = {"musha_note", "musha_mailbag"}
+TUNING.GAMEMODE_STARTING_ITEMS.DEFAULT.MUSHA = {"musha_note", "musha_mailbag"}
 TUNING.STARTING_ITEM_IMAGE_OVERRIDE["musha_note"] = {
     atlas = "images/inventoryimages/musha_note.xml",
     image = "musha_note.tex"
+}
+-- 信差包也要登记图标：角色选择界面的"开局携带物品"预览读这张表
+--   （原版 screens/redux/defaultskinselection.lua:54 / widgets/redux/templates.lua:2125）
+TUNING.STARTING_ITEM_IMAGE_OVERRIDE["musha_mailbag"] = {
+    atlas = "images/inventoryimages/musha_mailbag.xml",
+    image = "musha_mailbag.tex"
 }
 
 TUNING.MUSHA_HEALTH = 120

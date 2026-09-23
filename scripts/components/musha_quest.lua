@@ -494,6 +494,26 @@ function MUSHA_QUEST:DoAdvanceCeremony(doer)
     local pc = self.inst.components.musha_profession_component
     if pc == nil then return false end
 
+    -- ★★ 2026-09-18 改（用户拍板 C + 两枚徽记）：
+    --   仪式**不再直接进阶**，而是发两枚方向徽记（剑士 / 近卫）；用掉其中一枚才落地
+    --   （pc:UseAdvanceCrest → 设职业 + 发赠礼 + 清仪式待办）。两枚共用绑定 ID。
+    --   仪式待办（advance_ceremony_pending）**先留着**：祭坛继续不补卷、不接新任务，直到选定方向。
+    local choices = (pc.GetAdvanceChoices ~= nil) and pc:GetAdvanceChoices() or {}
+    if #choices > 1 and pc.GrantAdvanceCrests ~= nil then
+        local ok, ret = pcall(pc.GrantAdvanceCrests, pc)
+        if ok and ret then
+            if self.inst.components.talker then
+                self.inst.components.talker:Say("就职仪式准备好了——用掉你手里的其中一枚徽记。", 6)
+            end
+            self:SyncToPanel()
+            print(string.format("[Musha] %s 就职仪式 → 已发方向徽记 [%s]（等玩家选择）",
+                tostring(self.inst and self.inst.prefab), table.concat(choices, "/")))
+            return true
+        end
+        print("[Musha ERROR] 发方向徽记失败，退回旧的直接进阶流程：" .. tostring(ret))
+    end
+
+    -- ===== 旧流程（单出口职业 / 发徽记失败时的兜底，保持原样）=====
     local target = self.advance_target
     pc.userdata.carrer_special = target
     pc.userdata.has_advanced = true
@@ -832,9 +852,19 @@ function MUSHA_QUEST:SyncToPanel()
         -- ★ 2026-09-17：第 3 轮任务已完成、等回祭坛做就职仪式 —— 这时 advance_quest 是 nil，
         --   面板上会"什么都没了"（用户报「做完没反应」）。塞一行**假任务**当提示，
         --   让玩家一眼看到"回祭坛完成就职仪式"（画 ✓，不是可推进的任务）。
+        -- ★★ 2026-09-18：仪式做完后 pending 仍会留着（等玩家用徽记选方向）→ 分两句提示
+        local hint = "就职仪式：回祭坛右键完成"
+        if pc.userdata.advance_choice_pending == true then
+            local names = {}
+            local choices = (pc.GetAdvanceChoices ~= nil) and pc:GetAdvanceChoices() or {}
+            for _, c in ipairs(choices) do
+                names[#names + 1] = STRINGS["MUSHA_JOB_" .. string.upper(tostring(c))] or tostring(c)
+            end
+            hint = "选定方向：用掉手里的徽记（" .. table.concat(names, " / ") .. "）"
+        end
         pc.userdata.advance_quest = {
             id = "ceremony",
-            n = "就职仪式：回祭坛右键完成",
+            n = hint,
             p = 1,
             t = 1,
             done = true,

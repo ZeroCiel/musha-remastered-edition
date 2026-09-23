@@ -1571,3 +1571,50 @@ method 'RefreshSkill' (a nil value)`）。原因：面板里的方法真名是 *
 4. ❓未决（已问用户）："右键移动物品进去没用，需要手动" —— 原版 DST 往容器放东西的正规手势是**拖拽**／
    拿着物品对容器用；`itemtile.lua:463` 那套 **Shift(交易) + 左键**是原版"放进开着的容器"的写法，
    **右键物品 = 使用**，所以"右键塞进箱子"不是原版行为。要的话可以给收件箱加这个快捷（属于新增交互）。
+
+### ★★ 2026-09-21 21:xx 修「进世界必崩」—— ui_elements 假合并图集（用户报 client_log 崩）
+
+**崩溃实证**：`client_log.txt:84`
+`[string "scripts/util.lua"]:641: Could not find an asset matching images/ui_elements.tex in any of the search paths.`
+栈：`RegisterPrefabs` → `LoadAssets` → 加载 mod Assets 时 assert。
+
+**根因（设计层面的错，不是少转一张图）**：
+`modmain.lua:112-113` 注册了 `images/ui_elements.xml` + `images/ui_elements.tex`，
+把它当**合并图集**用（一个 xml 里塞 5 个 SubTexture：angel_girl / purse / sponsor_frame /
+close_button_red / wechat_qr）。但 `images/ui_elements.tex` **从来没被转出来过**——
+这 5 个元素其实**各自都是独立的单元素图集**（`images/angel_girl.{png,xml,tex}` 等全都在，
+每个 xml 只有一张全图 tex，SubTexture 名 == 文件名）。
+→ 合并图集是"只画了 xml、没拼图也没转 tex"的半成品，硬注册不存在的资源 = 必崩。
+
+**已改（3 个文件，都备份了）**：
+1. `modmain.lua:112-113` → 删掉假合并图集注册，改成注册**真实存在的 4 张独立图集**
+   （angel_girl / purse / sponsor_frame / close_button_red；wechat_qr 无代码引用，先不注册留备用）。
+   加了注释说明这段历史，避免以后有人又去拼合并图集。
+2. `scripts/screens/musha_panel_screen.lua` 4 处引用 `images/ui_elements.xml` → 改成各自图集：
+   `:487` 红叉 → `images/close_button_red.xml`；`:515` 天使女孩 → `images/angel_girl.xml`；
+   `:521` 荷包 → `images/purse.xml`；`:527` 赞助框 → `images/sponsor_frame.xml`。
+3. `images/ui_elements.xml` 删除（SubTexture 坐标本来就是错的，x/y 全 0 没法用）。
+   备份在 `images/_bak_ui_elements.xml_20260921_ui_elements`。
+   ⚠️ 上一段会话最后给 ui_elements.xml 加 wechat_qr 条目那步是**无效操作**——
+   它只是改了个没被加载的 xml，没转 tex，也没修注册，所以没解决崩溃。
+
+**验证**：
+- `grep ui_elements` 全工程无残留（只剩 modmain 里那两行解释注释）。
+- Lua 括号配对：modmain `()` 452/452、`{}` 65/65、`[]` 21/23
+  （`]]` 那个 -2 是 `:325` 一段被 `]]` 注释掉的旧代码收尾，误报，非真不配对）。
+- 全 Assets 扫了一遍：注册的图片资源**全部真实存在**
+  （`images/skilltree.xml` 不是本 mod 的，是**官方技能树图集**，
+  见 `data/databundles/scripts/prefabs/global.lua:480`，合法引用）。
+
+**遗留 / 待确认**：
+- `images/wechat_qr.{png,tex,xml}` 已转好但**没有任何代码引用**（赞助二维码功能没接上）。
+  上次会话只把 wechat_qr 条目加进了 ui_elements.xml（现已删）——要上赞助面板得重新接。
+- ⚠️ **还没进游戏实测**（改了 Lua，按铁律第 8 条要退到桌面重开，不是重进世界）。
+
+### ★ 2026-09-21 21:xx 信箱右键存入：用户提醒「这是新增交互，不是 bug 修复」
+用户反馈：之前会话里我（AI）自己提的"不能从背包右键直接移入信箱"是**功能设计选择**，
+不是缺陷。`2026-09-21 15:xx 右键自动存入信箱功能（a5c2b8e）`那条里的措辞要改：
+- 已实现的 `MUSHA_PUT_MAILBOX`（右键背包物品直接存入信箱）是**新增便捷交互**，
+  原版没有这行为（右键物品 = 使用）。
+- 对外说明（更新公告 / 玩家反馈口径）应该写成"新增功能"，**不要**说成"修了右键放不进去的 bug"。
+

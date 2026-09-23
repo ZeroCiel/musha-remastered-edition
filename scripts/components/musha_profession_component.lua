@@ -206,19 +206,12 @@ local function OnAttackOther(inst, data)
     -- 原来是 Cancel 掉回血任务，但没人再起回来 → 回血永久停
     self.last_combat_time = GetTime()
     
-    -- 处理近卫生命偷取 这个有问题 我记得改成了荆棘伤害
-    if self.userdata.carrer_special and self.userdata.carrer_special == "guardian" and data and data.damage then
-        local ll = self.guardian.life_leech
-        if ll and ll.current_level > 0 and ll.level_effects[ll.current_level] then
-            local heal_ratio = ll.level_effects[ll.current_level] or 0
-            local heal_amount = data.damage * heal_ratio
-            
-            if heal_amount > 0 and self.inst.components.health then
-                self.inst.components.health:DoDelta(heal_amount)
-            end
-        end
-    end
-    
+    -- ★★ 2026-09-18 删除：这里原来还有一份【近卫生命偷取】实现（按 data.damage × level_effects 回血），
+    --   和构造函数里 2026-09-16 新写的 `onhitother` 监听**同一件事做了两遍** → 攻击一次回两次血。
+    --   保留的是 onhitother 那份（口径正确：攻击后按伤害比例回血，走 health:DoDelta(..., "guardian_life_leech")）。
+    --   原来那段下面还挂着"这个有问题 我记得改成了荆棘伤害"的备注 —— 荆棘/反击（设定 #9 反击 25% 所受伤害）
+    --   是**另一条还没做的机制**（P3 一起做），跟生命偷取不是一回事，别混。
+
     -- 处理刺客SAN消耗
     if self.userdata.carrer_base and self.userdata.carrer_base == "rogue" and self.inst.components.sanity then
         local traits = self.class_traits.rogue
@@ -275,6 +268,10 @@ local Musha_Profession_Component = Class(function(self, inst)
         quests_for_advance = {}, -- 当前进阶任务的3个任务 ID
         quests_for_advance_done = {}, -- {1=true, 2=true, 3=true}
         current_advance_target = nil, -- 当前进阶的目标职业 ID
+        -- ★★ 2026-09-18 进阶方向选择（两本徽记，用户拍板）：
+        advance_crest_bind = nil,     -- 本次选择用的绑定 ID（发徽记时生成，两枚共用）
+        advance_crest_used = nil,     -- 已用掉的绑定 ID（用掉一枚后记下；另一枚靠校验作废）
+        advance_choice_pending = false, -- 已发徽记、还没选方向（面板显示两棵树打锁）
         learned_skills = {}, -- 学习过的技能
     }
 
@@ -554,6 +551,58 @@ local Musha_Profession_Component = Class(function(self, inst)
         end
     end)
 
+    -- ====================================
+    -- ★★ 2026-09-20 近卫盾（对照表 #1）：MP 代替护盾
+    --   用户拍板走 **redirect**（盾优先）—— 符合设定原文「被攻击先扣盾」。
+    --   原版结算链（实测读码）：
+    --     combat.lua:611 inventory:ApplyDamage（护甲吸收）
+    --     combat.lua:648 health:DoDelta(-damage)
+    --        health.lua:623 redirect        ← 本钩子（在吸收之前）
+    --        health.lua:628 externalabsorbmodifiers ← 钢铁意志那 0.4 在这
+    --   → 语义：盾先吃【护甲/减伤前的原始伤害】(1:1 扣 MP)；盾不够时余量回灌、
+    --     才轮到钢铁意志减伤；盾为 0 时完全走正常流程。
+    --   ⚠️ 坑 1：余量回灌会再次进 redirect → 用 _in_shield_redirect 重入标志位防无限递归。
+    --   ⚠️ 坑 2：只挡【有攻击者 afflicter】的伤害 —— 饥饿/过热/跌落这类 afflicter == nil 一律放过，
+    --            否则近卫会被自己的饥饿值吃掉盾。
+    --   ⚠️ 坑 3：无敌/传送中要放过（原版 :625 那个检查在 redirect **之后**，钩子里必须自己判）。
+    --   ⚠️ 坑 4：ignore_absorb 的真实伤害同样穿透盾（与原版「穿透吸收」语义保持一致）。
+    --   数值真源 = class_traits.guardian（mp_base 240 / mp_max_growth 3 / mp_regen 1.2），
+    --   盾量就是 musha_mp.current，所以现有能量徽章不用改就能显示盾。
+    -- ====================================
+    if self.inst.components.health then
+        self.inst.components.health.redirect = function(inst2, amount, overtime, cause, ignore_invincible, afflicter, ignore_absorb)
+            local self2 = inst2.components ~= nil and inst2.components.musha_profession_component or nil
+            if self2 == nil or self2.userdata == nil then return false end
+            if self2._in_shield_redirect then return false end                  -- 重入保护：余量回灌不再吃盾
+            if self2.userdata.carrer_special ~= "guardian" then return false end -- 只有近卫有盾
+            if (amount or 0) >= 0 then return false end                         -- 治疗/回血放过
+            if afflicter == nil then return false end                           -- 非实体攻击（饥饿/过热/跌落）放过
+            if ignore_absorb then return false end                              -- 真实伤害穿透盾
+            local hp2 = inst2.components.health
+            if not ignore_invincible and (hp2:IsInvincible() or inst2.is_teleporting) then return false end
+
+            local mp = inst2.components.musha_mp
+            if mp == nil or (mp.current or 0) <= 0 then return false end        -- 没盾了，走正常流程
+
+            local dmg = -amount
+            local absorbed = math.min(dmg, mp.current)
+            mp:DoDelta(-absorbed)                                               -- 盾 = MP，1:1 扣
+
+            local rest = dmg - absorbed
+            if rest > 0.01 then                                                 -- 盾碎了，余量回灌（会走钢铁意志）
+                self2._in_shield_redirect = true
+                hp2:DoDelta(-rest, overtime, cause, ignore_invincible, afflicter, ignore_absorb)
+                self2._in_shield_redirect = false
+            end
+
+            -- 给反击（#9）/ 盾碎表现留的接口：absorbed=盾吃掉多少，rest=漏到血上多少
+            inst2:PushEvent("musha_shield_hit", {
+                absorbed = absorbed, rest = rest, attacker = afflicter, broken = rest > 0.01,
+            })
+            return true                                                         -- 本次 DoDelta 到此结束
+        end
+    end
+
     -- 转职事件监听 — 只用这一个，按职业给内容
     self.inst:ListenForEvent("musha_job_changed", function(inst, data)
         if not data or not data.job_id then return end
@@ -677,7 +726,16 @@ function Musha_Profession_Component:ApplyProfessionData()
     if self.userdata.carrer_special and self.userdata.carrer_special == "guardian" then
         local iw = self.guardian.iron_will
         if iw and iw.current_level > 0 and iw.level_effects[iw.current_level] then
-            local effect = 0.25 + iw.level_effects[iw.current_level]  -- 基础0.25 + 钢铁意志效果
+            -- ★★ 2026-09-18 修口径（照原版 data/databundles/scripts/components/health.lua:628 实测）：
+            --   externalabsorbmodifiers 存的是**吸收比例**（伤害 ×(1 − 总吸收)，且是 SourceModifierList.additive
+            --   累加列表），**不是"受伤倍率"**（这跟 externaldamagemultipliers 语义相反，别混）。
+            --   ⚠️ 战士基础防御 0.25 已经在本函数第 1 步按 carrer_base == "warrior" 挂过
+            --   （`warrior_base_defense`，近卫的基础职业就是 warrior，所以一定在）→ 这里**只能再加钢铁意志自己那部分**。
+            --   原来写 `0.25 + level_effects` → 累加后变成 0.25+0.30 = 0.55（Lv3 = 0.65）
+            --   → 这就是排期文档里记的"实际减伤 60~75%"的根因。
+            --   修正后总吸收 = 0.25 + 0.05 / 0.10 / 0.15 = 0.30 / 0.35 / 0.40
+            --   （正好落回 class_traits.guardian.defense_max = 0.4 的设计上限）
+            local effect = iw.level_effects[iw.current_level]
             if self.applied_status.iron_will ~= effect then
                 player.components.health.externalabsorbmodifiers:RemoveModifier(
                     player, "guardian_iron_will"
@@ -749,6 +807,38 @@ end
 --   → 下表 = 各职业"可由技能书解锁"的主动技能；二转时把该技能 0 级直接置 1 级（省去第 1 级加点）
 local BOOK_UNLOCK_SKILL = {
     saber = "slash_qi",     -- 剑气斩
+}
+
+-- ================================================================
+-- ★ 2026-09-20 技能树布局（横排树 + 竖线前置）
+--   x / y = 图标在树里的格坐标（x = 列，向右递增；y = 行，向下递增）
+--   req   = 前置 { 前置技能key = 需要的最低等级 }
+-- · 服务端 CanUpgradeSkill 读它拦「前置没学就想点」（防改包，客户端改包绕不过）
+-- · 客户端 GetSkillView 把格坐标 + 前置达标情况一起推给面板 → 画连线 + 灰/亮
+-- · 加新技能：这里补一行 + SKILL_ORDER 补一项 + SKILL_UI 补文案
+--   （图标 = images/skill_icons/<icon>.png，清单在 scripts/musha_skill_icons.lua）
+-- ================================================================
+-- ⚠️ SKILL_ORDER / SKILL_UI 的真值在文件下面（约 975 / 991 行）定义。这里**前向声明**，
+--   否则上面第 847 行的 CanUpgradeSkill 引用不到它们（Lua 局部变量必须先声明后引用）
+local SKILL_ORDER
+local SKILL_UI
+
+local SKILL_TREE_POS = {
+    warrior = {
+        combat_recovery    = { x = 0, y = 0, req = {} },
+        weapon_proficiency = { x = 1, y = 0, req = { combat_recovery = 1 } },
+    },
+    saber = {
+        slash_qi   = { x = 0, y = 0, req = {} },
+        last_stand = { x = 1, y = 0, req = { slash_qi = 1 } },
+    },
+    guardian = {
+        iron_will  = { x = 0, y = 0, req = {} },
+        life_leech = { x = 0, y = 1, req = { iron_will = 1 } },
+    },
+    rogue = {
+        backstab   = { x = 0, y = 0, req = {} },
+    },
 }
 
 function Musha_Profession_Component:SetCarrerSpecial(carrer)
@@ -848,6 +938,20 @@ function Musha_Profession_Component:CanUpgradeSkill(skill_tree, skill_name)
     -- 检查是否已达最大等级
     if skill.current_level >= skill.max_level then
         return false, "已达技能最大等级"
+    end
+
+    -- ★★ 2026-09-20 技能树前置（竖线）：前置技能没到等级 → 不能学
+    --   客户端已经灰掉（GetSkillView 里的 pre_ok），这里再拦一道，防改包
+    local tpos = SKILL_TREE_POS[skill_tree] and SKILL_TREE_POS[skill_tree][skill_name]
+    if tpos and tpos.req then
+        for pkey, need in pairs(tpos.req) do
+            local pskill = self[skill_tree] and self[skill_tree][pkey]
+            local plv = (pskill and pskill.current_level) or 0
+            if plv < need then
+                local pdef = SKILL_UI[skill_tree] and SKILL_UI[skill_tree][pkey]
+                return false, string.format("需要先把「%s」学到 %d 级", (pdef and pdef.name) or pkey, need)
+            end
+        end
     end
 
     -- ★★ 2026-09-18 技能书锁（补漏）：0 级的"技能书解锁技"**不能用技能点买**
@@ -966,7 +1070,7 @@ end
 -- ====================================
 
 -- 显示顺序（按解锁等级排）
-local SKILL_ORDER = {
+SKILL_ORDER = {
     warrior  = { "combat_recovery", "weapon_proficiency" },
     -- 2026-09-13：命中强化/吸血 摘掉（见上方注释）；2026-09-14：剑气斩上架（加点学习，排在最前）
     saber    = { "slash_qi", "last_stand" },
@@ -975,15 +1079,24 @@ local SKILL_ORDER = {
 }
 
 -- fmt(v) 把 level_effects 的数值翻译成人话
-local SKILL_UI = {
+--
+-- ★ 2026-09-19 用户给齐了技能图标（128x128 PNG）→ 已铺到 `images/skill_icons/<技能id>.png`
+--   · `icon` 字段就是文件名（不带扩展名）；技能树/技能页要画图标时按
+--     `images/skill_icons/<icon>.xml` + `<icon>.tex` 取
+--   · ⚠️ .tex/.xml 要用户用 Mod Tool 转；**没转好之前 UI 必须退回占位（灰块/纯文字），不许崩**
+--   · 目前有图标的 6 个：combat_recovery / weapon_proficiency / slash_qi / last_stand / iron_will / life_leech
+--     （backstab 还没有图 → 用别的图标或纯文字兜底）
+SKILL_UI = {
     warrior = {
         combat_recovery = {
             name = "战斗恢复",
+            icon = "combat_recovery",
             fmt  = function(v) return string.format("脱离战斗后每秒回复 %.2f 点生命", v) end,
             tip  = "常驻生效；交手中暂停（脱战 3 秒后继续）",
         },
         weapon_proficiency = {
             name = "武器精通",
+            icon = "weapon_proficiency",
             fmt  = function(v) return string.format("武器伤害 +%.0f%%", v * 100) end,
         },
     },
@@ -994,19 +1107,23 @@ local SKILL_UI = {
         -- ★ 2026-09-14 上架：剑气斩（加点学习，3 级；level_effects 存的是每次耗能量）
         slash_qi      = {
             name = "剑气斩",
+            icon = "slash_qi",
             fmt  = function(v) return string.format("挥出月牙剑气，命中造成 100%% / 130%% / 160%% 武器伤害 · 每次消耗 %d 点能量", v) end,
             tip  = "解锁：二转赠送 Lv1（=技能书解锁，不花技能点）· Lv2/Lv3 在 7 / 12 级加点（伤害 100→130→160%，耗能量 18→16→14）· 装剑后右键释放",
         },
         -- ★ 2026-09-12 新增（用户）：剑士专属，血量 ≤50% 被动自动回满 / 冷却 80 秒 / 7 级 / 3 技能点
         last_stand    = {
             name = "我，活着",
+            icon = "last_stand",
             fmt  = function(v) return string.format("血量低于 50%% 时被动回满生命（冷却 %d 秒）", LAST_STAND_COOLDOWN) end,
             tip  = "7 级可学 · 消耗 3 技能点 · 无需按键，自动触发",
         },
     },
     guardian = {
-        iron_will  = { name = "钢铁意志", fmt = function(v) return string.format("额外减伤 %.0f%%", v * 100) end },
-        life_leech = { name = "生命偷取", fmt = function(v) return string.format("伤害转化治疗 %.0f%%", v * 100) end },
+        iron_will  = { name = "钢铁意志", icon = "iron_will",
+            fmt = function(v) return string.format("额外减伤 %.0f%%", v * 100) end },
+        life_leech = { name = "生命偷取", icon = "life_leech",
+            fmt = function(v) return string.format("伤害转化治疗 %.0f%%", v * 100) end },
     },
     rogue = {
         backstab = { name = "背刺", fmt = function(v) return string.format("背刺造成 %.0f 倍伤害", v) end },
@@ -1168,6 +1285,155 @@ function Musha_Profession_Component:GrantAdvanceGift(career)
     return ok
 end
 
+-- ====== 进阶方向选择（2026-09-18 用户拍板：C + 两本徽记）======
+-- 用户口径（原话摘要）：回到祭坛最后交互时**返还两枚方向徽记**（剑士 / 近卫），
+--   两枚都能看到、**共用绑定 ID**；**用掉其中一枚 = 选定方向（不可逆）**，另一枚自动作废。
+-- 实现口径（不追着删实体，抗掉地/放箱子/给别人/重进游戏）：
+--   ① 徽记身上带 `musha_bind`（服务端字段），背包里另一枚由 VoidSameBindCrests() 直接收走；
+--   ② 玩家 `userdata.advance_crest_used` 记下用掉的 bind；
+--   ③ **兜底**：只要 doer 已经进阶（has_advanced），任何徽记右键一律判"作废"并消失 ——
+--      这样即使实体字段在存档往返后丢失（DST 物品不存自定义字段），也不会出现"两枚都能用"。
+local BASE_TO_ADVANCED = {
+    warrior  = { "saber", "guardian" },   -- 战士 → 剑士 / 近卫（两条支线）
+    mage     = { "alchemist", "elementalist" },
+    ranger   = { "bard" },
+    assassin = { "moonshadow" },
+    rogue    = { "moonshadow" },
+}
+local CREST_PREFAB = {
+    saber    = "musha_crest_saber",
+    guardian = "musha_crest_guardian",
+}
+
+-- 可选的进阶分支（已进阶 → 空表）
+function Musha_Profession_Component:GetAdvanceChoices()
+    if self.userdata.has_advanced then return {} end
+    local base = self.userdata.carrer_base
+    return (base and BASE_TO_ADVANCED[base]) or {}
+end
+
+-- 本次选择的绑定 ID（同一次转职只生成一次）
+function Musha_Profession_Component:GetAdvanceBind()
+    if self.userdata.advance_crest_bind == nil then
+        self.userdata.advance_crest_bind = string.format("%s-%d-%d",
+            tostring(self.userdata.carrer_base or "none"),
+            math.random(100000, 999999),
+            math.floor(GetTime() or 0))
+    end
+    return self.userdata.advance_crest_bind
+end
+
+function Musha_Profession_Component:IsAdvanceBindUsed(bind)
+    return bind ~= nil and self.userdata.advance_crest_used == bind
+end
+
+-- 服务端：发两枚方向徽记（进背包；没有背包就掉在脚下）
+function Musha_Profession_Component:GrantAdvanceCrests()
+    if not TheWorld or not TheWorld.ismastersim then return false end
+    if self.userdata.has_advanced then return false end
+    local choices = self:GetAdvanceChoices()
+    if #choices == 0 then return false end
+
+    local bind = self:GetAdvanceBind()
+    self.userdata.advance_choice_pending = true
+    local inv = self.inst.components.inventory
+    local n = 0
+    for _, career in ipairs(choices) do
+        local prefab = CREST_PREFAB[career]
+        if prefab ~= nil then
+            local crest = SpawnPrefab(prefab)
+            if crest ~= nil then
+                crest.musha_bind = bind
+                crest.musha_career = career
+                if inv ~= nil then
+                    inv:GiveItem(crest)      -- ⚠️ 第 2 参数是槽位号(number)，别传 bool（踩过）
+                else
+                    local x, y, z = self.inst.Transform:GetWorldPosition()
+                    crest.Transform:SetPosition(x, y, z)
+                end
+                n = n + 1
+            end
+        end
+    end
+    self:PushSettings()
+    if n > 0 and self.inst.components.talker then
+        self.inst.components.talker:Say("祭坛给了你两枚方向徽记——用掉其中一枚，就是你的道路。", 6)
+    end
+    return n > 0
+end
+
+-- 使用徽记 = 选定方向（服务端权威；不可逆）
+--   返回 true = 这次真的转职了；否则 (false, 原因)：void / already / noskill / server
+function Musha_Profession_Component:UseAdvanceCrest(crest, career)
+    if not TheWorld or not TheWorld.ismastersim then return false, "server" end
+    career = career or (crest ~= nil and crest.musha_career) or nil
+    if career == nil then return false, "nocareer" end
+    local bind = crest ~= nil and crest.musha_bind or nil
+
+    -- ① 已进阶 → 一律作废（兜底，见文件头说明）
+    if self.userdata.has_advanced then return false, "void" end
+    -- ② 同一个绑定已经用掉另一枚 → 这本作废
+    if self:IsAdvanceBindUsed(bind) then return false, "void" end
+    -- ③ 方向必须是自己基础职业的分支
+    local ok = false
+    for _, c in ipairs(self:GetAdvanceChoices()) do
+        if c == career then ok = true end
+    end
+    if not ok then return false, "noskill" end
+
+    -- 落地（和旧的 CompleteAdvance() 同一套写入，只是改由"用徽记"触发）
+    self.userdata.carrer_special = career
+    self.userdata.has_advanced = true
+    self.userdata.current_advance_target = nil
+    self.userdata.quests_for_advance = {}
+    self.userdata.quests_for_advance_done = {}
+    if bind ~= nil then self.userdata.advance_crest_used = bind end
+    self.userdata.advance_choice_pending = false
+
+    -- 二转赠礼（技能书/卷轴）：出任何错都别卡流程（就职仪式那次踩过崩溃）
+    pcall(function() self:GrantAdvanceGift(career) end)
+
+    self:ApplyProfessionData()
+    self:PushSettings()
+    self.inst:PushEvent("musha_job_changed", { job_id = career })
+
+    -- 转职链收尾：清掉"仪式待办"，祭坛可以继续补卷/接下一轮
+    local q = self.inst.components.musha_quest
+    if q ~= nil then
+        q.advance_ceremony_pending = nil
+        q.advance_target = nil
+        q.advance_round = 1
+        if q.SyncToPanel ~= nil then pcall(function() q:SyncToPanel() end) end
+    end
+
+    -- 背包里同 bind 的另一枚：直接收走（不在背包里的靠右键时校验自灭）
+    self:VoidSameBindCrests(bind, crest)
+    return true
+end
+
+-- 收走背包里其它徽记（只扫自己的背包，不动地上的）
+--   ★★ 2026-09-19 修（用户实测：用掉一枚后，另一枚还留在背包里）：
+--   原因 = 徽记的 `musha_bind` 是实体字段，**掉线重进后会丢**（DST 不存物品自定义字段），
+--   这时 bind 为 nil，原来那句 `if bind == nil then return end` 直接跳过 → 另一枚留着。
+--   现在改成：**这次已经转职（has_advanced）→ 背包里所有徽记一律收走**（它们都失效了），
+--   bind 只用来做"更早一步"的精确匹配（同一次发下来的两枚）。
+function Musha_Profession_Component:VoidSameBindCrests(bind, except)
+    local inv = self.inst.components.inventory
+    if inv == nil or inv.items == nil then return end
+    local advanced = self.userdata.has_advanced == true
+    local list = {}
+    for _, item in pairs(inv.items) do
+        list[#list + 1] = item
+    end
+    for _, item in ipairs(list) do
+        if item ~= nil and item ~= except and item:HasTag("musha_crest") then
+            if advanced or (bind ~= nil and item.musha_bind == bind) then
+                item:Remove()
+            end
+        end
+    end
+end
+
 -- 组装"当前职业技能页"的数据（给客户端面板用）
 --   ★ 2026-09-12 改：原来只读 carrer_base 那一棵树 → 二转后技能页还是显示基础职业的技能；
 --     现在 **基础树 + 二转树都进面板**（用户："3全部都可"）。每条带 tree_kind 便于客户端区分。
@@ -1232,7 +1498,31 @@ function Musha_Profession_Component:GetSkillView()
                         nextfx = (d and d.fmt) and d.fmt(skill.level_effects and skill.level_effects[nxt] or 0) or "",
                         book_lock = book_need,     -- >0 = 需要这么多本技能书才能解锁（客户端画锁 + 提示）
                     }
-                    entry.can = (book_need == 0) and (not entry.maxed) and entry.points >= entry.cost and entry.lv >= entry.req
+                    -- ★ 2026-09-20 技能树：格坐标 + 前置状态（客户端画连线、判灰亮都读这两样）
+                    do
+                        local tpos = SKILL_TREE_POS[tree] and SKILL_TREE_POS[tree][key]
+                        entry.tree_x = (tpos and tpos.x) or 0
+                        entry.tree_y = (tpos and tpos.y) or 0
+                        entry.pre    = {}
+                        entry.pre_ok = true
+                        if tpos and tpos.req then
+                            for pkey, need in pairs(tpos.req) do
+                                local pskill = self[tree] and self[tree][pkey]
+                                local pcur = (pskill and pskill.current_level) or 0
+                                local pdef = defs and defs[pkey]
+                                table.insert(entry.pre, {
+                                    key  = pkey,
+                                    name = (pdef and pdef.name) or pkey,
+                                    need = need,
+                                    cur  = pcur,
+                                })
+                                if pcur < need then entry.pre_ok = false end
+                            end
+                        end
+                    end
+
+                    entry.can = (book_need == 0) and (not entry.maxed) and entry.points >= entry.cost
+                                and entry.lv >= entry.req and entry.pre_ok
                     table.insert(out, entry)
                 end
             end
@@ -1596,6 +1886,7 @@ function Musha_Profession_Component:OnRemoveFromEntity()
     if player.components.health then
         player.components.health.externalabsorbmodifiers:RemoveModifier(player, "warrior_base_defense")
         player.components.health.externalabsorbmodifiers:RemoveModifier(player, "guardian_iron_will")
+        player.components.health.redirect = nil      -- ★ 2026-09-20 撤销近卫盾钩子（构造函数里挂的）
     end
     
     if player.components.combat and player.components.combat.externaldamagemultipliers then
@@ -1711,6 +2002,13 @@ function Musha_Profession_Component:PushSettings()
     d.settings = self:GetSettingsView()
     d.skills   = self:GetSkillView()   -- 技能页数据（2026-09-12 新增，和设置共用一条推送通道）
     d.gifts    = self.userdata.gifts or {}   -- 礼包页：已领过的 id 表（2026-09-12）
+
+    -- ★ 2026-09-19 邮包系统：把"这个玩家绑没绑信箱"一起推给客户端
+    --   为什么非走这条：光标上的动作名是**客户端**算的，而 has_mailbox 存在服务端组件里。
+    --   用户拍板：复用这条已有的推送通道（代价 = 只有 musha 玩家有职业组件，
+    --   其他角色的信箱动作名会退回纯「触摸」）。
+    local mc = self.inst.components.musha_mail
+    d.mail = { bound = (mc ~= nil and mc.has_mailbox) and true or false }
 
     -- ★ 2026-09-12 技能冷却数据（给「技能冷却 UI」用）
     --   ⚠️ remain 只是"这次推送那一刻"的剩余秒数，不是实时的：

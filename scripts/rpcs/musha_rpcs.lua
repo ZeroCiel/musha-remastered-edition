@@ -261,3 +261,47 @@ GLOBAL.AddModRPCHandler(NS, "musha_request_settings", function(player)
         pc:PushSettings()
     end
 end)
+
+-- ====================================
+-- 信差包「发送」（客户端→服务端，2026-09-20 新增）
+--   用户按包 UI 上的「发送 / 关闭·发送」按钮时调它：
+--     客户端： SendModRPCToServer(GLOBAL.GetModRPC(NS, "musha_mailbag_send"), bag)
+--              bag 可以给"那个信差包实体"，也可以直接给 nil（服务端自己找玩家身上的包）
+--   服务端：干的事和"关包"完全一样 —— 走 MushaMail:MailBag()（同一个函数，不会有两套规则）
+--   ⚠️ 关包本身也会寄（prefab 里的 container.onclosefn）；这里只是给 UI 按钮一条"不关包也能寄"的路
+-- ====================================
+-- ★ 2026-09-20 抽成全局函数：RPC 处理器调它；**主机自己按按钮**也直接调它（同一套逻辑，不会两套）
+function GLOBAL.MushaMailBagSend(player, bag)
+    if not player or not player:IsValid() then return end
+
+    local function Say(msg)
+        if player.components.talker then player.components.talker:Say(msg, 3) end
+    end
+
+    local mc = player.components.musha_mail
+    if mc == nil then return end
+
+    -- bag 不合法/没给 → 自动找玩家身上的第一个信差包
+    if bag == nil or not bag:IsValid() or bag.components == nil or bag.components.container == nil then
+        bag = nil
+        local inv = player.components.inventory
+        if inv ~= nil then
+            inv:ForEachItem(function(item)
+                if bag == nil and item:HasTag("musha_mailbag") then bag = item end
+            end)
+        end
+    end
+
+    if bag == nil then
+        Say("身上没有信差包")
+        return
+    end
+
+    mc:MailBag(bag, player)
+end
+
+GLOBAL.AddModRPCHandler(NS, "musha_mailbag_send", function(player, bag)
+    if not player or not player:IsValid() then return end
+    if not GLOBAL.TheWorld.ismastersim then return end
+    GLOBAL.MushaMailBagSend(player, bag)
+end)

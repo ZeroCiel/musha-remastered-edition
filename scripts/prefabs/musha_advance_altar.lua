@@ -26,7 +26,7 @@ local USE_CUSTOM_MODEL = true           -- 2026-09-14 用户已打包 anim/musha
 local ALTAR_BANK  = USE_CUSTOM_MODEL and "musha_advance_altar" or "statue_maxwell"
 local ALTAR_BUILD = USE_CUSTOM_MODEL and "musha_advance_altar" or "statue_maxwell_build"
 local ALTAR_ANIM  = USE_CUSTOM_MODEL and "idle"              or "idle_full"
-local ALTAR_SCALE = 1.0                 -- 进游戏嫌大/嫌小就改这个（1.0=原始，0.8=缩两成）
+local ALTAR_SCALE = 1.3                 -- 进游戏嫌大/嫌小就改这个（1.0=原始，0.8=缩两成）
 
 local assets = USE_CUSTOM_MODEL and
 {
@@ -37,6 +37,24 @@ local assets = USE_CUSTOM_MODEL and
     Asset("ANIM", "anim/statue_maxwell.zip"),
     Asset("ANIM", "anim/statue_maxwell_build.zip"),
 }
+
+-- ★ 2026-09-20 配方图标（images/inventoryimages/musha_advance_altar.png）要在这边登记，
+--   否则 AddRecipe2 的 atlas 没加载 → 图标画不出来。
+--   铁律：assets 写不存在的文件 → RegisterPrefabs assert → 整个 mod 被禁 → 先探再登记
+local function FileOK(path)
+    local f = softresolvefilepath
+    if f == nil then return false end
+    local o, r = pcall(f, path)
+    return o and r ~= nil
+end
+
+if FileOK("images/inventoryimages/musha_advance_altar.xml")
+    and FileOK("images/inventoryimages/musha_advance_altar.tex") then
+    table.insert(assets, Asset("ATLAS", "images/inventoryimages/musha_advance_altar.xml"))
+    table.insert(assets, Asset("IMAGE", "images/inventoryimages/musha_advance_altar.tex"))
+else
+    print("[Musha] 祭坛配方图标没打包（images/inventoryimages/musha_advance_altar.{xml,tex}）")
+end
 
 local prefabs = {}
 

@@ -50,6 +50,12 @@ local function QuestName(quest_id)
     return QUEST_NAMES[quest_id] or "未知任务"
 end
 
+-- ★ 2026-09-22 底图比例修正（用户已拍板：面板保持原版大小，底图那 5% 横向拉伸保持原样）
+--   panel_bg.png 的 tex 是 2048×1024，UV 框住的有效内容 1197.84×768（比例 1.559375）。
+--   原版 BG_W:BG_H = 1232:832 = 1.48，比 UV 比例小 5% → 底图横向被压 5%。
+--   这是作者（用户）一直习惯的样子，不改；只把 PANEL_ZOOM 改回 0.93 恢复原版显示尺寸
+--   （2026-09-22 凌晨我曾把坐标空间放大到 2594.8×1664 并把 zoom 降到 0.4，导致面板
+--    面积缩到原版 78%、所有元素挤成一团，用户实测「太小了、全部对不上」→ 已回滚）。
 local BG_W = 1232
 local BG_H = 832
 local PANEL_ZOOM = 0.93
@@ -66,10 +72,10 @@ local NAV_LEFT = true
 local NAV_ALWAYS_SHOW = true
 
 -- 任务行尺寸（ScrollingGrid item）
-local ITEM_W = 860          -- 行 widget 宽（含框外扩）
+local ITEM_W = 817          -- 行 widget 宽（含框外扩）；2026-09-22 第二轮 860-43（长缩减 40px）
 local ITEM_H = 78           -- 行高 = 行距
 local VISIBLE_ROWS = 6
-local ROW_W = 840           -- 底框宽度（框/白条/红条同步）
+local ROW_W = 797           -- 底框宽度（框/白条/红条同步）；2026-09-22 第二轮 840-43
 
 -- 技能页行尺寸 + 左对齐文本参数（2026-09-13 从文件下部提前到这里：
 --   技能列表改成 ScrollingGrid 后，item_ctor 在构造期就要用到这些常量）
@@ -480,57 +486,135 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     self.content:SetScale(PANEL_ZOOM)
 
     -- 书页底图 1:1
-    self.bg = self.content:AddChild(Image("images/bookpage_bg.xml", "bookpage_bg.tex"))
+    self.bg = self.content:AddChild(Image("images/panel_bg.xml", "panel_bg.tex"))
     self.bg:SetSize(BG_W, BG_H)
 
-    -- 右上角红叉（★ 可见的红叉画在书页底图里；这里是**点击/悬停区**）
-    --   ★ 2026-09-14 从 V2 底图 images/bookpage_bg.png（1644x1109，等比显示成 1232x832）
-    --     用像素分析量出红色圆盘（红叉）**圆心 = 面板 (523, 360)**：原值 (492,341) 偏左 31、偏下 19。
-    --     ⚠️ 口径：图上量的是圆心，点击区按 80x80 居中放这里。
+    -- ★ 2026-09-22 用户：UI 不支持浮动的红色叉叉（底图右上那两个红叉对不齐，且那是
+    --   关"红包赞助"小窗的，不是关整个面板的）→ 暂时改成一个半透明小方块点击关闭。
+    --   位置贴底图红叉实测圆心 (559, 90)；等右上角底图重绘后再换回正式贴图按钮。
     self.close_btn = self.content:AddChild(ImageButton("images/global.xml", "square.tex"))
-    self.close_btn:ForceImageSize(80, 80)
-    self.close_btn:SetPosition(523, 360)        -- V2 图实测圆心（原 492,341）
-    self.close_btn:SetImageNormalColour(1, 1, 1, 0)
-    self.close_btn:SetImageFocusColour(1, 1, 1, 0.15)
+    self.close_btn:ForceImageSize(60, 60)
+    self.close_btn:SetPosition(562, 213)        -- ★ 第四轮：上移 60px + 右移 3px
+    self.close_btn.scale_on_focus = false
+    self.close_btn.normal_scale = { 1, 1, 1 }
+    self.close_btn.focus_scale  = { 1, 1, 1 }
+    self.close_btn:SetImageNormalColour(0.55, 0.16, 0.13, 0.55)   -- 暗红半透明方块
+    self.close_btn:SetImageFocusColour(0.75, 0.22, 0.16, 0.85)
     self.close_btn:SetOnClick(function()
         TheFrontEnd:PopScreen()
     end)
 
     -- 标题：职业名 + Lv 徽标
+    -- ★ 2026-09-22 用户重新排版主页：上下两区
+    --   · 上区（y>0，约占 1/3）：左=职业头像，中=职业名，右=Lv 徽标
+    --   · 下区（y<0，约占 2/3）：任务列表
+    --   · decor_button 已隐藏（上一处）
+    --   ★ 坐标是 content 坐标（含 PANEL_ZOOM 缩放）；底图内框 ±616 × ±416（原版坐标空间）
+    --   ★ 任务行 ROW_W 840 右移到中心 x=40：左缘 -380 让开左侧导航（导航右缘 -400，留 20 缝）
+    --   ★ 2026-09-22 用户实测调参：职业头像右移170px、下移40px、放大1.6倍；
+    --     "战士"字号放大2倍；等级徽标挪到职业名正下方
+    --   ★ 2026-09-22 第二轮调参（用户按截图逐项给）：
+    --     ① 标题栏（Musha 木牌）上移 100px、放大 2.2 倍、无金边
+    --     ② 战士职业头像缩小到 0.25 倍（256→64）
+    --     ③ "战士"字号缩小一倍（128→64）
+    --     ④ 职业经验条移到战士下方 12px、放大 1.2 倍
+    --     ⑤ 灰条（level_badge 灰底）取消
+    --     ⑥ 叉号上移 170px
+    --     ⑦ 任务面板右移 14px、长缩减 40px
+    local HOME_TOP_Y   = 230
+    local JOB_W        = 300          -- 职业名左对齐 region 宽
+    local JOB_LX       = -110 + JOB_W/2   -- 左缘起于 -110（头像右缘 -129，留 19 缝）
+
     self.job_text = self.content:AddChild(Text(UIFONT, 64))
     self.job_text:SetString("")
     self.job_text:SetColour(0.8, 0.6, 0.3, 1)
-    self.job_text:SetPosition(-300, 230)
+    self.job_text:SetPosition(JOB_LX, HOME_TOP_Y)
     self.job_text:SetHAlign(ANCHOR_LEFT)
+    self.job_text:SetRegionSize(JOB_W, 70)
 
-    self.level_badge = self.content:AddChild(Image("images/global.xml", "square.tex"))
-    self.level_badge:SetSize(100, 56)
-    self.level_badge:SetPosition(264, 250)
-    self.level_badge:SetTint(0.5, 0.42, 0.34, 0.8)
+    -- 左侧装饰按钮
+    -- ★ 2026-09-22 用户：战士上面左边的按钮不需要 → 隐藏（贴图和代码留着，以后想要直接 Show）
+    self.decor_button = self.content:AddChild(ImageButton("images/button_decor.xml", "button_decor.tex"))
+    self.decor_button:ForceImageSize(117, 66)
+    self.decor_button:SetPosition(-450, 230)
+    self.decor_button:SetImageNormalColour(1, 1, 1, 0.8)
+    self.decor_button:SetImageFocusColour(1, 0.9, 0.7, 1)
+    self.decor_button:Hide()
+    self.decor_button:SetOnClick(function()
+        print("[Musha Panel] Decor button clicked")
+    end)
 
+    -- 右下角天使女孩装饰（缩小版）
+    -- ★ 2026-09-22 坐标回到原版 832 空间：右下角 ≈ (480, -300)
+    self.angel_girl = self.content:AddChild(Image("images/angel_girl.xml", "angel_girl.tex"))
+    self.angel_girl:SetSize(120, 160)  -- 缩小到合适尺寸
+    self.angel_girl:SetPosition(480, -300)  -- 右下角
+    self.angel_girl:SetTint(1, 1, 1, 0.7)  -- 半透明效果
+
+    -- 荷包装饰（拼接到天使女孩裙子侧边）
+    self.purse = self.content:AddChild(Image("images/purse.xml", "purse.tex"))
+    self.purse:SetSize(32, 48)  -- 缩小荷包尺寸
+    self.purse:SetPosition(560, -290)  -- 天使女孩右侧
+    self.purse:SetTint(1, 1, 1, 0.8)
+
+    -- 赞助二维码框架
+    self.sponsor_frame = self.content:AddChild(Image("images/sponsor_frame.xml", "sponsor_frame.tex"))
+    self.sponsor_frame:SetSize(96, 96)  -- 缩小到合适尺寸
+    self.sponsor_frame:SetPosition(350, -300)  -- 天使女孩左侧
+    self.sponsor_frame:SetTint(1, 1, 1, 0.9)
+
+    -- ★ Lv 徽标（灰条已取消 2026-09-22：不再画方形灰底，只留文字）
+    --   ★ 2026-09-22 第二轮：用户取消灰条 → level_badge 删掉，只留 level_text
     self.level_text = self.content:AddChild(Text(UIFONT, 34))
     self.level_text:SetString("Lv.1")
     self.level_text:SetColour(1, 1, 1, 1)
-    self.level_text:SetPosition(264, 250)
+    self.level_text:SetPosition(JOB_LX, HOME_TOP_Y - 60)   -- ★ 第四轮：避开经验条（原 -122 与 exp 条冲突）
 
-    -- 经验条（上面灰条 + 长条填充，整条右移 12 与竖条同步）
+    -- ★ 职业头像（2026-09-22 用户：图片\职业图标.png 切的 3 张，1×3 横排）
+    --   图片自带"战士/剑士/近卫 WARRIOR/SWORDSMAN/GUARDIAN"字样，直接贴图不再叠字
+    --   ★ 2026-09-22 第二轮：缩小到 0.25 倍（256→64），仍 @ (-257, 207)
+    --   64×64 包围盒 x[-289,-225] y[175,239]，在内框 ±616×±416 内
+    self.job_icon = self.content:AddChild(Image("images/job_warrior.xml", "job_warrior.tex"))
+    self.job_icon:SetSize(38, 38)      -- ★ 第四轮：×0.8（48→38.4）
+    self.job_icon:SetPosition(-257, 207)
+    self.job_icon:Hide()          -- 初始隐藏；无职业时 Refresh 会把它关掉
+
+    -- ★ 职业经验条（2026-09-22 第二轮：用户要显示出来，放战士下方 12px，放大 1.2 倍）
+    --   战士字 region 300×70 中心 (40,230) → 字底 ≈ 230-35 = 195
+    --   下移 12px = 13 content 单位 → 经验条中心 y = 195-13-11 = 171
+    --   （经验条高 22×1.2 ≈ 26 → 半高 13；文字在条上方）
+    --   ★ 放大 1.2 倍：宽 930×1.2 = 1116，高 22×1.2 = 26
+    --     宽 1116 中心 x=40 → 左缘 -518，右缘 598（内框 ±616 内，余 18）
     self.exp_bg = self.content:AddChild(Image("images/global.xml", "square.tex"))
-    self.exp_bg:SetSize(930, 22)
-    self.exp_bg:SetPosition(-3, 150)
+    self.exp_bg:SetSize(558, 13)       -- ★ 第三轮：缩小 50%（1116×26 → 558×13）
+    -- ★ 第四轮：右移120px+下移40px → (-110,128)
+    --   ⚠️ 但导航下移200后 nav1 在 y[110,201]、x[-502,-320]，经验条左缘 -389 压 nav1；
+    --   且右移后压到 Lv 文字(x[-10,90])。→ 左缘让开 nav 右缘(-320)，中心 x=-33
+    --   y 放 nav1 与 nav2 之间的空档（nav1底201、nav2顶10）→ 中心 y=105.5
+    self.exp_bg:SetPosition(-33, 105.5)
     self.exp_bg:SetTint(0.3, 0.3, 0.3, 0.6)
 
     self.exp_fill = self.content:AddChild(Image("images/global.xml", "square.tex"))
-    self.exp_fill:SetSize(0, 22)
-    self.exp_fill:SetPosition(-468, 150)
+    self.exp_fill:SetSize(0, 13)
+    self.exp_fill:SetPosition(-312, 105.5)   -- 左缘 = -33-279 = -312，让开 nav
     self.exp_fill:SetTint(0.72, 0.72, 0.72, 0.95)
 
     self.exp_text = self.content:AddChild(Text(UIFONT, 26))
     self.exp_text:SetString("职业经验 0/100")
     self.exp_text:SetColour(0.55, 0.48, 0.38, 0.95)
-    self.exp_text:SetPosition(-130, 205)
+    self.exp_text:SetPosition(-33, 105.5)   -- 跟灰条走
     self.exp_text:SetHAlign(ANCHOR_MIDDLE)
 
+    -- ★ 上下区分隔线（缩短并右移到等级徽标右侧，避开 badge：badge 右缘 90）
+    --   ★ 2026-09-22 上区放大后纵向紧张：badge 中心 108（底 80），分隔线 y=82，list 顶 74
+    local HOME_DIV_Y = 82
+    self.home_divider = self.content:AddChild(Image("images/global.xml", "square.tex"))
+    self.home_divider:SetSize(285, 2)
+    self.home_divider:SetPosition(242, HOME_DIV_Y)
+    self.home_divider:SetTint(0.88, 0.74, 0.38, 0.55)
+
     -- 空状态
+    -- ★ 2026-09-22：跟着任务列表（中心 -73）摆，两行字上下排
     self.quest_empty = self.content:AddChild(Text(UIFONT, 48))
     self.quest_empty:SetString("暂无任务")
     self.quest_empty:SetColour(0.62, 0.62, 0.62, 1)
@@ -672,9 +756,21 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         peek_percent = 0,
         allow_bottom_empty_row = true,
     }))
-    -- 位置：首行中心 y=70（旧布局），x=-48（旧 ROW_X 32 + bg -80）
-    -- 2026-09-10：上移 6（-125→-119）→ 右移 4（-48→-44）→ 再右移 5、上移 6（-44/-119 → -39/-113）
-    self.list:SetPosition(-39, -113)
+    -- ★ 2026-09-22 主页改上下两区：任务列表往下挪，让上区（职业+Lv）和下区（任务）
+    --   之间有干净的分隔。原版坐标空间 832（内框 ±416）。
+    --   6 行 × 78 高 = 468。list 中心 cy：顶行中心 = cy+195，底行中心 = cy-195。
+    --   分隔线在 y=100，顶行要在其下方且留半行 → cy+195 ≥ 139 → cy ≥ -56
+    --   底行要在内框内 → cy-195 ≥ -416+39 → cy ≥ -260
+    --   取 cy = -113（原版位置），顶行 82、底行 -308，整列在下区，底部还有 ~100 给装饰。
+    --   ★ 上区放大后（头像 256、职业名 128 号字）纵向空间紧张：
+    --     list 中心下移到 -160（顶 74），badge 中心 94（底 66），分隔线 y=66。
+    --     头像底 79 与 list 顶 74 相交 5 单位 —— 但 list 首行内容从行内左缘起画、
+    --     行高 78，实际文字落在行中心 -160+195=35 附近，头像底 79 只压到首行上沿空白，可接受。
+    --   ★ 2026-09-22 第二轮：任务面板右移 14px（=15 content）、长缩减 40px（=43 content）
+    --     ROW_W 840 → 797；ITEM_W 860 → 817（ITEM_W = ROW_W + 20，框外扩两侧各 10）
+    --     list 中心 x：右移 15 → -39+15 = -24
+    --     缩减后左缘 = -24-797/2 = -423（导航右缘 -400，缝 23）；右缘 = 374
+    self.list:SetPosition(-24, -160)
 
     -- 2026-09-10 需求：滚动条默认常显（不超过行数也显示）
     -- 原生 RefreshView 在 CanScroll()==false 时 Hide 滚动条；这里覆写强制 Show，
@@ -778,7 +874,9 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
 
     self.pages = {}
     self.pages.home = {
-        self.job_text, self.level_badge, self.level_text,
+        self.job_icon,
+        self.job_text, self.level_text,
+        self.home_divider,
         self.exp_bg, self.exp_fill, self.exp_text,
         self.quest_empty, self.quest_hint, self.list,
     }
@@ -1400,7 +1498,12 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             if not data then w:Hide(); return end
 
             -- ★ 2026-09-16 图标：条目自带 icon_atlas/icon_tex 就贴（装备的库存图集），否则藏
-            if data.icon_atlas ~= nil and data.icon_tex ~= nil then
+            --   ★ 2026-09-22：musha_jobbook_rogue（潜行者职业书）图还没画，
+            --     SetTexture 找不到文件会 resolvefilepath assert 崩掉整个图鉴页。
+            --     先用 TheSim:AtlasContains 探一次， atlas 里没这个元素就藏图标。
+            if data.icon_atlas ~= nil and data.icon_tex ~= nil
+                and TheSim:AtlasContains(data.icon_atlas, data.icon_tex)
+            then
                 w.icon:SetTexture(data.icon_atlas, data.icon_tex, data.icon_tex)
                 w.icon:SetSize(64, 64)
                 w.icon:Show()
@@ -1563,8 +1666,23 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     self.nav_tri_label:SetString(NAV_ALWAYS_SHOW and "v" or ">")
     self.nav_tri_label:SetColour(0.97, 0.92, 0.70, 1)       -- 淡黄符号
 
+    -- ★ 2026-09-22 用户：点导航的小三角不需要（导航已左竖排常驻）→ 整个按钮隐藏。
+    --   代码保留，NAV_ALWAYS_SHOW=false 想回到"点三角才展开"时再放出来。
+    if NAV_ALWAYS_SHOW then
+        self.nav_triangle:Hide()
+    end
+
     self.nav_list = self.content:AddChild(Widget("musha_nav_list"))
-    self.nav_list:SetPosition(NAV_LEFT and -458 or 458, NAV_LEFT and 107 or 266)
+    -- ★ 2026-09-22 第二轮：按钮放大 2.2 倍（114→250.8 宽），中心 x 要往右移，
+    --   否则左缘会出面板内框。原 -458 是 114 宽时的中心，左缘 -515。
+    --   现在：左缘保持 -515 → 中心 = -515 + 250.8/2 = -389.6
+    --   上移 58px → y = 107 + 54 = 161（容器 y 是首个按钮的基准位）
+    -- ★ 2026-09-22 第三轮：左移 20px → -411.1
+    --   ★ 第四轮：整体下移 200px（=215 content）→ y = -54
+    --     ⚠️ 算账：2.2 倍按钮（125.4 高）+ 间隔 17.2 = 总高 838 > 832，末个出框
+    --     → 按钮缩小到 1.6 倍（91.2 高）+ 间隔 8px（8.6）= 总高 590，
+    --       下移 200px 后末个底 -389 > -416 ✓，首个顶 201 < 416 ✓
+    self.nav_list:SetPosition(NAV_LEFT and -434.1 or 411.1, NAV_LEFT and -297 or 266)
     if NAV_ALWAYS_SHOW then
         self.nav_list:Show()          -- 左竖排常驻：开面板就能直接点页
     else
@@ -1574,56 +1692,64 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
 
     -- 导航图标（2026-09-13）：清单在 scripts/musha_nav_icons.lua（唯一真源）
     --   哪张 tex 打包好了清单里就有哪一行；缺 tex 时下面的 pcall 会兜住 → 那行只显示文字
+    --   ⚠️ 2026-09-21 临时：所有图标都用树枝图标替代（等待新图标制作）
     local NAV_ICON = {}
-    local ok_nav, NAVICON = pcall(require, "musha_nav_icons")
-    if ok_nav and type(NAVICON) == "table" then
-        for _, def in ipairs(NAVICON) do
-            NAV_ICON[def.key] = { atlas = "images/" .. def.file .. ".xml", elem = def.file .. ".tex" }
-        end
+    -- 临时使用统一的树枝图标替代所有导航图标
+    local stick_icon = { atlas = "images/global.xml", elem = "twigs.tex" }
+    for _, key in ipairs(self.page_order) do
+        NAV_ICON[key] = stick_icon
     end
 
+    -- ★ 2026-09-22 导航按钮换成 AI 画的标题栏贴图（图片/UI_zh.png 切的 6 条）
+    --   旧的「色块 + 白框 + 文字」整套作废，贴图自带文字和装饰。
+    --   贴图 = 512x256 画布（比例 2:1），ScaleToSize 必须保持 2:1 否则压扁
+    -- ★ 2026-09-22 第二轮：上移 100px + 放大 2.2 倍（用户要求）
+    --   ⚠️ 算账：2.2 倍 → 250.8×125.4，间隔 13.2，总高 824.4（≤832 刚好）
+    --     但上移 100px 后末个 y=-478 < -416 出框 62；且导航右缘 -264 压任务列表 168。
+    --     → 两个要求不能同时满足。先保证"放大"：按钮占满内框高度，不上移。
+    --     上移留到任务列表让出左侧空间后（v3 任务行缩短时）再做。
+    --   ★ 第四轮：下移 200px + 间隔 +8px（用户要求）。算账见 nav_list 注释。
+    --     2.2 倍按钮放不下 → 缩到 1.6 倍（182.4×91.2），间隔 8.6（=8px）
+    local NAV_BTN_W = 182.4
+    local NAV_BTN_H = 91.2
+    local NAV_GAP   = 2.87   -- ★ 第四轮：每个标题之间间隔 ÷3（8.6→2.87）
+    local NAV_GAP2  = 2.87   -- ★ 第四轮：每个标题之间间隔 ÷3（8.6→2.87）
+    local NAV_TOP_Y = 416 - 91.2/2             -- 首个贴内框顶（相对容器）
+    local NAV_TEX = {
+        home  = { atlas = "images/nav_home.xml",  elem = "nav_home.tex"  },
+        skill = { atlas = "images/nav_skill.xml", elem = "nav_skill.tex" },
+        mail  = { atlas = "images/nav_mail.xml",  elem = "nav_mail.tex"  },
+        set   = { atlas = "images/nav_set.xml",   elem = "nav_set.tex"   },
+        gift  = { atlas = "images/nav_gift.xml",  elem = "nav_gift.tex"  },
+        dex   = { atlas = "images/nav_dex.xml",   elem = "nav_dex.tex"   },
+    }
+
     for i, key in ipairs(self.page_order) do
-        -- 2026-09-10：横条缩到 76%（150x52 → 114x40），行距 56 → 43；文字字号不缩
         local b = self.nav_list:AddChild(ImageButton("images/global.xml", "square.tex"))
-        b:ForceImageSize(114, 40)
-        b:SetPosition(0, -(i - 1) * 43)
+        b:ForceImageSize(NAV_BTN_W, NAV_BTN_H)
+        b:SetPosition(0, NAV_TOP_Y - (i - 1) * (NAV_BTN_H + NAV_GAP2))
         b.scale_on_focus = false
         b.normal_scale = { 1, 1, 1 }
         b.focus_scale  = { 1, 1, 1 }
-        b:SetImageNormalColour(0.96, 0.90, 0.62, 0.95)   -- 淡黄底
-        b:SetImageFocusColour(1.00, 0.97, 0.80, 1)       -- 悬停变亮 = 物质的反馈
+        b:SetImageNormalColour(0, 0, 0, 0)         -- 底色透明：不挡贴图
+        b:SetImageFocusColour(0, 0, 0, 0)
 
-        -- 白框：4 条边线（plate 114x40）
-        for _, ln in ipairs({
-            { 0,   19, 114, 2 },
-            { 0,  -19, 114, 2 },
-            { -56,  0,   2, 40 },
-            { 56,   0,   2, 40 },
-        }) do
-            local line = b:AddChild(Image("images/global.xml", "square.tex"))
-            line:SetSize(ln[3], ln[4])
-            line:SetPosition(ln[1], ln[2])
-            line:SetTint(1, 1, 1, 0.95)
-        end
-
-        local t = b:AddChild(Text(UIFONT, 28))
-        t:SetString(self.page_titles[key])
-        t:SetColour(0.32, 0.26, 0.18, 1)          -- 淡黄底上用深色字（字号仍 28pt，不缩）
-
-        -- 导航图标（2026-09-13）：图放左边 28x28，文字整体右移 8 让"图+字"看着居中
-        --   缺 tex 时 pcall 兜住：只打一行日志，该行保持纯文字
-        if NAV_ICON[key] then
+        -- 标题栏贴图（贴图本身就是「图案+文字」，不再叠字）
+        local art = nil
+        if NAV_TEX[key] then
             local ok = pcall(function()
-                local ic = b:AddChild(Image(NAV_ICON[key].atlas, NAV_ICON[key].elem))
-                ic:ScaleToSize(28, 28)
-                ic:SetPosition(-41, 0)
-                t:SetPosition(8, 0)
+                art = b:AddChild(Image(NAV_TEX[key].atlas, NAV_TEX[key].elem))
+                art:ScaleToSize(NAV_BTN_W, NAV_BTN_H)
+                art:SetPosition(0, 0)
             end)
-            if not ok then print("[Musha] 导航图标没加载上（tex 打包了吗？）: " .. tostring(key)) end
+            if not ok then
+                art = nil
+                print("[Musha] 导航标题栏贴图没加载上: " .. tostring(key))
+            end
         end
 
         b:SetOnClick(function() self:SetActivePage(key) end)
-        table.insert(self.nav_items, { key = key, btn = b, text = t })
+        table.insert(self.nav_items, { key = key, btn = b, _art = art })
     end
 
     self.nav_triangle:SetOnClick(function()
@@ -1670,13 +1796,11 @@ function MushaPanelScreen:Refresh()
     if has_job then
         self.job_text:SetColour(0.8, 0.6, 0.3, 1)
         self.level_text:SetColour(1, 1, 1, 1)
-        self.level_badge:SetTint(0.5, 0.42, 0.34, 0.8)
         self.exp_fill:SetTint(0.72, 0.72, 0.72, 0.95)
         self.exp_bg:SetTint(0.3, 0.3, 0.3, 0.6)
     else
         self.job_text:SetColour(0.55, 0.5, 0.42, 0.8)
         self.level_text:SetColour(0.75, 0.75, 0.75, 0.8)
-        self.level_badge:SetTint(0.3, 0.3, 0.3, 0.35)
         self.exp_fill:SetTint(0.45, 0.45, 0.45, 0.4)
         self.exp_bg:SetTint(0.35, 0.35, 0.35, 0.4)
     end
@@ -1690,6 +1814,24 @@ function MushaPanelScreen:Refresh()
     end
     self.job_text:SetString(title)
 
+    -- ★ 2026-09-22 职业头像：只按**当前职业**（carrer_base）显示对应图标
+    --   二转后头像不变（只换标题文字），图源只有 战士/剑士/近卫 3 张
+    if self.job_icon then
+        local JOB_TEX = {
+            warrior   = { "images/job_warrior.xml",   "job_warrior.tex"   },
+            saber     = { "images/job_saber.xml",     "job_saber.tex"     },   -- 树名 saber
+            swordsman = { "images/job_saber.xml",     "job_saber.tex"     },   -- 别名同图
+            guardian  = { "images/job_guardian.xml",  "job_guardian.tex"  },
+        }
+        local t = JOB_TEX[md.carrer_base]
+        if t then
+            self.job_icon:SetTexture(t[1], t[2])
+            self.job_icon:Show()
+        else
+            self.job_icon:Hide()          -- 法师/游侠/刺客…图还没画，先不显示
+        end
+    end
+
     local lv = md.level or 0
     local exp = md.exp or 0
     -- 注意：md.exp_to_next 是"还差多少升级"（服务端 exp_table[level+1] - exp），
@@ -1699,8 +1841,10 @@ function MushaPanelScreen:Refresh()
     self.level_text:SetString("Lv." .. lv)
     self.exp_text:SetString("职业经验 " .. exp .. "/" .. exp_next)
     local pct = exp_next > 0 and math.min(exp / exp_next, 1) or 0
-    self.exp_fill:SetSize(930 * pct, 22)
-    self.exp_fill:SetPosition(-468 + 465 * pct, 150)
+    -- ★ 第三轮：经验条整体缩 50%（558×13）
+    --   ★ 第四轮：右移+下移后与 nav1 / Lv 文字冲突 → 移到 (-33, 105.5)，左缘 -312
+    self.exp_fill:SetSize(558 * pct, 13)
+    self.exp_fill:SetPosition(-312 + 279 * pct, 105.5)
     if has_job and pct <= 0.001 then
         self.exp_bg:SetTint(0.3, 0.3, 0.3, 0.35)
         self.exp_fill:SetTint(0.72, 0.72, 0.72, 0.35)
@@ -2415,12 +2559,18 @@ function MushaPanelScreen:SetActivePage(name)
     end
     self.active_page = name
 
-    -- 导航项高亮（淡黄底 + 深色字，当前页用深橙）
+    -- 导航项选中态（2026-09-22：贴图按钮，用缩放+亮度区分，不改贴图内容）
+    --   it._art 是按钮上的标题栏贴图 Image；nil 时整个跳过（不崩）
     for _, it in ipairs(self.nav_items or {}) do
-        if it.key == name then
-            it.text:SetColour(0.85, 0.30, 0.08, 1)   -- 当前页
-        else
-            it.text:SetColour(0.32, 0.26, 0.18, 1)   -- 其余
+        local b, art = it.btn, it._art
+        if b then
+            if it.key == name then
+                b:SetScale(1.06, 1.06, 1)                 -- 当前页：放大 6%
+                if art then art:SetTint(1, 1, 1, 1) end   -- 全亮
+            else
+                b:SetScale(1, 1, 1)
+                if art then art:SetTint(0.82, 0.78, 0.72, 0.9) end  -- 其余压暗一档
+            end
         end
     end
 

@@ -105,6 +105,31 @@ table.insert(Assets, Asset("IMAGE", "images/musha_note_bg.tex"))
 -- 注册书页背景图
 table.insert(Assets, Asset("ATLAS", "images/bookpage_bg.xml"))
 table.insert(Assets, Asset("IMAGE", "images/bookpage_bg.tex"))
+table.insert(Assets, Asset("ATLAS", "images/panel_bg.xml"))
+table.insert(Assets, Asset("IMAGE", "images/panel_bg.tex"))
+table.insert(Assets, Asset("ATLAS", "images/button_decor.xml"))
+table.insert(Assets, Asset("IMAGE", "images/button_decor.tex"))
+-- ★ UI 装饰元素（2026-09-21 修正）
+--   这些是**互相独立的单元素图集**（每个 xml 只有一张全图 tex），不是一个合并图集。
+--   之前误注册了不存在的合并图集 images/ui_elements.tex → 进世界时 assert 崩（client_log:
+--   "Could not find an asset matching images/ui_elements.tex"）。已删，改注册真实存在的 4 张。
+--   wechat_qr 目前没有任何代码引用，不注册（留着 images/wechat_qr.* 备用）。
+local UI_ELEMENTS = { "angel_girl", "purse", "sponsor_frame", "close_button_red" }
+for _, name in ipairs(UI_ELEMENTS) do
+    table.insert(Assets, Asset("ATLAS", "images/" .. name .. ".xml"))
+    table.insert(Assets, Asset("IMAGE", "images/" .. name .. ".tex"))
+end
+
+-- ★ 职业头像（2026-09-22）：图片\职业图标.png 是 1×3 横排（战士/剑士/近卫），
+--   已切成 job_warrior / job_saber / job_guardian 三张单元素图集。
+--   ⚠️ Image:SetTexture 引用 atlas 前必须在这里注册，否则 client_log 报
+--   "Invalid resource handle for atlas '...job_warrior.xml'" 且贴图不显示。
+--   每张图自带"战士 WARRIOR"字样，面板上不再叠职业名文字。
+local JOB_ICONS = { "job_warrior", "job_saber", "job_guardian" }
+for _, name in ipairs(JOB_ICONS) do
+    table.insert(Assets, Asset("ATLAS", "images/" .. name .. ".xml"))
+    table.insert(Assets, Asset("IMAGE", "images/" .. name .. ".tex"))
+end
 
 -- 导航图标（2026-09-13）—— 清单在 scripts/musha_nav_icons.lua（唯一真源，两处共用）
 --   打包好 images/nav_xxx.tex + nav_xxx.xml（同 bookpage_bg 的做法）就往清单里留哪一行。
