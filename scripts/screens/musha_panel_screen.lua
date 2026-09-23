@@ -494,12 +494,19 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     --   位置贴底图红叉实测圆心 (559, 90)；等右上角底图重绘后再换回正式贴图按钮。
     self.close_btn = self.content:AddChild(ImageButton("images/global.xml", "square.tex"))
     self.close_btn:ForceImageSize(60, 60)
-    self.close_btn:SetPosition(562, 213)        -- ★ 第四轮：上移 60px + 右移 3px
+    self.close_btn:SetPosition(562, 213)
     self.close_btn.scale_on_focus = false
     self.close_btn.normal_scale = { 1, 1, 1 }
     self.close_btn.focus_scale  = { 1, 1, 1 }
-    self.close_btn:SetImageNormalColour(0.55, 0.16, 0.13, 0.55)   -- 暗红半透明方块
-    self.close_btn:SetImageFocusColour(0.75, 0.22, 0.16, 0.85)
+    self.close_btn:SetImageNormalColour(0.55, 0.16, 0.13, 0.85)   -- 暗红半透明方块
+    self.close_btn:SetImageFocusColour(0.75, 0.22, 0.16, 1)
+    -- ★ X 关闭标识（否则看不出来是关闭按钮）
+    self.close_btn_x = self.close_btn:AddChild(Text(UIFONT, 40))
+    self.close_btn_x:SetString("×")
+    self.close_btn_x:SetColour(1, 1, 1, 1)
+    self.close_btn_x:SetPosition(0, 0)
+    self.close_btn_x:SetHAlign(ANCHOR_MIDDLE)
+    self.close_btn_x:SetVAlign(ANCHOR_MIDDLE)
     self.close_btn:SetOnClick(function()
         TheFrontEnd:PopScreen()
     end)
@@ -938,19 +945,21 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             end)
         end
 
-        self.edit_toggle_btn = self.content:AddChild(ImageButton("images/global.xml","square.tex"))
-        self.edit_toggle_btn:ForceImageSize(120,32)
-        self.edit_toggle_btn:SetPosition(555, -365)
-        self.edit_toggle_btn:SetImageNormalColour(0.2,0.85,0.2,0.95)
-        self.edit_toggle_btn:SetImageFocusColour(0.3,1,0.3,1)
-        self.edit_toggle_btn:SetOnClick(function()
-            self.edit_mode = not self.edit_mode
-            self.edit_panel:SetVisible(self.edit_mode)
-            self.edit_toggle_btn:SetImageNormalColour(
-                self.edit_mode and 0.9 or 0.2,
-                self.edit_mode and 0.4 or 0.6,
-                self.edit_mode and 0.2 or 0.6, 0.9)
-        end)
+-- ★ 编辑模式切换按钮（2026-09-24：从右下挪到右上，避开天使女孩）
+    --   旧位置 (555,-365) 被 3 倍天使女孩 (480,-300, 360x480) 完全盖住 → 点不到
+    self.edit_toggle_btn = self.content:AddChild(ImageButton("images/global.xml","square.tex"))
+    self.edit_toggle_btn:ForceImageSize(120,32)
+    self.edit_toggle_btn:SetPosition(555, 365)
+    self.edit_toggle_btn:SetImageNormalColour(0.2,0.85,0.2,0.95)
+    self.edit_toggle_btn:SetImageFocusColour(0.3,1,0.3,1)
+    self.edit_toggle_btn:SetOnClick(function()
+        self.edit_mode = not self.edit_mode
+        self.edit_panel:SetVisible(self.edit_mode)
+        self.edit_toggle_btn:SetImageNormalColour(
+            self.edit_mode and 0.9 or 0.2,
+            self.edit_mode and 0.4 or 0.6,
+            self.edit_mode and 0.2 or 0.6, 0.9)
+    end)
         print("[Musha Edit] init done")
     end
 
@@ -1786,66 +1795,58 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     end
     self.nav_items = {}
 
-    -- 导航图标（2026-09-13）：清单在 scripts/musha_nav_icons.lua（唯一真源）
+-- 导航图标（2026-09-13）：清单在 scripts/musha_nav_icons.lua（唯一真源）
     --   哪张 tex 打包好了清单里就有哪一行；缺 tex 时下面的 pcall 会兜住 → 那行只显示文字
-    --   ⚠️ 2026-09-21 临时：所有图标都用树枝图标替代（等待新图标制作）
-    local NAV_ICON = {}
-    -- 临时使用统一的树枝图标替代所有导航图标
-    local stick_icon = { atlas = "images/global.xml", elem = "twigs.tex" }
-    for _, key in ipairs(self.page_order) do
-        NAV_ICON[key] = stick_icon
-    end
-
-    -- ★ 2026-09-22 导航按钮换成 AI 画的标题栏贴图（图片/UI_zh.png 切的 6 条）
-    --   旧的「色块 + 白框 + 文字」整套作废，贴图自带文字和装饰。
-    --   贴图 = 512x256 画布（比例 2:1），ScaleToSize 必须保持 2:1 否则压扁
-    -- ★ 2026-09-22 第二轮：上移 100px + 放大 2.2 倍（用户要求）
-    --   ⚠️ 算账：2.2 倍 → 250.8×125.4，间隔 13.2，总高 824.4（≤832 刚好）
-    --     但上移 100px 后末个 y=-478 < -416 出框 62；且导航右缘 -264 压任务列表 168。
-    --     → 两个要求不能同时满足。先保证"放大"：按钮占满内框高度，不上移。
-    --     上移留到任务列表让出左侧空间后（v3 任务行缩短时）再做。
-    --   ★ 第四轮：下移 200px + 间隔 +8px（用户要求）。算账见 nav_list 注释。
-    --     2.2 倍按钮放不下 → 缩到 1.6 倍（182.4×91.2），间隔 8.6（=8px）
+    -- ⚠️ 2026-09-24：nav_*.xml 贴图全部不存在 → 回退到 global.xml 已知贴图 + 文字标签
     local NAV_BTN_W = 182.4
     local NAV_BTN_H = 91.2
-    local NAV_GAP   = 2.87   -- ★ 第四轮：每个标题之间间隔 ÷3（8.6→2.87）
-    local NAV_GAP2  = 2.87   -- ★ 第四轮：每个标题之间间隔 ÷3（8.6→2.87）
-    local NAV_TOP_Y = 416 - 91.2/2             -- 首个贴内框顶（相对容器）
-    local NAV_TEX = {
-        home  = { atlas = "images/nav_home.xml",  elem = "nav_home.tex"  },
-        skill = { atlas = "images/nav_skill.xml", elem = "nav_skill.tex" },
-        mail  = { atlas = "images/nav_mail.xml",  elem = "nav_mail.tex"  },
-        set   = { atlas = "images/nav_set.xml",   elem = "nav_set.tex"   },
-        gift  = { atlas = "images/nav_gift.xml",  elem = "nav_gift.tex"  },
-        dex   = { atlas = "images/nav_dex.xml",   elem = "nav_dex.tex"   },
+    local NAV_GAP2  = 2.87
+    local NAV_TOP_Y = 416 - 91.2/2
+
+    -- 每个页面的回退贴图 + 颜色 + 中文标签
+    local NAV_FALLBACK = {
+        home  = { tex = "twigs.tex",  tint = {0.85, 0.68, 0.25, 0.9}, label = "主页" },
+        skill = { tex = "leaf.tex",  tint = {0.45, 0.62, 0.35, 0.9}, label = "技能" },
+        mail  = { tex = "cutgrass.tex", tint = {0.55, 0.55, 0.62, 0.9}, label = "信箱" },
+        set   = { tex = "log.tex",   tint = {0.55, 0.48, 0.38, 0.9}, label = "设置" },
+        gift  = { tex = "redneedle.tex", tint = {0.82, 0.35, 0.30, 0.9}, label = "礼包" },
+        dex   = { tex = "stalks.tex", tint = {0.62, 0.52, 0.68, 0.9}, label = "图鉴" },
     }
 
     for i, key in ipairs(self.page_order) do
-        local b = self.nav_list:AddChild(ImageButton("images/global.xml", "square.tex"))
+        local fb = NAV_FALLBACK[key] or NAV_FALLBACK.home
+        local b = self.nav_list:AddChild(ImageButton("images/global.xml", fb.tex))
         b:ForceImageSize(NAV_BTN_W, NAV_BTN_H)
         b:SetPosition(0, NAV_TOP_Y - (i - 1) * (NAV_BTN_H + NAV_GAP2))
         b.scale_on_focus = false
         b.normal_scale = { 1, 1, 1 }
         b.focus_scale  = { 1, 1, 1 }
-        b:SetImageNormalColour(0, 0, 0, 0)         -- 底色透明：不挡贴图
-        b:SetImageFocusColour(0, 0, 0, 0)
+        b:SetImageNormalColour(fb.tint[1], fb.tint[2], fb.tint[3], fb.tint[4])
+        b:SetImageFocusColour(math.min(fb.tint[1]*1.2, 1), math.min(fb.tint[2]*1.2, 1), math.min(fb.tint[3]*1.2, 1), 1)
 
-        -- 标题栏贴图（贴图本身就是「图案+文字」，不再叠字）
-        local art = nil
-        if NAV_TEX[key] then
-            local ok = pcall(function()
-                art = b:AddChild(Image(NAV_TEX[key].atlas, NAV_TEX[key].elem))
-                art:ScaleToSize(NAV_BTN_W, NAV_BTN_H)
-                art:SetPosition(0, 0)
-            end)
-            if not ok then
-                art = nil
-                print("[Musha] 导航标题栏贴图没加载上: " .. tostring(key))
-            end
+        -- 白色描边（4 条线，和任务行同风格）
+        local FT2 = 3
+        for _, ln in ipairs({
+            { 0,               NAV_BTN_H/2, NAV_BTN_W, FT2 },
+            { 0,               -NAV_BTN_H/2, NAV_BTN_W, FT2 },
+            { -NAV_BTN_W/2,    0,           FT2, NAV_BTN_H },
+            { NAV_BTN_W/2,     0,           FT2, NAV_BTN_H },
+        }) do
+            local line = b:AddChild(Image("images/global.xml", "square.tex"))
+            line:SetSize(ln[3], ln[4])
+            line:SetPosition(ln[1], ln[2])
+            line:SetTint(1, 1, 1, 0.85)
         end
 
+        -- 中文标签
+        local lbl = b:AddChild(Text(UIFONT, 28))
+        lbl:SetString(fb.label)
+        lbl:SetColour(1, 1, 1, 1)
+        lbl:SetPosition(0, 0)
+        lbl:SetHAlign(ANCHOR_MIDDLE)
+
         b:SetOnClick(function() self:SetActivePage(key) end)
-        table.insert(self.nav_items, { key = key, btn = b, _art = art })
+        table.insert(self.nav_items, { key = key, btn = b })
     end
 
     self.nav_triangle:SetOnClick(function()
