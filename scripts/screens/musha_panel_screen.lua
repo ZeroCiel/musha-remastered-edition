@@ -554,13 +554,13 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     -- 右下角天使女孩装饰（放大 3 倍）
     -- ★ 2026-09-24 用户：放大到 3 倍，去掉左边的小方框
     self.angel_girl = self.content:AddChild(Image("images/angel_girl.xml", "angel_girl.tex"))
-    self.angel_girl:SetSize(360, 480)  -- 3 倍放大
+    self.angel_girl:SetSize(336, 448)  -- 2.8 倍（原 120x160 → 336x448）
     self.angel_girl:SetPosition(480, -300)  -- 右下角
     self.angel_girl:SetTint(1, 1, 1, 0.7)  -- 半透明效果
 
     -- 荷包装饰（随天使女孩放大同步调整）
     self.purse = self.content:AddChild(Image("images/purse.xml", "purse.tex"))
-    self.purse:SetSize(96, 144)  -- 3 倍
+    self.purse:SetSize(89.6, 134.4)  -- 2.8 倍
     self.purse:SetPosition(680, -290)  -- 天使女孩右侧
     self.purse:SetTint(1, 1, 1, 0.8)
 
@@ -1797,56 +1797,66 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
 
 -- 导航图标（2026-09-13）：清单在 scripts/musha_nav_icons.lua（唯一真源）
     --   哪张 tex 打包好了清单里就有哪一行；缺 tex 时下面的 pcall 会兜住 → 那行只显示文字
-    -- ⚠️ 2026-09-24：nav_*.xml 贴图全部不存在 → 回退到 global.xml 已知贴图 + 文字标签
+    -- ⚠️ 2026-09-24 第二轮：nav_*.xml+tex 都在，但 239ec44 删了文字标签和描边，
+    --   只留透明按钮上的贴图 → 按钮在深色背景上完全看不见。
+    --   修法：恢复旧版「淡黄底 + 白描边 + 中文标签」，nav_*.tex 作为可选图标。
     local NAV_BTN_W = 182.4
     local NAV_BTN_H = 91.2
     local NAV_GAP2  = 2.87
     local NAV_TOP_Y = 416 - 91.2/2
 
-    -- 每个页面的回退贴图 + 颜色 + 中文标签
-    local NAV_FALLBACK = {
-        home  = { tex = "twigs.tex",  tint = {0.85, 0.68, 0.25, 0.9}, label = "主页" },
-        skill = { tex = "leaf.tex",  tint = {0.45, 0.62, 0.35, 0.9}, label = "技能" },
-        mail  = { tex = "cutgrass.tex", tint = {0.55, 0.55, 0.62, 0.9}, label = "信箱" },
-        set   = { tex = "log.tex",   tint = {0.55, 0.48, 0.38, 0.9}, label = "设置" },
-        gift  = { tex = "redneedle.tex", tint = {0.82, 0.35, 0.30, 0.9}, label = "礼包" },
-        dex   = { tex = "stalks.tex", tint = {0.62, 0.52, 0.68, 0.9}, label = "图鉴" },
-    }
+    -- 导航图标清单（从 musha_nav_icons.lua 读，和 modmain 注册资产用同一份）
+    local NAV_ICON = {}
+    local ok_nav, NAVICON = pcall(require, "musha_nav_icons")
+    if ok_nav and type(NAVICON) == "table" then
+        for _, def in ipairs(NAVICON) do
+            NAV_ICON[def.key] = { atlas = "images/" .. def.file .. ".xml", elem = def.file .. ".tex" }
+        end
+    end
 
     for i, key in ipairs(self.page_order) do
-        local fb = NAV_FALLBACK[key] or NAV_FALLBACK.home
-        local b = self.nav_list:AddChild(ImageButton("images/global.xml", fb.tex))
+        local b = self.nav_list:AddChild(ImageButton("images/global.xml", "square.tex"))
         b:ForceImageSize(NAV_BTN_W, NAV_BTN_H)
         b:SetPosition(0, NAV_TOP_Y - (i - 1) * (NAV_BTN_H + NAV_GAP2))
         b.scale_on_focus = false
         b.normal_scale = { 1, 1, 1 }
         b.focus_scale  = { 1, 1, 1 }
-        b:SetImageNormalColour(fb.tint[1], fb.tint[2], fb.tint[3], fb.tint[4])
-        b:SetImageFocusColour(math.min(fb.tint[1]*1.2, 1), math.min(fb.tint[2]*1.2, 1), math.min(fb.tint[3]*1.2, 1), 1)
+        b:SetImageNormalColour(0.96, 0.90, 0.62, 0.95)   -- 淡黄底
+        b:SetImageFocusColour(1.00, 0.97, 0.80, 1)       -- 悬停变亮
 
-        -- 白色描边（4 条线，和任务行同风格）
-        local FT2 = 3
+        -- 白框：4 条边线
         for _, ln in ipairs({
-            { 0,               NAV_BTN_H/2, NAV_BTN_W, FT2 },
-            { 0,               -NAV_BTN_H/2, NAV_BTN_W, FT2 },
-            { -NAV_BTN_W/2,    0,           FT2, NAV_BTN_H },
-            { NAV_BTN_W/2,     0,           FT2, NAV_BTN_H },
+            { 0,   NAV_BTN_H/2, NAV_BTN_W, 3 },
+            { 0,   -NAV_BTN_H/2, NAV_BTN_W, 3 },
+            { -NAV_BTN_W/2,    0,   3, NAV_BTN_H },
+            { NAV_BTN_W/2,     0,   3, NAV_BTN_H },
         }) do
             local line = b:AddChild(Image("images/global.xml", "square.tex"))
             line:SetSize(ln[3], ln[4])
             line:SetPosition(ln[1], ln[2])
-            line:SetTint(1, 1, 1, 0.85)
+            line:SetTint(1, 1, 1, 0.95)
         end
 
         -- 中文标签
-        local lbl = b:AddChild(Text(UIFONT, 28))
-        lbl:SetString(fb.label)
-        lbl:SetColour(1, 1, 1, 1)
-        lbl:SetPosition(0, 0)
-        lbl:SetHAlign(ANCHOR_MIDDLE)
+        local t = b:AddChild(Text(UIFONT, 28))
+        t:SetString(self.page_titles[key])
+        t:SetColour(0.32, 0.26, 0.18, 1)          -- 淡黄底上用深色字
+        t:SetPosition(8, 0)
+
+        -- 导航图标：图放左边 28x28，文字整体右移 8 让"图+字"看着居中
+        --   缺 tex 时 pcall 兜住：只打一行日志，该行保持纯文字
+        if NAV_ICON[key] then
+            local ok = pcall(function()
+                local ic = b:AddChild(Image(NAV_ICON[key].atlas, NAV_ICON[key].elem))
+                ic:ScaleToSize(28, 28)
+                ic:SetPosition(-41, 0)
+                t:SetPosition(8, 0)
+            end)
+            if not ok then print("[Musha] 导航图标没加载上（tex 打包了吗？）: " .. tostring(key)) end
+        end
 
         b:SetOnClick(function() self:SetActivePage(key) end)
-        table.insert(self.nav_items, { key = key, btn = b })
+        table.insert(self.nav_items, { key = key, btn = b, text = t })
     end
 
     self.nav_triangle:SetOnClick(function()

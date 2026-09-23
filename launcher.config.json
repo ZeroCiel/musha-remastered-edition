@@ -1,0 +1,11 @@
+﻿{
+    "mode":  "survival",
+    "game":  "D:\\SteamLibrary\\steamapps\\common\\Don\u0027t Starve Together",
+    "server":  "",
+    "args":  "-console",
+    "crash_on":  "True",
+    "server_on":  "True",
+    "cluster":  "Cluster_1",
+    "slot":  "1",
+    "modname":  ""
+}
