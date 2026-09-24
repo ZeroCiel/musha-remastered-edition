@@ -468,7 +468,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     self.root:SetVAnchor(ANCHOR_MIDDLE)
     self.root:SetPosition(0, 0)
 
-    -- 黑幕：点击关闭（照搬明生）
+-- 黑幕：点击关闭（照搬明生）
     self.black = self.root:AddChild(Image("images/global.xml", "square.tex"))
     self.black:SetScale(50, 50)
     self.black:SetTint(0, 0, 0, 0.6)
@@ -489,24 +489,16 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     self.bg = self.content:AddChild(Image("images/panel_bg.xml", "panel_bg.tex"))
     self.bg:SetSize(BG_W, BG_H)
 
-    -- ★ 2026-09-22 用户：UI 不支持浮动的红色叉叉（底图右上那两个红叉对不齐，且那是
-    --   关"红包赞助"小窗的，不是关整个面板的）→ 暂时改成一个半透明小方块点击关闭。
-    --   位置贴底图红叉实测圆心 (559, 90)；等右上角底图重绘后再换回正式贴图按钮。
-    self.close_btn = self.content:AddChild(ImageButton("images/global.xml", "square.tex"))
-    self.close_btn:ForceImageSize(60, 60)
-    self.close_btn:SetPosition(562, 213)
+    -- ★ 关闭按钮：右上角，用 close_button_red.xml 自带红叉贴图
+    --   2026-09-24：用户说关不掉 → 换成 mod 内自带的 close_button_red 贴图（有红叉）
+    self.close_btn = self.content:AddChild(ImageButton("images/close_button_red.xml", "close_button_red.tex"))
+    self.close_btn:ForceImageSize(64, 64)
+    self.close_btn:SetPosition(562, 213)        -- content 坐标，右上角
     self.close_btn.scale_on_focus = false
     self.close_btn.normal_scale = { 1, 1, 1 }
     self.close_btn.focus_scale  = { 1, 1, 1 }
-    self.close_btn:SetImageNormalColour(0.55, 0.16, 0.13, 0.85)   -- 暗红半透明方块
-    self.close_btn:SetImageFocusColour(0.75, 0.22, 0.16, 1)
-    -- ★ X 关闭标识（否则看不出来是关闭按钮）
-    self.close_btn_x = self.close_btn:AddChild(Text(UIFONT, 40))
-    self.close_btn_x:SetString("×")
-    self.close_btn_x:SetColour(1, 1, 1, 1)
-    self.close_btn_x:SetPosition(0, 0)
-    self.close_btn_x:SetHAlign(ANCHOR_MIDDLE)
-    self.close_btn_x:SetVAlign(ANCHOR_MIDDLE)
+    self.close_btn:SetImageNormalColour(1, 1, 1, 1)
+    self.close_btn:SetImageFocusColour(1, 1, 1, 0.8)
     self.close_btn:SetOnClick(function()
         TheFrontEnd:PopScreen()
     end)
