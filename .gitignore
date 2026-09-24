@@ -28,3 +28,20 @@ MushaLauncher.dll
 MushaLauncher.deps.json
 MushaLauncher.runtimeconfig.json
 MushaLauncher.pdb
+
+# ===== 2026-09-25 全库扫描补遗（用户指示：.gitignore 没更新）=====
+# 系统 / 编辑器垃圾
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+*.tmp
+*.swp
+*.orig
+*.old
+
+# 打包工具预览备份（生成物；仓库里尚有 1 个旧文件已入库 → 待 git rm --cached）
+.preview_backup/
+
+# 压缩包补漏（已有 *.rar）
+*.7z

@@ -31,7 +31,9 @@
     "musha-药剂师大锅-design.md",
     "musha-职业估期与排期.md",
     "MushaLauncher.ps1",
-    "MushaLauncher.runtimeconfig.json"
+    "MushaLauncher.runtimeconfig.json",
+    "MushaLauncher.deps.json",
+    "launcher.config.json"
   ],
   "keep": []
 }
