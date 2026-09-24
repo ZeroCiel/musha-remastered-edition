@@ -93,7 +93,7 @@ New-Label '模式' 48
 $cboMode = New-Object System.Windows.Forms.ComboBox
 $cboMode.MouseDown = 'DropDownList'
 [void]$cboMode.Items.AddRange(@('survival', 'wilderness'))
-$cboMode.Text = CfgGet 'mode' 'survival'
+    $cboMode.Text = CfgGet 'mode' 'wilderness'
 $cboMode.Location = New-Object System.Drawing.Point(115, 45); $cboMode.Width = 100
 $form.Controls.Add($cboMode)
 
