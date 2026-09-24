@@ -180,7 +180,10 @@ function MushaSkillTree:SetScrollX(x)
     local minx = self:MinScrollX()
     x = math.max(minx, math.min(0, x or 0))
     self.scroll_x = x
-    self.canvas:SetPosition(-self.view_w / 2 + x, self.view_h / 2)
+    -- ★ 09-25 居中偏移：内容不满一屏时往正中挪；够一屏时两项恒 0（与旧行为逐像素一致）
+    local hoff = math.max(0, (self.view_w - (self.raw_w or self.view_w)) / 2)
+    local voff = math.min(0, ((self.raw_h or self.view_h) - self.view_h) / 2)
+    self.canvas:SetPosition(-self.view_w / 2 + x + hoff, self.view_h / 2 + voff)
     if self.arrow_l then
         local on = x < -0.5
         self.arrow_l:SetImageNormalColour(0.93, 0.90, 0.84, on and 0.92 or 0.20)
@@ -223,6 +226,7 @@ function MushaSkillTree:SetSkills(list)
 
     if not list or #list == 0 then
         self.content_w = self.view_w
+        self.raw_w, self.raw_h = nil, nil          -- 09-25：空表回到"不偏移"状态
         if self.on_select then self.on_select(nil) end
         self:SetScrollX(0)
         return
@@ -251,6 +255,10 @@ function MushaSkillTree:SetSkills(list)
     local total_cols = cursor - GAP_COL
     self.content_w = math.max(self.view_w, PAD * 2 + (total_cols - 1) * COL_DX + NODE)
     self.content_h = math.max(self.view_h, PAD * 2 + maxrow * ROW_DY + NODE)
+    -- ★ 09-25「技能栏变动方位」：记原始内容尺寸 —— 不满一屏时把画布挪到视口正中；
+    --   够一屏时 hoff/voff 恒为 0，滚动范围/箭头/拖动行为与从前完全一致。
+    self.raw_w = PAD * 2 + (total_cols - 1) * COL_DX + NODE
+    self.raw_h = PAD * 2 + maxrow * ROW_DY + NODE
 
     -- 节点中心（画布坐标：x 向右为正，y 向下为负）
     local function Pos(e, t)

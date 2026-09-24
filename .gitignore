@@ -45,3 +45,11 @@ desktop.ini
 
 # 压缩包补漏（已有 *.rar）
 *.7z
+
+# ===== 2026-09-25 batch2: art tool temp / build outputs =====
+exported/_tools/_tmp/
+exported/_tools/_art_backup/
+exported/_test_out/
+art_manager.exe
+*.bak_*
+*.rotated*

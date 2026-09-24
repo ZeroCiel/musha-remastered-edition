@@ -592,7 +592,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     --      EditMode.apply_to_panel() 在构造**之后**跑，两边不一致时 ELEMENTS 赢，
     --      构造函数里写 336x448 那种"看着生效其实没生效"的值只会误导后来人。
     self.angel_new = self.content:AddChild(Image("images/angel_new.xml", "angel_new.tex"))
-    self.angel_new:SetSize(432, 576)   -- ★ 2026-09-25 二改：荷包×1.5 后天使按形象×1.2（用户："假如1.5倍，改为1.2倍"）360x480→432x576，比例仍是 3:4
+    self.angel_new:SetSize(390, 520)   -- ★ 2026-09-25 三改：用户"比例按2.0算 改成1.8"= 当前432x576按2.0计 ×0.9 → 390x520（仍 3:4；仍高于其2.8底线=336x448）
     --   顺带修正比例失真：原 300x360 对原图 700x954 横向拉伸 13.6%；360x480 与原比例只差 2%
     --   新脚底 ≈ -352-107 = -459，踩出下边框(-416) ≈ 43px；嫌大退 336x448（2.8 倍）
     -- ★ 2026-09-24 用户：脚要踩出下边框 → y -300 → -352
@@ -603,7 +603,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     -- 荷包：贴在天使裙侧（跟着天使一起下移 52：-290 → -342）
     self.purse = self.content:AddChild(Image("images/purse.xml", "purse.tex"))
     self.purse:SetSize(48, 72)   -- ★ 09-25 用户：×1.5（32x48 → 48x72）
-    self.purse:SetPosition(544, -347)  -- 裙侧挂点随天使×1.2 走：原偏移(+53,+4)×1.2=(+64,+5) → (480+64, -352+5)
+    self.purse:SetPosition(600, -306)  -- ★ 09-25 三改：挪到大腿/裙子内侧（用户："像人一样，放大腿裙子内侧"）挂点按天使1.8 重算
     self.purse:SetTint(1, 1, 1, 0.8)
     self.purse:SetRotation(15)         -- ★ 2026-09-25 用户：斜放挂着（嫌歪改这一个数 ±15，反向写 -15；官方 Widget:SetRotation）
 
@@ -844,7 +844,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     -- 荷包热区：挂在天使裙侧（和 purse 同位），没通过考察时不创建 → 纯装饰
     self.spons_hot = self.content:AddChild(ImageButton("images/global.xml", "square.tex"))
     self.spons_hot:ForceImageSize(72, 96)
-    self.spons_hot:SetPosition(544, -347)   -- 跟荷包同位（荷包 48x72 热区同比放大 72x96；★ 09-25 二改随荷包×1.5 同步）
+    self.spons_hot:SetPosition(600, -306)   -- 跟荷包同位（荷包 48x72 热区同比放大 72x96；★ 09-25 三改随荷包挪到大腿裙内侧同步）
     self.spons_hot:SetImageNormalColour(0, 0, 0, 0)
     self.spons_hot:SetImageFocusColour(1, 1, 1, 0.12)   -- 悬停只给一点反馈
     self.spons_hot.scale_on_focus = false
@@ -1272,7 +1272,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     --   同高 (347)，深色半透明底 + 白字，一眼能看出是按钮而不是坏图。
     self.edit_toggle_btn = self.content:AddChild(ImageButton("images/global.xml","square.tex"))
     self.edit_toggle_btn:ForceImageSize(120,34)
-    self.edit_toggle_btn:SetPosition(450, 347)
+    self.edit_toggle_btn:SetPosition(425, 347)  -- ★ 09-25 再左移 25：底图红叉金环左缘≈502，450 时按钮右缘 510 啃进金环 8px；425 → 右缘 485，净空 ≈17
     self.edit_toggle_btn.scale_on_focus = false
     self.edit_toggle_btn.normal_scale = { 1, 1, 1 }
     self.edit_toggle_btn.focus_scale  = { 1, 1, 1 }
@@ -1346,8 +1346,9 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         return t
     end
 
-    -- 技能页（2026-09-12 建）：外层全白框 + 内层淡白书页底 + 技能行 + 加点按钮（粉框白加号）
-    --   美术待补：现在是纯 square.tex 拼的占位（用户晚些时候补图）
+    -- 技能页（2026-09-12 建）：页白框 + 技能行 + 加点按钮（粉框白加号）
+    --   2026-09-25：白框改为贴合并后整页底图的内纸边；冷白占位底/内圈细线撤掉（真纸面上场）
+    --   美术待补：行/按钮仍是 square.tex 占位（页底已换真纸面，2026-09-25）
     --   只做战士（数据见 musha_profession_component 的 self.warrior / SKILL_UI）
     self.pages.skill = NewPage()
     do
@@ -1355,17 +1356,13 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         local root = self.pages.skill
         root:SetPosition(0, -33)
 
-        -- ① 外层：全白压边
-        FrameLines(root, PAGE_W, PAGE_H, 0, 6, 1, 1, 1, 1)
-
-        -- ② 内层：淡白色质感底（占位 = 冷白 tint 的 square.tex，比外框暗一档）
-        local inner = root:AddChild(Image("images/global.xml", "square.tex"))
-        inner:SetSize(PAGE_W - 34, PAGE_H - 34)
-        inner:SetPosition(0, 0)
-        inner:SetTint(0.965, 0.960, 0.945, 0.97)
-
-        -- ②b 内圈一道白细线（书页的第二层压边，避免整块死白）
-        FrameLines(root, PAGE_W - 26, PAGE_H - 26, 0, 2, 1, 1, 1, 0.85)
+        -- ① 页框：贴合并后整页底图的内纸边（2026-09-25 底板两框合并成一整页）
+        --   底图 1199x769 → content：内纸 x[-405,527] y[-348,290]、中心 (60.6,-28.7)
+        --   root 在 (0,-33) → 页框挂偏移子控件 (61,4)、尺寸 932x638，正好压内纸四边
+        --   （原 890x600 白框 + 冷白占位底撤：占位让位给真纸面；内容坐标一动不动）
+        local fr = root:AddChild(Widget("page_frame"))
+        fr:SetPosition(61, 4)
+        FrameLines(fr, 932, 638, 0, 6, 1, 1, 1, 1)
 
         -- ③ 顶部：职业 · 等级 · 可用技能点
         self.skill_head = root:AddChild(Text(UIFONT, 32))
@@ -1654,7 +1651,9 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                 w = 596, h = 424,
                 on_select = function(e) self:ShowSkillDetail(e) end,
             }))
-            self.skill_tree:SetPosition(-124, -26)
+            -- ★ 09-25「技能栏变动方位」：默认居中（详情没开时右边空着也是空着）；
+            --   点节点出右栏详情时左移让位，见 ShowSkillDetail
+            self.skill_tree:SetPosition(0, -26)
 
             -- ③ 版式切换按钮 —— ★ 2026-09-21 用户拍板「直接横排 不要竖排了」→ **不再创建这两颗按钮**
             --   竖排列表相关的 widget（skill_grid / skill_tabs / skill_foot / skill_empty）仍在，
@@ -1671,11 +1670,10 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         local root = self.pages.gift
         root:SetPosition(0, -33)
 
-        FrameLines(root, PAGE_W, PAGE_H, 0, 6, 1, 1, 1, 1)
-
-        local inner = root:AddChild(Image("images/global.xml", "square.tex"))
-        inner:SetSize(PAGE_W - 34, PAGE_H - 34)
-        inner:SetTint(0.965, 0.960, 0.945, 0.97)
+        -- 页框贴整页内纸（2026-09-25 底板合并，算法见 skill 页 ① 注释）；冷白占位底撤
+        local fr = root:AddChild(Widget("page_frame"))
+        fr:SetPosition(61, 4)
+        FrameLines(fr, 932, 638, 0, 6, 1, 1, 1, 1)
 
         -- ★ 2026-09-14 用户：① 礼包（标题）左移 220 像素 ② 下面那行提示"跟随"，
         --    但最终定位改成挂在【标题的右下角】再各内缩 15 像素（-15x,-15y）
@@ -1719,32 +1717,37 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
 
         -- ① 外框：条状金属 —— 每层再细分出"外亮→内暗"的受光渐变，做出长条的厚度感
         --    （原来是一条纯色线，太平；现在同一条框由多档亮度的小条拼出来）
-        FrameLines(root, PAGE_W, PAGE_H, 0,  5,  0.15, 0.10, 0.06, 1)    -- 最外：深棕黑压边
-        MetalBand(root, PAGE_W, PAGE_H, 5,  16, 0.99, 0.63, 0.28, 4, 1)  -- 主条：橙，4 档渐变
-        MetalBand(root, PAGE_W, PAGE_H, 21, 3,  1.00, 0.88, 0.50, 2, 1)  -- 内圈：金高光条
+        -- 2026-09-25 底板两框合并成一整页：框体挂偏移子控件贴整页内纸边（算法见 skill 页 ①）
+        local fr = root:AddChild(Widget("page_frame"))
+        fr:SetPosition(61, 4)
+        local FW, FH = 932, 638
+        FrameLines(fr, FW, FH, 0,  5,  0.15, 0.10, 0.06, 1)    -- 最外：深棕黑压边
+        MetalBand(fr, FW, FH, 5,  16, 0.99, 0.63, 0.28, 4, 1)  -- 主条：橙，4 档渐变
+        MetalBand(fr, FW, FH, 21, 3,  1.00, 0.88, 0.50, 2, 1)  -- 内圈：金高光条
 
         -- 四角铆钉（带顶部受光高光）
         local STUD = 14
         for _, c in ipairs({
-            { PAGE_W / 2 - 6, PAGE_H / 2 - 6 },
-            { -(PAGE_W / 2 - 6), PAGE_H / 2 - 6 },
-            { -(PAGE_W / 2 - 6), -(PAGE_H / 2 - 6) },
-            { PAGE_W / 2 - 6, -(PAGE_H / 2 - 6) },
+            { FW / 2 - 6, FH / 2 - 6 },
+            { -(FW / 2 - 6), FH / 2 - 6 },
+            { -(FW / 2 - 6), -(FH / 2 - 6) },
+            { FW / 2 - 6, -(FH / 2 - 6) },
         }) do
-            local s = root:AddChild(Image("images/global.xml", "square.tex"))
+            local s = fr:AddChild(Image("images/global.xml", "square.tex"))
             s:SetSize(STUD, STUD)
             s:SetPosition(c[1], c[2])
             s:SetTint(0.88, 0.74, 0.40, 1)
             -- 铆钉上半的高光条（受光面）
-            local hl = root:AddChild(Image("images/global.xml", "square.tex"))
+            local hl = fr:AddChild(Image("images/global.xml", "square.tex"))
             hl:SetSize(STUD - 4, 3)
             hl:SetPosition(c[1], c[2] + STUD / 2 - 3)
             hl:SetTint(1.00, 0.94, 0.62, 1)
         end
 
         -- ② 内层橙灰底（缩到金线以内，别压住边框）
+        --   2026-09-25 新内纸左缘 -405：840 宽会压过金边 15px → 缩 780（同设置页 set_bg）
         local inner = root:AddChild(Image("images/global.xml", "square.tex"))
-        inner:SetSize(PAGE_W - 50, PAGE_H - 50)
+        inner:SetSize(780, 550)
         inner:SetPosition(0, 0)
         inner:SetTint(0.78, 0.68, 0.56, 0.94)
 
@@ -1782,11 +1785,10 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         local root = self.pages.equip
         root:SetPosition(0, -33)
 
-        FrameLines(root, PAGE_W, PAGE_H, 0, 6, 1, 1, 1, 1)
-
-        local inner = root:AddChild(Image("images/global.xml", "square.tex"))
-        inner:SetSize(PAGE_W - 34, PAGE_H - 34)
-        inner:SetTint(0.965, 0.960, 0.945, 0.97)
+        -- 页框贴整页内纸（2026-09-25 底板合并，算法见 skill 页 ① 注释）；冷白占位底撤
+        local fr = root:AddChild(Widget("page_frame"))
+        fr:SetPosition(61, 4)
+        FrameLines(fr, 932, 638, 0, 6, 1, 1, 1, 1)
 
         self.eq_head = root:AddChild(Text(UIFONT, 32))
         self.eq_head:SetColour(0.28, 0.22, 0.15, 1)
@@ -1867,11 +1869,10 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         local root = self.pages.dex
         root:SetPosition(0, -33)
 
-        FrameLines(root, PAGE_W, PAGE_H, 0, 6, 1, 1, 1, 1)
-
-        local inner = root:AddChild(Image("images/global.xml", "square.tex"))
-        inner:SetSize(PAGE_W - 34, PAGE_H - 34)
-        inner:SetTint(0.965, 0.960, 0.945, 0.97)
+        -- 页框贴整页内纸（2026-09-25 底板合并，算法见 skill 页 ① 注释）；冷白占位底撤
+        local fr = root:AddChild(Widget("page_frame"))
+        fr:SetPosition(61, 4)
+        FrameLines(fr, 932, 638, 0, 6, 1, 1, 1, 1)
 
         -- ★ 2026-09-16 用户「上面根本没排」：PageTip 自带位置是 (0,0)（= 页面正中），
         --   原来标题被压在卡片后面 → 这里挪到页面上方；列表也跟着上移（见下面 SetPosition）
@@ -2177,9 +2178,16 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     --          ⚠️ 进入左下装饰区（< −277）29px，离外框 −416 还有 110 —— 不出框，但会盖到花丛兔子
     --        左缘 = −500 − 109.44 = **−609.44 > −616** ✓（余 6.56，仍压木框带=用户要的左移效果）
     --        右缘 = −500 + 109.44 = −390.6（任务行左缘 −208，空 182.6 ✓）
-    local NAV_BTN_W = 218.88
-    local NAV_BTN_H = 109.44
-    local NAV_GAP2  = -10.9
+    -- ★ 2026-09-25 评估后回调（用户「标题导航栏 你需要评估一下 再更改」）：
+    --   上面列账自曝：09-24 ×1.2 后末底 −306.1 **压进左下花丛兔子区 29px**，左缘离外框也只剩 6.56。
+    --   等比缩回 200×100（仍 2:1 不压贴图；仍比原 182.4×91.2 大 9.7%，保住当初放大的诉求）：
+    --     步距 = 100 − 8.4 = 91.6 → 视觉缝 = 91.6 − 0.736×100 ≈ **18px，与 09-24 目标一致**
+    --     首顶 = 366 − 120 + 50 = **296 不变**（< 306 让开左上木牌 ✓）
+    --     末底 = 246 − (5×91.6 + 100) = **−262 > −277** ✓ 让开花丛兔子（老 −306.1）
+    --     左缘 = −600 > −616 ✓（余 16）/ 右缘 = −400（任务行左缘 −208 空 192 ✓）
+    local NAV_BTN_W = 200
+    local NAV_BTN_H = 100
+    local NAV_GAP2  = -8.4
     local NAV_TOP_Y = 416 - NAV_BTN_H / 2
 
     -- 语言：modmain.lua 语言块算出 suffix 后挂到 TUNING.MUSHA_UI_LANG（zh/en/ko/ru/jp）
@@ -2657,9 +2665,13 @@ function MushaPanelScreen:ShowSkillDetail(e)
     self.skill_sel = e
     if not e then
         self.skill_detail:Hide()
+        -- ★ 09-25：详情收起 → 技能树回中
+        if self.skill_tree then self.skill_tree:SetPosition(0, -26) end
         return
     end
     self.skill_detail:Show()
+    -- ★ 09-25：详情展开 → 技能树左移让位（0 → -124，避开右栏 182..414）
+    if self.skill_tree then self.skill_tree:SetPosition(-124, -26) end
 
     -- 中文按字数折行（DST 的 Text 不会自动换行，手动插 \n；UTF-8 逐字取）
     local function Wrap(str, n)
