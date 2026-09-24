@@ -2,7 +2,7 @@
 -- musha_advance_altar.lua — 进阶祭坛（2026-09-12 新建 · 2026-09-17 改成"开坛取卷轴"）
 -- 作用：**装**转职任务的容器（3 轮，第 3 轮完成 → 进阶）
 -- 交互链（2026-09-17 改版）：
---   右键 → MUSHA_OPEN_ALTAR（"打开祭坛"）→ musha_action:InteractScene
+--   右键 → MUSHA_OPEN_ALTAR（"打开酒馆"）→ musha_action:InteractScene
 --        → 本文件里绑的 SetFn → 打开本祭坛的【容器】（1 格）
 --        → 里面躺着【转职卷轴 musha_advance_scroll】→ 取出 → 右键卷轴"展开" → 接取本轮任务
 --   ★ 2026-09-17 补第三条（设定文档「回到建筑进行最终交互，完成就职仪式」）：
@@ -53,13 +53,13 @@ if FileOK("images/inventoryimages/musha_advance_altar.xml")
     table.insert(assets, Asset("ATLAS", "images/inventoryimages/musha_advance_altar.xml"))
     table.insert(assets, Asset("IMAGE", "images/inventoryimages/musha_advance_altar.tex"))
 else
-    print("[Musha] 祭坛配方图标没打包（images/inventoryimages/musha_advance_altar.{xml,tex}）")
+    print("[Musha] 酒馆配方图标没打包（images/inventoryimages/musha_advance_altar.{xml,tex}）")
 end
 
 local prefabs = {}
 
 local function displaynamefn(inst)
-    return STRINGS.NAMES.MUSHA_ADVANCE_ALTAR or "进阶祭坛"
+    return STRINGS.NAMES.MUSHA_ADVANCE_ALTAR or "酒馆"
 end
 
 local function fn()
@@ -101,7 +101,7 @@ local function fn()
     -- ===== 服务端专用 =====
     inst:AddComponent("inspectable")
 
-    -- ★ 容器（右键"打开祭坛"开的就是它）
+    -- ★ 容器（右键"打开酒馆"开的就是它）
     --   参数在 scripts/musha_containers.lua；写法照 **Musha-beta**：
     --   建筑自己的 prefab 里 AddComponent("container") + WidgetSetup(参数名)
     inst:AddComponent("container")
@@ -116,7 +116,7 @@ local function fn()
             refill(altar, data and data.doer or nil)
         elseif not altar._warned_no_refill then
             altar._warned_no_refill = true
-            print("[Musha ERROR] musha_advance_altar: TUNING.MUSHA_ALTAR_REFILL 没挂上（modmain 祭坛段没跑？）")
+            print("[Musha ERROR] musha_advance_altar: TUNING.MUSHA_ALTAR_REFILL 没挂上（modmain 酒馆段没跑？）")
         end
     end
 
@@ -155,7 +155,7 @@ local function fn()
         local s = SpawnPrefab("musha_advance_scroll")
         if s ~= nil then
             c:GiveItem(s)
-            print("[Musha] 祭坛落成即满：补入 1 卷转职卷轴")
+            print("[Musha] 酒馆落成即满：补入 1 卷转职卷轴")
         end
     end)
 

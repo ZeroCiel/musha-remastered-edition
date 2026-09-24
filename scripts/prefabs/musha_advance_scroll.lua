@@ -69,7 +69,7 @@ local function OnUseScroll(inst, doer)
 
     local accept = GetAltarAccept()
     if accept == nil then
-        print("[Musha ERROR] musha_advance_scroll: TUNING.MUSHA_ALTAR_USE_SCROLL 没挂上（modmain 祭坛段没跑？）")
+        print("[Musha ERROR] musha_advance_scroll: TUNING.MUSHA_ALTAR_USE_SCROLL 没挂上（modmain 酒馆段没跑？）")
         if doer.components.talker then
             doer.components.talker:Say("卷轴上的咒文失效了……", 3)
         end

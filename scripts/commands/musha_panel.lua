@@ -66,7 +66,7 @@ local function ShowMushaPanel(inst)
         else
             if not (pc.userdata.has_advanced or pc:GetCarrer_special()) and pc:HasJob() then
                 table.insert(lines, "")
-                table.insert(lines, "前往进阶祭坛接取转职任务。")
+                table.insert(lines, "前往酒馆接取转职任务。")
             end
         end
     end

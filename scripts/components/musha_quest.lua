@@ -399,7 +399,7 @@ function MUSHA_QUEST:AcceptAdvanceQuest(target_job)
 
     -- ★ 就职仪式待办中不再接新任务（先回祭坛把仪式做完）
     if self.advance_ceremony_pending then
-        return false, "先回进阶祭坛完成就职仪式"
+        return false, "先回酒馆完成就职仪式"
     end
 
     if self.advance_quest and not self.advance_quest.done then
@@ -447,7 +447,7 @@ function MUSHA_QUEST:CompleteAdvanceQuest()
         if CEREMONY_ON_FINAL_ROUND then
             self.advance_ceremony_pending = true
             if self.inst.components.talker then
-                self.inst.components.talker:Say("第 3 轮考验完成！回到进阶祭坛，完成就职仪式。", 6)
+                self.inst.components.talker:Say("第 3 轮考验完成！回到酒馆，完成就职仪式。", 6)
             end
             self:SyncToPanel()
             return
@@ -475,7 +475,7 @@ function MUSHA_QUEST:CompleteAdvanceQuest()
     else
         self.advance_round = self.advance_round + 1
         if self.inst.components.talker then
-            self.inst.components.talker:Say("转职任务完成！可去祭坛接取下一轮（" .. self.advance_round .. "/3）。", 4)
+            self.inst.components.talker:Say("转职任务完成！可去酒馆接取下一轮（" .. self.advance_round .. "/3）。", 4)
         end
     end
     self:SyncToPanel()
@@ -851,9 +851,9 @@ function MUSHA_QUEST:SyncToPanel()
     if self.advance_ceremony_pending then
         -- ★ 2026-09-17：第 3 轮任务已完成、等回祭坛做就职仪式 —— 这时 advance_quest 是 nil，
         --   面板上会"什么都没了"（用户报「做完没反应」）。塞一行**假任务**当提示，
-        --   让玩家一眼看到"回祭坛完成就职仪式"（画 ✓，不是可推进的任务）。
+        --   让玩家一眼看到"回酒馆完成就职仪式"（画 ✓，不是可推进的任务）。
         -- ★★ 2026-09-18：仪式做完后 pending 仍会留着（等玩家用徽记选方向）→ 分两句提示
-        local hint = "就职仪式：回祭坛右键完成"
+        local hint = "就职仪式：回酒馆右键完成"
         if pc.userdata.advance_choice_pending == true then
             local names = {}
             local choices = (pc.GetAdvanceChoices ~= nil) and pc:GetAdvanceChoices() or {}

@@ -572,7 +572,7 @@ AddRecipe2("musha_advance_altar",
         builder_tag = "musha",
     },
     { "CHARACTER" })
-print("[Musha] 进阶祭坛配方已注册（石块12+木头8+金块6+硝石2 / 科学机器）")
+print("[Musha] 酒馆配方已注册（石块12+木头8+金块6+硝石2 / 科学机器）")
 
 -- =====================
 -- 信箱配方（2026-09-19，邮包系统）—— 材料我拍的，用户还没定，随时改
@@ -944,14 +944,14 @@ end)
 --
 -- ★ 2026-09-17 交互链改版（用户要求"多走一步、仪式感"）：
 --   旧：右键祭坛 → 直接接取转职任务（一碰就到手）
---   新：右键祭坛 → 动作 MUSHA_OPEN_ALTAR（"打开祭坛"）→ musha_action:InteractScene（祭坛 prefab 里绑的）
+--   新：右键祭坛 → 动作 MUSHA_OPEN_ALTAR（"打开酒馆"）→ musha_action:InteractScene（祭坛 prefab 里绑的）
 --        → 打开【祭坛容器】（1 格）→ 里面躺着 1 卷【转职卷轴 musha_advance_scroll】
 --        → 玩家把卷轴拿出来 → 右键卷轴（MUSHA_UNROLL_SCROLL "展开卷轴"）→ 才接取本轮任务
 --   本段只留"后厨"：跨文件的补卷函数 / 接取函数（挂 GLOBAL，给 prefab 那边调）
 --   容器补卷规则：空坛 + 玩家【有基础职业 / 未进阶 / 身上没有没用掉的卷轴 / 无在跑任务】→ 补 1 卷
 -- =====================
-TRACE("[Musha TRACE] 20.6 - 祭坛绑定前")
-Safe("祭坛占位", function()
+TRACE("[Musha TRACE] 20.6 - 酒馆绑定前")
+Safe("酒馆占位", function()
     local BASE_TO_ADVANCE = {
         warrior = "saber",   -- 战士 → 剑士（多目标职业选择后续做）
         mage = "alchemist",
@@ -1044,20 +1044,20 @@ Safe("祭坛占位", function()
         if quest == nil then return end
         -- ★ 2026-09-17 就职仪式待办中：坛里不再补卷（这次右键应该是在做仪式，先完成它）
         if quest.advance_ceremony_pending then
-            Say(doer, "祭坛在等你的就职仪式——去完成它。", 4)
+            Say(doer, "酒馆在等你的就职仪式——去完成它。", 4)
             return
         end
         -- ★ 2026-09-17 同理由：手头有在跑的转职任务也照样补卷（真去接取时会被 AcceptAdvanceQuest
         --   挡下并给台词，且**失败不消耗卷轴**）→ 坛子始终是满的，不再出现"空坛不解释"
         -- if quest.advance_quest ~= nil and not quest.advance_quest.done then
-        --     Say(doer, "祭坛里空空如也——先完成手头的转职任务（第 " .. tostring(quest.advance_round or 1) .. "/3 轮）。", 4)
+        --     Say(doer, "酒馆里空空如也——先完成手头的转职任务（第 " .. tostring(quest.advance_round or 1) .. "/3 轮）。", 4)
         --     return
         -- end
         local scroll = SpawnPrefab("musha_advance_scroll")
         if scroll ~= nil then
             c:GiveItem(scroll)
-            Say(doer, "祭坛深处，一卷古老的卷轴静静躺在那里……", 4)
-            print("[Musha] 祭坛补入转职卷轴 → " .. tostring(doer))
+            Say(doer, "酒馆深处，一卷古老的卷轴静静躺在那里……", 4)
+            print("[Musha] 酒馆补入转职卷轴 → " .. tostring(doer))
         end
     end
 
@@ -1099,7 +1099,7 @@ Safe("祭坛占位", function()
     -- ⚠️ 旧占位兼容（statuemaxwell 麦斯威尔雕像当祭坛）**已删除**：
     --    容器不能挂在别人家建筑上；老存档里那座雕像现在就是普通雕像，重新打造一座进阶祭坛即可。
 end)
-TRACE("[Musha TRACE] 20.7 - 祭坛占位后")
+TRACE("[Musha TRACE] 20.7 - 酒馆占位后")
 
 -- =====================
 -- 背刺判定 (Assassin Backstab)

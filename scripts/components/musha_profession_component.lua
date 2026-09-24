@@ -1267,20 +1267,20 @@ function Musha_Profession_Component:GrantAdvanceGift(career)
     if ADVANCE_GIFT_MODE == "scroll" then
         local ok = self:GiveSkillScroll()
         if ok and self.inst.components.talker then
-            self.inst.components.talker:Say("祭坛给了你一卷技能卷轴——展开它。", 5)
+            self.inst.components.talker:Say("酒馆给了你一卷技能卷轴——展开它。", 5)
         end
         return ok
     end
     -- 默认：本职业的职业技能书；没有专属书 → 退回卷轴
     if self:GiveCareerBook(career) then
         if self.inst.components.talker then
-            self.inst.components.talker:Say("祭坛给了你一本属于你的技能书——去翻开它。", 5)
+            self.inst.components.talker:Say("酒馆给了你一本属于你的技能书——去翻开它。", 5)
         end
         return true
     end
     local ok = self:GiveSkillScroll()
     if ok and self.inst.components.talker then
-        self.inst.components.talker:Say("祭坛给了你一卷技能卷轴——展开它。", 5)
+        self.inst.components.talker:Say("酒馆给了你一卷技能卷轴——展开它。", 5)
     end
     return ok
 end
@@ -1357,7 +1357,7 @@ function Musha_Profession_Component:GrantAdvanceCrests()
     end
     self:PushSettings()
     if n > 0 and self.inst.components.talker then
-        self.inst.components.talker:Say("祭坛给了你两枚方向徽记——用掉其中一枚，就是你的道路。", 6)
+        self.inst.components.talker:Say("酒馆给了你两枚方向徽记——用掉其中一枚，就是你的道路。", 6)
     end
     return n > 0
 end

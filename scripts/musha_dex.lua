@@ -84,7 +84,7 @@ return {
         icon_atlas = "images/inventoryimages/musha_jobbook_warrior.xml",
         icon_tex   = "musha_jobbook_warrior.tex",
         lines = {
-            "一转职业书：在进阶祭坛完成就职仪式用",
+            "一转职业书：在酒馆完成就职仪式用",
             "转职完成后消耗",
         },
     },
@@ -93,21 +93,21 @@ return {
         tag = "职业书",
         icon_atlas = "images/inventoryimages/musha_jobbook_mage.xml",
         icon_tex   = "musha_jobbook_mage.tex",
-        lines = { "一转职业书：在进阶祭坛完成就职仪式用", "转职完成后消耗" },
+        lines = { "一转职业书：在酒馆完成就职仪式用", "转职完成后消耗" },
     },
     {
         name = "游侠职业书",
         tag = "职业书",
         icon_atlas = "images/inventoryimages/musha_jobbook_ranger.xml",
         icon_tex   = "musha_jobbook_ranger.tex",
-        lines = { "一转职业书：在进阶祭坛完成就职仪式用", "转职完成后消耗" },
+        lines = { "一转职业书：在酒馆完成就职仪式用", "转职完成后消耗" },
     },
     {
         name = "潜行者职业书",
         tag = "职业书",
         icon_atlas = "images/inventoryimages/musha_jobbook_rogue.xml",
         icon_tex   = "musha_jobbook_rogue.tex",
-        lines = { "一转职业书：在进阶祭坛完成就职仪式用", "转职完成后消耗" },
+        lines = { "一转职业书：在酒馆完成就职仪式用", "转职完成后消耗" },
     },
     {
         name = "技能书",
@@ -132,13 +132,13 @@ return {
 
     -- ── 建筑 / 容器
     {
-        name = "进阶祭坛",
+        name = "酒馆",
         tag = "建筑",
         icon_atlas = "images/inventoryimages/musha_advance_altar.xml",
         icon_tex   = "musha_advance_altar.tex",
         lines = {
             "合成：石块 12 + 木头 8 + 金块 6 + 硝石 2（科学机器解锁）",
-            "坛内取出「转职卷轴」→ 展开才接取转职任务；3 轮考验后回祭坛完成就职仪式",
+            "坛内取出「转职卷轴」→ 展开才接取转职任务；3 轮考验后回酒馆完成就职仪式",
             "只有 Musha 能造",
         },
     },
@@ -148,9 +148,9 @@ return {
         icon_atlas = "images/inventoryimages/musha_advance_scroll.xml",
         icon_tex   = "musha_advance_scroll.tex",
         lines = {
-            "来源：进阶祭坛里取出来",
+            "来源：酒馆里取出来",
             "展开 → 接取转职任务（3 轮考验）",
-            "做完回祭坛完成就职仪式",
+            "做完回酒馆完成就职仪式",
         },
     },
     {
