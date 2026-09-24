@@ -489,16 +489,17 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     self.bg = self.content:AddChild(Image("images/panel_bg.xml", "panel_bg.tex"))
     self.bg:SetSize(BG_W, BG_H)
 
-    -- ★ 关闭按钮：右上角，用 close_button_red.xml 自带红叉贴图
-    --   2026-09-24：用户说关不掉 → 换成 mod 内自带的 close_button_red 贴图（有红叉）
-    self.close_btn = self.content:AddChild(ImageButton("images/close_button_red.xml", "close_button_red.tex"))
-    self.close_btn:ForceImageSize(64, 64)
-    self.close_btn:SetPosition(562, 213)        -- content 坐标，右上角
+    -- ★ 关闭按钮：用底图右上角自带的红叉（panel_bg 上就有，不需要额外贴图）
+    --   2026-09-24：之前自己叠了一个 close_button_red → 和底图红叉重在一起出现两个 X。
+    --   改法：在底图红叉位置 (559, 90) 放一个透明按钮，点它就关面板。
+    self.close_btn = self.content:AddChild(ImageButton("images/panel_bg.xml", "panel_bg.tex"))
+    self.close_btn:ForceImageSize(60, 60)
+    self.close_btn:SetPosition(559, 90)
     self.close_btn.scale_on_focus = false
     self.close_btn.normal_scale = { 1, 1, 1 }
     self.close_btn.focus_scale  = { 1, 1, 1 }
-    self.close_btn:SetImageNormalColour(1, 1, 1, 1)
-    self.close_btn:SetImageFocusColour(1, 1, 1, 0.8)
+    self.close_btn:SetImageNormalColour(1, 1, 1, 0)   -- 透明：不挡底图红叉
+    self.close_btn:SetImageFocusColour(1, 1, 1, 0.3)
     self.close_btn:SetOnClick(function()
         TheFrontEnd:PopScreen()
     end)
