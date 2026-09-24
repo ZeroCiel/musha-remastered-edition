@@ -42,7 +42,7 @@ M.KITS = {
     { prefab = "musha_mailkit_4", step = 4, to = 12 },
 }
 
--- 当前 unlocked 该用哪一档套件；nil = 已经满级（11）
+-- 当前 unlocked 该用哪一档套件；nil = 已经满级（12；★ 2026-09-20 用户拍板 12 全可用，11 是旧档过渡值）
 function M.KitStepFor(unlocked)
     unlocked = unlocked or M.BOX_SLOT_INIT
     for _, k in ipairs(M.KITS) do

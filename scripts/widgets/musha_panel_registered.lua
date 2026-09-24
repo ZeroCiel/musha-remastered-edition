@@ -5,7 +5,15 @@
 --
 -- 【诊断版】每次打开请求都会 print 出走到了哪一步，
 -- 方便在 client_log.txt 里定位"按了没反应"的断点。
+--
+-- ★ 2026-09-24 用户（选项 A）：**B 键不再开面板**，整段摘掉，注释保留可随时恢复。
+--   现在入口只剩两条：① 技能书/职业书右键 → musha_open_skill_panel 事件
+--                     ② 控制台命令 scripts/commands/musha_panel.lua
 -- ====================================
+
+-- B 键入口已于 2026-09-24 按用户要求**移除**（B 是游戏原生键，抢它会跟原版打架）。
+-- 现在开面板只剩两条：技能书/职业书右键（musha_open_skill_panel 事件）、控制台命令。
+-- 想恢复 B 键：见文件末尾注释块（原实现在 git 历史里也有）。
 
 -- 面板是否已在屏幕栈顶
 -- 注意：DST 的 Screen 没有 name 字段，所以用面板自己打的标记 self.musha_panel
@@ -66,21 +74,26 @@ AddClassPostConstruct("widgets/controls", function(self)
     end
 
     -- 服务端 net_bool → 客户端 PushEvent → 打开面板
+    --   （技能书/职业书右键走这条，保留）
     self.owner:ListenForEvent("musha_open_skill_panel", function()
         OpenMushaPanel(self.owner, "event")
     end)
 
-    -- B 键打开/关闭
-    if TheInput then
-        self._musha_panel_key_b = TheInput:AddKeyDownHandler(KEY_B, function()
-            print("[Musha Panel] B 键按下")
-            if PanelIsOnTop() then
-                TheFrontEnd:PopScreen()
-            else
-                OpenMushaPanel(self.owner, "keyB")
-            end
-        end)
-    end
+    -- ★ 2026-09-24 用户拍板：**B 键不再开面板**（选项 A：B 不要出）
+    --   原实现：TheInput:AddKeyDownHandler(KEY_B, ...) 开/关面板。
+    --   注意 B 是游戏原生"检查/口癖"键，抢它会跟原版功能打架，所以直接摘掉。
+    --   想恢复：把下面这段取消注释即可（git 历史里也有）。
+    -- if TheInput then
+    --     self._musha_panel_key_b = TheInput:AddKeyDownHandler(KEY_B, function()
+    --         print("[Musha Panel] B 键按下")
+    --         if PanelIsOnTop() then
+    --             TheFrontEnd:PopScreen()
+    --         else
+    --             OpenMushaPanel(self.owner, "keyB")
+    --         end
+    --     end)
+    -- end
+    print("[Musha Panel Register] B 键入口已移除，开面板只剩：技能书右键 / musha_open_skill_panel 事件")
 
     print("[Musha Panel Register] 面板入口(Screen)已注册")
 end)

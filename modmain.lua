@@ -113,8 +113,8 @@ table.insert(Assets, Asset("IMAGE", "images/button_decor.tex"))
 --   这些是**互相独立的单元素图集**（每个 xml 只有一张全图 tex），不是一个合并图集。
 --   之前误注册了不存在的合并图集 images/ui_elements.tex → 进世界时 assert 崩（client_log:
 --   "Could not find an asset matching images/ui_elements.tex"）。已删，改注册真实存在的 4 张。
---   wechat_qr 目前没有任何代码引用，不注册（留着 images/wechat_qr.* 备用）。
-local UI_ELEMENTS = { "angel_girl", "purse", "sponsor_frame", "close_button_red" }
+--   wechat_qr 2026-09-24 起有代码引用了（面板右下赞助入口点开收款码）→ 加进 UI_ELEMENTS 注册。
+local UI_ELEMENTS = { "angel_new", "purse", "sponsor_frame", "close_button_red", "wechat_qr" }
 for _, name in ipairs(UI_ELEMENTS) do
     table.insert(Assets, Asset("ATLAS", "images/" .. name .. ".xml"))
     table.insert(Assets, Asset("IMAGE", "images/" .. name .. ".tex"))
@@ -136,11 +136,22 @@ end
 --   缺 tex 不会崩：面板画图标时用 pcall 兜住，只在日志里打一行。
 Safe("导航图标 assets", function()
     local NAVICON = require("musha_nav_icons")
+    local n = 0
     for _, def in ipairs(NAVICON) do
         table.insert(Assets, Asset("ATLAS", "images/" .. def.file .. ".xml"))
         table.insert(Assets, Asset("IMAGE", "images/" .. def.file .. ".tex"))
+        n = n + 1
+        -- ★ 2026-09-24 双语：英文版横幅（nav_xxx_en.tex，从 图片/UI_en.png 切）
+        --   ⚠️ 这里**不能**按语言判断：本块在 L137 跑，语言加载在 L865，此时 TUNING.MUSHA_UI_LANG 还没算。
+        --     两种语言的图都注册（多 6 张 ≈1MB），面板构造时才按 TUNING.MUSHA_UI_LANG 挑。
+        --   没有英文版的（如 equip）def.file_en 为 nil → 只有中文版，英文玩家也用它。
+        if def.file_en then
+            table.insert(Assets, Asset("ATLAS", "images/" .. def.file_en .. ".xml"))
+            table.insert(Assets, Asset("IMAGE", "images/" .. def.file_en .. ".tex"))
+            n = n + 1
+        end
     end
-    print("[Musha] 导航图标 assets 注册: " .. #NAVICON .. " 张")
+    print("[Musha] 导航图标 assets 注册: " .. #NAVICON .. " 行 / " .. n .. " 张（含双语）")
 end)
 
 -- ★ 2026-09-19 技能图标（用户给的 128x128）—— images/skill_icons/<技能id>.{png,xml,tex}
@@ -403,7 +414,7 @@ PrefabFiles = {"musha_jobbook_warrior", "musha_skillbook", "musha_skillbook_sabe
 -- ★ 2026-09-19 新增：信箱 + 信差包（邮包系统）
 --   实现：scripts/musha_mail.lua（共用）+ prefabs/musha_mailbox*.lua + prefabs/musha_mailbag.lua
 --        + components/musha_mail.lua（挂玩家身上）；容器参数在 scripts/musha_containers.lua
---   升级套件（3→5→7→9→11 格）：scripts/musha_mailkit.lua（共用）+ prefabs/musha_mailkit_{1..4}.lua
+--   升级套件（3→5→7→9→12 格，★2026-09-24 满档放开 12）：scripts/musha_mailkit.lua（共用）+ prefabs/musha_mailkit_{1..4}.lua
 -- ★ 2026-09-18 新增：进阶方向徽记（就职仪式发两枚，用掉一枚 = 选定剑士/近卫方向）
 -- 实现：scripts/musha_crest.lua（共用）+ scripts/prefabs/musha_crest_{saber,guardian}.lua
 -- ✅ 2026-09-17 发布前：测试专用 "musha_jobbook_saber" 已从 PrefabFiles 移除
@@ -620,7 +631,7 @@ print("[Musha] 信箱配方已注册（木板4+草8+金块2 / 科学机器；图
 -- 邮包升级套件配方（2026-09-19）—— 用户拍板"做成套件，拿着它右键信箱 = 升级"
 --   消耗表来自用户：5 木板 → 10 木板 → 20 木板 → 20 木板 + 2 宝石
 --   （木板到 20 封顶，之后每档额外加 2 颗宝石）
---   ⚠️ 第 12 格（同材料只 +1 格）用户说"放到以后做" → 现在最高就是 11 格
+--   ★ 2026-09-20 用户拍板：最后一档直接给 12（KITS step4 to=12，12 格全可用；旧口径"第12格以后做/最高11"作废）
 --   ⚠️ 图标/地上贴图暂无 → 借原版莎草纸占位（见 musha_mailkit.lua 的素材自检）
 -- =====================
 local MAILKIT_RECIPES = {
@@ -898,6 +909,11 @@ Safe("语言加载", function()
         end
         print("[Musha] 台词文件缺失，已回退英文: speech_musha_" .. suffix)
     end
+
+    -- ★ 2026-09-24 双语导航：把语言后缀挂 TUNING，面板构造时读它选 zh/en 两套导航横幅
+    --   （suffix 上面是 local，面板 require 不到；挂 TUNING 是本 mod 既有约定，见 168 行）
+    TUNING.MUSHA_UI_LANG = suffix
+    print("[Musha] UI 语言 = " .. tostring(suffix) .. " (language id=" .. tostring(loc) .. ")")
 end)
 
 -- =====================

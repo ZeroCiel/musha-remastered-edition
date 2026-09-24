@@ -153,7 +153,7 @@
 - [x] `scripts/widgets/musha_panel_registered.lua` 重写：不再 AddChild 到 HUD，改 ListenerForEvent → PushScreen；B 键开/关
 - [x] 旧 Widget 版备份到 `_bak_20260910/musha_panel_screen.lua.widget_old`
 - [x] 修复"滚轮关面板"根因：不再用 OnMouseButton 拦截，滚轮走 TrueScrollList 的 CONTROL_SCROLLBACK/FWD
-- [ ] 待测：B 键/技能书开面板；任务多时滚轮滚动 + 拖动滚动条；黑幕/ESC 关闭
+- [ ] 待测：技能书右键开面板（B 键入口 2026-09-24 已移除）；任务多时滚轮滚动 + 拖动滚动条；黑幕/ESC 关闭
 - 说明：旧的手搓"竖栏+黄色高条"装饰已被真滚动条替代（用户描述的就是滚动条）；滑入动画暂未迁移
 - 明生参考：`mods/mingsheng/scripts/screens/mingsheng_teleportscreen.lua`（437行）+ `mods/mingsheng/scripts/prefabs/mingsheng.lua:92`
 - [x] 滚动条默认常显：覆写 `self.list.RefreshView`，强制 `scroll_bar_container:Show()`；end_pos<=1 时滑块置顶（防除零 nan）

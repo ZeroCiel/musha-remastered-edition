@@ -11,7 +11,7 @@
 
 ## 1. 现有代码基线（改造前）
 - `scripts/screens/musha_panel_screen.lua` — Screen 版面板，单页（职业名+Lv / 经验条 / ScrollingGrid 任务列表 / 关闭）。
-- `scripts/widgets/musha_panel_registered.lua` — 注册入口，B 键 / `musha_open_skill_panel` 事件开。
+- `scripts/widgets/musha_panel_registered.lua` — 注册入口，`musha_open_skill_panel` 事件（技能书右键）开。**B 键入口 2026-09-24 已移除**（代码注释保留可恢复）。
 - 数据流：服务端 `pc.userdata` → `replica.musha_profession_component:DoUpdata(userdata)` → `gamedata:set(json)` → net_string dirty → `PushEvent("…_dirty")` → 面板 `Refresh()`。
 - 渲染：`PANEL_ZOOM=0.93`，BG 1232x832，列表 ITEM_W=860 / ITEM_H=78 / 可视 6 行。
 

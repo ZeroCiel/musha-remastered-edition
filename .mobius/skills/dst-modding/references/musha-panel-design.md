@@ -1,6 +1,6 @@
 # Musha 职业面板设计约定（2026-09 迭代中）
 
-文件：mods/musha/scripts/widgets/musha_panel_screen.lua（挂 controls，B 键/右键技能书打开）
+文件：mods/musha/scripts/widgets/musha_panel_screen.lua（右键技能书打开；**B 键入口 2026-09-24 已移除**）
 打开链路（已修通）：右键书(musha_panel tag) → 服务端 musha_action → net_bool set(true) → 客户端 mushapanelchanged → PushEvent("musha_open_skill_panel") → panel ShowPanel。**回调不能过滤 TheWorld.ismastersim**（单机/主机自己就是服务端，过滤后主机打不开）；net_bool 要 0 帧复位才能反复触发。
 
 ## 设计方向（用户拍板，勿回书页横排）

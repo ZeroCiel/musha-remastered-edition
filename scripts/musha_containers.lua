@@ -93,7 +93,7 @@ params.musha_mailbag = {
 --   而参数原来挂在 `musha_mailbox` 这个名字下 → 客机取不到（widget = nil）→ 客机开箱直接崩。
 --   所以现在 5 张表全部按 prefab 名生成，并按"已解锁档位"给不同的叉号底图：
 --     3 格 = musha_mailbox_shadow        （默认档，客机 ctor 就是取这张）
---     5/7/9/12 格 = ..._u5 / _u7 / _u9 / _u12
+--     5/7/9/11/12 格 = ..._u5 / _u7 / _u9 / _u11 / _u12（11 = 老档兜底，新档套件 IV 直上 12）
 --   → 服务端换档时用 `container:WidgetSetup("musha_mailbox_shadow_u7")`，
 --     客机由 musha_maillevel 组件监听到网络值变化后对 `replica.container` 做同样调用
 --     （= 原版 firepit.lua:131 的"prefaboverride"那套写法）。
@@ -150,6 +150,7 @@ params.musha_mailbox_shadow     = MakeMailboxParams(3)
 params.musha_mailbox_shadow_u5  = MakeMailboxParams(5)
 params.musha_mailbox_shadow_u7  = MakeMailboxParams(7)
 params.musha_mailbox_shadow_u9  = MakeMailboxParams(9)
+params.musha_mailbox_shadow_u11 = MakeMailboxParams(11)   -- ★ 2026-09-24：老档满档 11 兜底（新档套件 IV → 12）
 params.musha_mailbox_shadow_u12 = MakeMailboxParams(12)
 params.musha_mailbox = params.musha_mailbox_shadow      -- 兼容旧名字（别处引用不改）
 

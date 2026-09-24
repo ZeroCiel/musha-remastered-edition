@@ -72,10 +72,17 @@ local NAV_LEFT = true
 local NAV_ALWAYS_SHOW = true
 
 -- 任务行尺寸（ScrollingGrid item）
-local ITEM_W = 817          -- 行 widget 宽（含框外扩）；2026-09-22 第二轮 860-43（长缩减 40px）
-local ITEM_H = 78           -- 行高 = 行距
+--   ★ 2026-09-24 第三轮（用户：任务列表行偏大）：
+--     797x64 的行左缘 -423，而导航右缘实际是 -228.8（老注释写的 -400 是错的）
+--     → 行被导航盖住 194px，文字前半截看不见。
+--     现改成 660x58 并整体右移到中心 x=122：
+--       行  -208..452   滚动条 ≈492   → 让开导航(-228.8) 有 20 缝，右缘离内框(616) 还有 124
+--       行高 58 + 行距 72 → 6 行占 432，底行下沿 -369 > -416 不再压底框
+local ITEM_W = 680          -- 行 widget 宽（含框外扩）= ROW_W + 20（框外扩两侧各 10）
+local ITEM_H = 72           -- 行高 = 行距
 local VISIBLE_ROWS = 6
-local ROW_W = 797           -- 底框宽度（框/白条/红条同步）；2026-09-22 第二轮 840-43
+local ROW_W = 660           -- 底框宽度（框/白条/红条同步）
+local ROW_H = 58            -- 行底框高（描边/红条/白条/分隔线都由它推）
 
 -- 技能页行尺寸 + 左对齐文本参数（2026-09-13 从文件下部提前到这里：
 --   技能列表改成 ScrollingGrid 后，item_ctor 在构造期就要用到这些常量）
@@ -94,6 +101,19 @@ local SKILL_ITEM_H  = SKILL_ROW_H + SKILL_ROW_GAP  -- 格子高 = 行高 + 行�
 local SKILL_VISIBLE = 2                          -- 可见行数（超出就滚轮向下滚）
 
 local DIRTY_EVENTS = { "gamedata_dirty", "warrior_dirty", "saber_dirty", "guardian_dirty", "mage_dirty" }
+
+-- ★ 赞助入口「考察玩家」闸门（2026-09-24 用户定案）
+--   第一版要求：直接显示会很丢人 → 不要直接给。
+--   追加口径（用户）："姜太公钓鱼 愿者上钩 / 华强卖瓜，这瓜你要不要" →
+--     **不设门槛，也不吆喝**：荷包就静静挂在天使裙上，点不点全凭玩家；
+--     不自动弹窗、不加提示文字；那个 96x65 的赞助框太扎眼 → 始终不显示。
+--   SPONSOR_GATE_OPEN 改成 false 可一键收起来（编辑模式仍能预览两段式面板）。
+local SPONSOR_GATE_OPEN = true
+local function SponsorUnlocked(md)
+    if not SPONSOR_GATE_OPEN then return false end
+    -- 愿者上钩：没有额外考察条件
+    return true
+end
 
 -- ================================================================
 -- 局内设置页：显示表（默认值/档位要和 components/musha_*_settings.lua 的 SPEC 对齐）
@@ -128,6 +148,23 @@ end
 if type(MUSHA_CHANGELOG) ~= "table" then
     -- 兜底（内容和 scripts/musha_changelog.lua 保持一致，改内容请改那个文件）
     MUSHA_CHANGELOG = {
+        { ver = "0.7.9半", date = "2026-09-24", lines = {
+            "★ 主打「回城石」：任意目标右键绑定（建筑 / 生物 / 玩家 / 树都行，可换绑），背包右键一键回家。",
+            "　　3 次 · 冷却 360 秒 · 会动的目标就跟到哪 · 用完石头消失、目标没了不耗次数。",
+            "★ 主打「信箱 + 信差包」：开局自带信差包，关包自动寄回自己的信箱，回家靠近自动入库。",
+            "　　寄件 / 取件走面板「信箱」页；初始 3 格，背包带「邮包升级套件 I~IV」右键信箱逐档扩容。",
+            "导航整体搬到左侧：木牌标题条加大 20%、间距收紧 1/3；修复右上角红叉关不掉面板。",
+            "赞助入口上线：荷包挂在天使裙上（愿者上钩）；导航横幅适配英 / 俄 / 日 / 韩界面。",
+        } },
+        { ver = "0.7.9半", date = "2026-09-21", lines = {
+            "新增「回城石」：对任何东西右键绑定 → 背包右键回城（3 次 · 冷却 360 秒 · 用完消失）。",
+            "新增邮包系统：「信箱」（初始 3 格 · 升级套件逐档扩容）+「信差包」（开局自带一只）。",
+            "面板技能页改版：新增「横排技能树」（可左右拖动、滚轮、两侧箭头），右上可切回竖排列表。",
+            "技能说明改成光标悬停整行才高亮显示（不再直接写在卡片里）。",
+            "适配 Too Many Items：物品图标图集全局登记 → TMI 里能看到 Musha 物品的图标。",
+            "图鉴页补全：道具 / 职业书 / 技能书 / 建筑 全部条目。",
+            "本版为半版本：UI、角色动画、美术仍在制作中。",
+        } },
         { ver = "0.7.9", date = "2026-09-17", lines = {
             "酒馆改版：坛内取出「转职卷轴」→ 展开才接取转职任务；3 轮考验后回酒馆完成就职仪式。",
             "二转赠礼改为本职业「技能书」（剑士技能书内含剑气斩）；新增通用「技能卷轴」（可制作/可掉落）。",
@@ -489,17 +526,22 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     self.bg = self.content:AddChild(Image("images/panel_bg.xml", "panel_bg.tex"))
     self.bg:SetSize(BG_W, BG_H)
 
-    -- ★ 关闭按钮：用底图右上角自带的红叉（panel_bg 上就有，不需要额外贴图）
-    --   2026-09-24：之前自己叠了一个 close_button_red → 和底图红叉重在一起出现两个 X。
-    --   改法：在底图红叉位置 (559, 90) 放一个透明按钮，点它就关面板。
-    self.close_btn = self.content:AddChild(ImageButton("images/panel_bg.xml", "panel_bg.tex"))
-    self.close_btn:ForceImageSize(60, 60)
-    self.close_btn:SetPosition(559, 90)
+    -- ★ 关闭按钮：底图右上角自带的红叉（不额外贴图，避免出现两个 X）
+    --   ★ 2026-09-24 坐标改对了：用 Pillow 在 panel_bg.png（1199x769）上做红色连通域，
+    --     右上角那块红 = img bbox x[1112..1183] y[30..98]（2291 px），换算到 content
+    --     坐标（BG 1232x832）= 中心 (563, 347)、约 73x74。
+    --     老值 (559, 90) / EditMode ELEMENTS 里的 (562, 213) **都不在叉上**（差 248px），
+    --     所以"点叉关不掉"。现在热区 (563,347) 80x80 正好罩住红叉。
+    --   ⚠️ 改这里必须同步改 musha_edit_mode.lua 的 ELEMENTS.close_btn，
+    --      否则 EditMode.apply_to_panel() 会在构造之后把它盖回去。
+    self.close_btn = self.content:AddChild(ImageButton("images/global.xml", "square.tex"))
+    self.close_btn:ForceImageSize(80, 80)
+    self.close_btn:SetPosition(563, 347)
     self.close_btn.scale_on_focus = false
     self.close_btn.normal_scale = { 1, 1, 1 }
     self.close_btn.focus_scale  = { 1, 1, 1 }
-    self.close_btn:SetImageNormalColour(1, 1, 1, 0)   -- 透明：不挡底图红叉
-    self.close_btn:SetImageFocusColour(1, 1, 1, 0.3)
+    self.close_btn:SetImageNormalColour(1, 1, 1, 0)   -- 平时完全隐形（用户要的"隐藏的关闭"）
+    self.close_btn:SetImageFocusColour(1, 1, 1, 0.12) -- 悬停只给一点很淡的提示
     self.close_btn:SetOnClick(function()
         TheFrontEnd:PopScreen()
     end)
@@ -510,7 +552,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     --   · 下区（y<0，约占 2/3）：任务列表
     --   · decor_button 已隐藏（上一处）
     --   ★ 坐标是 content 坐标（含 PANEL_ZOOM 缩放）；底图内框 ±616 × ±416（原版坐标空间）
-    --   ★ 任务行 ROW_W 840 右移到中心 x=40：左缘 -380 让开左侧导航（导航右缘 -400，留 20 缝）
+    --   ★ 任务行 ROW_W 660 中心 x=122：左缘 -208 让开左侧导航（导航右缘 -228.8，留 20.8 缝）
     --   ★ 2026-09-22 用户实测调参：职业头像右移170px、下移40px、放大1.6倍；
     --     "战士"字号放大2倍；等级徽标挪到职业名正下方
     --   ★ 2026-09-22 第二轮调参（用户按截图逐项给）：
@@ -544,35 +586,298 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         print("[Musha Panel] Decor button clicked")
     end)
 
-    -- 右下角天使女孩装饰（放大 3 倍）
-    -- ★ 2026-09-24 用户：放大到 3 倍，去掉左边的小方框
-    self.angel_girl = self.content:AddChild(Image("images/angel_girl.xml", "angel_girl.tex"))
-    self.angel_girl:SetSize(336, 448)  -- 2.8 倍（原 120x160 → 336x448）
-    self.angel_girl:SetPosition(480, -300)  -- 右下角
-    self.angel_girl:SetTint(1, 1, 1, 0.7)  -- 半透明效果
+    -- 右下角天使女孩装饰
+    -- ★ 2026-09-24 用户定案："只开放赞助入口，**天使不动**" → 保持 120x160 @ (480,-300)。
+    --   ⚠️ 构造函数必须和 EditMode.ELEMENTS.angel_new 完全一致：
+    --      EditMode.apply_to_panel() 在构造**之后**跑，两边不一致时 ELEMENTS 赢，
+    --      构造函数里写 336x448 那种"看着生效其实没生效"的值只会误导后来人。
+    self.angel_new = self.content:AddChild(Image("images/angel_new.xml", "angel_new.tex"))
+    self.angel_new:SetSize(432, 576)   -- ★ 2026-09-25 二改：荷包×1.5 后天使按形象×1.2（用户："假如1.5倍，改为1.2倍"）360x480→432x576，比例仍是 3:4
+    --   顺带修正比例失真：原 300x360 对原图 700x954 横向拉伸 13.6%；360x480 与原比例只差 2%
+    --   新脚底 ≈ -352-107 = -459，踩出下边框(-416) ≈ 43px；嫌大退 336x448（2.8 倍）
+    -- ★ 2026-09-24 用户：脚要踩出下边框 → y -300 → -352
+    --   脚底 = -352 - 80 = -432 < 内框下沿 -416，**踩出去 16px**（角度不变，允许溢出）
+    self.angel_new:SetPosition(480, -352)
+    self.angel_new:SetTint(1, 1, 1, 0.7)  -- 半透明效果
 
-    -- 荷包装饰（随天使女孩放大同步调整）
+    -- 荷包：贴在天使裙侧（跟着天使一起下移 52：-290 → -342）
     self.purse = self.content:AddChild(Image("images/purse.xml", "purse.tex"))
-    self.purse:SetSize(89.6, 134.4)  -- 2.8 倍
-    self.purse:SetPosition(680, -290)  -- 天使女孩右侧
+    self.purse:SetSize(48, 72)   -- ★ 09-25 用户：×1.5（32x48 → 48x72）
+    self.purse:SetPosition(544, -347)  -- 裙侧挂点随天使×1.2 走：原偏移(+53,+4)×1.2=(+64,+5) → (480+64, -352+5)
     self.purse:SetTint(1, 1, 1, 0.8)
+    self.purse:SetRotation(15)         -- ★ 2026-09-25 用户：斜放挂着（嫌歪改这一个数 ±15，反向写 -15；官方 Widget:SetRotation）
 
-    -- ★ 赞助二维码框架：用户要求去掉天使左边的小方框 → 移除
-    --   （代码保留，需要时重新 AddChild 即可）
+    -- ★ 赞助入口（2026-09-24 用户定案）
+    --   ① **不直接给**：96x65 的赞助框 visible=false，始终不露脸；
+    --      只留荷包挂在天使裙上当入口（愿者上钩，点不点全凭玩家）
+    --   ② 荷包挂在天使裙上 = 赞助入口；没通过考察时它是**纯装饰**（无点击热区）
+    --   ③ 赞助面板改**两段式**：
+    --        上段 = 项目付费赞助（做了大家都能用）
+    --        下段 = 购买服务设定（服务器加效果 / 自由赞助）
+    --   ⚠️ 整段包 pcall：贴图没注册好也不能把"面板整个打不开"带回来
+    local _sok, _serr = pcall(function()
+    -- 全屏暗底（点空白关闭）
+    self.qr_back = self.root:AddChild(ImageButton("images/global.xml", "square.tex"))
+    self.qr_back:ForceImageSize(1600, 1100)
+    self.qr_back:SetImageNormalColour(0, 0, 0, 0.55)
+    self.qr_back:SetImageFocusColour(0, 0, 0, 0.55)
+    self.qr_back.scale_on_focus = false
+    self.qr_back.normal_scale = { 1, 1, 1 }
+    self.qr_back.focus_scale  = { 1, 1, 1 }
+    self.qr_back:Hide()
+
+    -- 收款码（上段"项目付费赞助"点开后显示）
+    self.qr_img = self.root:AddChild(ImageButton("images/wechat_qr.xml", "wechat_qr.tex"))
+    -- 源图 1118x1524（比例 0.7336）→ 按高 340 等比，别压成正方形
+    self.qr_img:ForceImageSize(249, 340)
+    self.qr_img:SetPosition(0, 30)
+    self.qr_img:SetImageNormalColour(1, 1, 1, 1)
+    self.qr_img:SetImageFocusColour(1, 1, 1, 1)
+    self.qr_img.scale_on_focus = false
+    self.qr_img.normal_scale = { 1, 1, 1 }
+    self.qr_img.focus_scale  = { 1, 1, 1 }
+    self.qr_img:Hide()
+
+    self.qr_hint = self.root:AddChild(Text(UIFONT, 34))
+    self.qr_hint:SetString("自愿捐赠 · 无任何回报 ~ 点任意处关闭")
+    self.qr_hint:SetColour(1, 0.95, 0.78, 1)
+    self.qr_hint:SetPosition(0, -180)
+    self.qr_hint:Hide()
+
+    -- 认领专用提示（认领钮点开收款码后显示；认领=定向支持，认领后全服免费上架）
+    self.qr_hint2 = self.root:AddChild(Text(UIFONT, 34))
+    self.qr_hint2:SetString("功能变动 · 扫码后私聊作者确认 ~ 点任意处关闭")
+    self.qr_hint2:SetColour(1, 0.95, 0.78, 1)
+    self.qr_hint2:SetPosition(0, -180)
+    self.qr_hint2:Hide()
+
+    -- 下段"服务器定制接单"的说明 ★ 2026-09-24 口径（元宝红线）：限原创内容，
+    --   不接「服务器强化 / VIP / 数值战力」——原句"服务器加效果"作废
+    self.spons_svc = self.root:AddChild(Text(UIFONT, 28))
+    self.spons_svc:SetString("服务器定制接单\n· 新 Boss · 祭坛 · 任务链 · 插件（限原创）\n· 不接强化 / VIP / 数值修改\n· 私聊作者协商\n\n（点任意处关闭）")
+    self.spons_svc:SetColour(0.95, 0.92, 0.82, 1)
+    self.spons_svc:SetPosition(0, 20)
+    self.spons_svc:SetHAlign(ANCHOR_MIDDLE)
+    self.spons_svc:Hide()
+
+    local function close_sponsor()
+        self.qr_open = false
+        for _, w in ipairs({ self.qr_back, self.qr_img, self.qr_hint, self.qr_hint2, self.spons_svc, self.spons_panel, self.spons_sub }) do
+            if w then w:Hide() end
+        end
+    end
+
+    -- ★ 主面板（09-25 用户改版：支付钮塞进"商业/赞助模式"二级页不摆在一级面——单摆=摆着要钱；作者的话沉底）
+    self.spons_panel = self.root:AddChild(Widget("musha_sponsor_panel"))
+    self.spons_panel:SetPosition(0, 20)
+    self.spons_panel:Hide()
+
+    -- 二级页：商业/赞助模式内页（自愿赞助 + 两颗认领钮写在一起）
+    self.spons_sub = self.root:AddChild(Widget("musha_sponsor_sub"))
+    self.spons_sub:SetPosition(0, 20)
+    self.spons_sub:Hide()
+
+    local sbg = self.spons_sub:AddChild(Image("images/global.xml", "square.tex"))
+    sbg:SetSize(640, 500)   -- 三颗支付钮 + 返回（±250）
+    sbg:SetTint(0.10, 0.09, 0.08, 0.96)
+
+    local stitle = self.spons_sub:AddChild(Text(UIFONT, 30))
+    stitle:SetString("商业/赞助 模式（全员免费）")
+    stitle:SetColour(1, 0.92, 0.70, 1)
+    stitle:SetPosition(0, 215)
+
+    local pbg = self.spons_panel:AddChild(Image("images/global.xml", "square.tex"))
+    pbg:SetSize(640, 500)   -- 主面板：标题 + 两栏钮 + 作者的话沉底（±320 / ±250）
+    pbg:SetTint(0.10, 0.09, 0.08, 0.96)
+
+    local ptitle = self.spons_panel:AddChild(Text(UIFONT, 30))
+    ptitle:SetString("★ 支持 Musha ★")
+    ptitle:SetColour(1, 0.92, 0.70, 1)
+    ptitle:SetPosition(0, 190)
+
+    -- 作者的话（2026-09-25 用户："这三句话，请写进赞助面板里"）——
+    --   与 README 引用同款全文，一字未改；Text 不自动折行 → 手动 \n（每行 ≤31 全角字 ≈ 558px < 640）
+    local pquote = self.spons_panel:AddChild(Text(UIFONT, 22))  -- ★ 09-25 用户：作者的话字号+4（18→22），行宽按 27 全角重排
+    pquote:SetColour(0.85, 0.80, 0.70, 1)
+    pquote:SetString("一句话 前者是商业模式 和付费模式，但道德不违法，ta不和\n"
+        .. "真实的利益（任何意义）上的绑定，只是，换一句话来讲，\n"
+        .. "“大家要的钱，本质上也是 拿命 和拿钱 和时间来换的”，\n"
+        .. "承认交易，那是魔鬼，承认爱物，那是“原有的道德”。\n"
+        .. "白马非马，但不能白马无马，白马无马，观音没有如来。——")
+    pquote:SetPosition(0, -170)  -- ★ 09-25 用户：沉底，不高于任何商业显示
+
+    -- 第一栏（09-25 用户原话："第一栏写 商业/赞助 模式（全员免费）"）→ 点开进二级页
+    self.spons_sec = self.spons_panel:AddChild(ImageButton("images/global.xml", "square.tex"))
+    self.spons_sec:ForceImageSize(500, 84)
+    self.spons_sec:SetPosition(0, 95)   -- 一级栏：仅此钮 + 接单钮（认领价在二级页）
+    self.spons_sec:SetImageNormalColour(0.85, 0.68, 0.25, 0.92)
+    self.spons_sec:SetImageFocusColour(1.00, 0.90, 0.60, 1)
+    self.spons_sec.scale_on_focus = false
+    self.spons_sec.normal_scale = { 1, 1, 1 }
+    self.spons_sec.focus_scale  = { 1, 1, 1 }
+    local sect = self.spons_sec:AddChild(Text(UIFONT, 28))
+    sect:SetString("商业/赞助 模式（全员免费）")
+    sect:SetColour(0.20, 0.16, 0.10, 1)
+    sect:SetPosition(0, 0)
+
+    -- 上段：自愿捐赠（Klei 2022-02-04 公告：允许捐赠链接，禁止一切"功能/内容/服务换金钱"与"回报激励捐赠"；原「认领价作废」口径经 09-25 用户四选一改回 → 见下两颗认领钮）★ 2026-09-24/25
+    self.spons_top = self.spons_sub:AddChild(ImageButton("images/global.xml", "square.tex"))
+    self.spons_top:ForceImageSize(500, 84)
+    self.spons_top:SetPosition(0, 110)
+    self.spons_top:SetImageNormalColour(0.85, 0.68, 0.25, 0.92)
+    self.spons_top:SetImageFocusColour(1.00, 0.90, 0.60, 1)
+    self.spons_top.scale_on_focus = false
+    self.spons_top.normal_scale = { 1, 1, 1 }
+    self.spons_top.focus_scale  = { 1, 1, 1 }
+    local t1 = self.spons_top:AddChild(Text(UIFONT, 28))
+    t1:SetString("自愿赞助（内容全员免费）")
+    t1:SetColour(0.20, 0.16, 0.10, 1)
+    t1:SetPosition(0, 0)
+
+    -- ★ 认领钮①（2026-09-25 用户四选一拍板「写回 mod 面板按钮」：Klei 线风险问题中已写明、自担）
+    self.spons_c1 = self.spons_sub:AddChild(ImageButton("images/global.xml", "square.tex"))
+    self.spons_c1:ForceImageSize(500, 84)
+    self.spons_c1:SetPosition(0, 10)
+    self.spons_c1:SetImageNormalColour(0.55, 0.62, 0.85, 0.92)
+    self.spons_c1:SetImageFocusColour(0.72, 0.80, 1.00, 1)
+    self.spons_c1.scale_on_focus = false
+    self.spons_c1.normal_scale = { 1, 1, 1 }
+    self.spons_c1.focus_scale  = { 1, 1, 1 }
+    local c1t = self.spons_c1:AddChild(Text(UIFONT, 28))
+    c1t:SetString("变动：商店功能 ¥2000")
+    c1t:SetColour(0.20, 0.16, 0.10, 1)
+    c1t:SetPosition(0, 0)
+
+    -- ★ 认领钮②（用户同轮更正：“种植 200 和勋章是一个功能” → 徽章＋种植同一颗钮，不并入商店）
+    self.spons_c2 = self.spons_sub:AddChild(ImageButton("images/global.xml", "square.tex"))
+    self.spons_c2:ForceImageSize(500, 84)
+    self.spons_c2:SetPosition(0, -90)
+    self.spons_c2:SetImageNormalColour(0.55, 0.62, 0.85, 0.92)
+    self.spons_c2:SetImageFocusColour(0.72, 0.80, 1.00, 1)
+    self.spons_c2.scale_on_focus = false
+    self.spons_c2.normal_scale = { 1, 1, 1 }
+    self.spons_c2.focus_scale  = { 1, 1, 1 }
+    local c2t = self.spons_c2:AddChild(Text(UIFONT, 26))
+    c2t:SetString("变动：荣耀勋章 ¥500（原）\n+ 种植能力 ¥200")
+    c2t:SetColour(0.20, 0.16, 0.10, 1)
+    c2t:SetHAlign(ANCHOR_MIDDLE)
+    c2t:SetPosition(0, 0)
+
+    -- 下段：服务器定制接单（商业层，独立于赞助）
+    self.spons_bot = self.spons_panel:AddChild(ImageButton("images/global.xml", "square.tex"))
+    self.spons_bot:ForceImageSize(500, 84)
+    self.spons_bot:SetPosition(0, -5)
+    self.spons_bot:SetImageNormalColour(0.62, 0.55, 0.40, 0.92)
+    self.spons_bot:SetImageFocusColour(0.85, 0.78, 0.58, 1)
+    self.spons_bot.scale_on_focus = false
+    self.spons_bot.normal_scale = { 1, 1, 1 }
+    self.spons_bot.focus_scale  = { 1, 1, 1 }
+    local t2 = self.spons_bot:AddChild(Text(UIFONT, 28))
+    t2:SetString("服务器定制接单（限原创内容）")
+    t2:SetColour(0.20, 0.16, 0.10, 1)
+    t2:SetPosition(0, 0)
+
+    local function open_sponsor()
+        self.qr_open = true
+        self.qr_back:Show()
+        self.spons_panel:Show()
+        self.spons_sub:Hide()
+        self.qr_img:Hide(); self.qr_hint:Hide(); self.qr_hint2:Hide(); self.spons_svc:Hide()
+    end
+
+    -- 第一栏点开 → 二级页（09-25 改版：支付钮塞进二级页，不摆在一级面）
+    self.spons_sec:SetOnClick(function()
+        self.spons_panel:Hide()
+        self.spons_sub:Show()
+    end)
+    -- 二级页返回 → 回第一栏
+    self.spons_back = self.spons_sub:AddChild(ImageButton("images/global.xml", "square.tex"))
+    self.spons_back:ForceImageSize(200, 48)
+    self.spons_back:SetPosition(0, -200)
+    self.spons_back:SetImageNormalColour(0.35, 0.33, 0.30, 0.92)
+    self.spons_back:SetImageFocusColour(0.50, 0.47, 0.42, 1)
+    self.spons_back.scale_on_focus = false
+    self.spons_back.normal_scale = { 1, 1, 1 }
+    self.spons_back.focus_scale  = { 1, 1, 1 }
+    local bkt = self.spons_back:AddChild(Text(UIFONT, 24))
+    bkt:SetString("← 返回")
+    bkt:SetColour(0.90, 0.88, 0.84, 1)
+    bkt:SetPosition(0, 0)
+    self.spons_back:SetOnClick(function()
+        self.spons_sub:Hide()
+        self.spons_panel:Show()
+    end)
+
+    -- 二级页支付钮点开 → 收款码（同时收起两层）
+    self.spons_top:SetOnClick(function()
+        self.spons_panel:Hide(); self.spons_sub:Hide()
+        self.qr_img:Show(); self.qr_hint:Show()
+    end)
+    -- 认领钮点开 → 同一张收款码（提示行换认领专用 qr_hint2）
+    self.spons_c1:SetOnClick(function()
+        self.spons_panel:Hide(); self.spons_sub:Hide()
+        self.qr_img:Show(); self.qr_hint2:Show()
+    end)
+    self.spons_c2:SetOnClick(function()
+        self.spons_panel:Hide(); self.spons_sub:Hide()
+        self.qr_img:Show(); self.qr_hint2:Show()
+    end)
+    -- 下段点开 → 定制接单文案
+    self.spons_bot:SetOnClick(function()
+        self.spons_panel:Hide()
+        self.spons_svc:Show()
+    end)
+
+    -- 关闭热区：赞助框 + 暗底 + 收款码 + 服务文案 + 两层面板，点哪都关
+    self.sponsor_frame = self.content:AddChild(ImageButton("images/sponsor_frame.xml", "sponsor_frame.tex"))
+    -- 源图 1526x1031（比例 1.4802）→ 宽 96 等比，高 65，别压成正方形
+    self.sponsor_frame:ForceImageSize(96, 65)
+    self.sponsor_frame:SetPosition(560, -150)
+    self.sponsor_frame.scale_on_focus = false
+    self.sponsor_frame.normal_scale = { 1, 1, 1 }
+    self.sponsor_frame.focus_scale  = { 1, 1, 1 }
+    self.sponsor_frame:SetImageNormalColour(1, 1, 1, 1)
+    self.sponsor_frame:SetImageFocusColour(1, 1, 1, 1)
+    self.sponsor_frame:SetOnClick(open_sponsor)
+    self.sponsor_frame:Hide()          -- ★ 不直接显示：只有考察通过才 Show（见 Refresh）
+
+    -- 荷包热区：挂在天使裙侧（和 purse 同位），没通过考察时不创建 → 纯装饰
+    self.spons_hot = self.content:AddChild(ImageButton("images/global.xml", "square.tex"))
+    self.spons_hot:ForceImageSize(72, 96)
+    self.spons_hot:SetPosition(544, -347)   -- 跟荷包同位（荷包 48x72 热区同比放大 72x96；★ 09-25 二改随荷包×1.5 同步）
+    self.spons_hot:SetImageNormalColour(0, 0, 0, 0)
+    self.spons_hot:SetImageFocusColour(1, 1, 1, 0.12)   -- 悬停只给一点反馈
+    self.spons_hot.scale_on_focus = false
+    self.spons_hot.normal_scale = { 1, 1, 1 }
+    self.spons_hot.focus_scale  = { 1, 1, 1 }
+    self.spons_hot:SetOnClick(open_sponsor)
+    self.spons_hot:Show()              -- ★ 愿者上钩：荷包静静摆着，谁愿意谁点（闸门在 Refresh 里再收一次）
+
+    self.qr_back:SetOnClick(close_sponsor)
+    self.qr_img:SetOnClick(close_sponsor)
+    -- ⚠️ 不要给 Text 挂 SetOnClick —— DST 的 Text(Label) 没有这个方法，会抛
+    --   "attempt to call method 'SetOnClick' (a nil value)"
+    --   Text 本来就不拦截点击，点在说明文字上会直接穿透到下层 qr_back → 照样关闭
+    end)
+    if not _sok then
+        -- 赞助入口没起来不影响面板：只打一行日志（和 [Musha Edit] 同一套路）
+        print("[Musha Panel] 赞助入口初始化失败（面板不受影响）: " .. tostring(_serr))
+        self.sponsor_frame = nil
+    end
 
     -- ★ Lv 徽标（灰条已取消 2026-09-22：不再画方形灰底，只留文字）
     --   ★ 2026-09-22 第二轮：用户取消灰条 → level_badge 删掉，只留 level_text
     self.level_text = self.content:AddChild(Text(UIFONT, 34))
     self.level_text:SetString("Lv.1")
     self.level_text:SetColour(1, 1, 1, 1)
-    self.level_text:SetPosition(JOB_LX, HOME_TOP_Y - 60)   -- ★ 第四轮：避开经验条（原 -122 与 exp 条冲突）
+    self.level_text:SetPosition(JOB_LX - 18, HOME_TOP_Y - 60)   -- ★ 2026-09-24 用户：等级文字左移 18px
 
     -- ★ 职业头像（2026-09-22 用户：图片\职业图标.png 切的 3 张，1×3 横排）
     --   图片自带"战士/剑士/近卫 WARRIOR/SWORDSMAN/GUARDIAN"字样，直接贴图不再叠字
     --   ★ 2026-09-22 第二轮：缩小到 0.25 倍（256→64），仍 @ (-257, 207)
     --   64×64 包围盒 x[-289,-225] y[175,239]，在内框 ±616×±416 内
     self.job_icon = self.content:AddChild(Image("images/job_warrior.xml", "job_warrior.tex"))
-    self.job_icon:SetSize(38, 38)      -- ★ 第四轮：×0.8（48→38.4）
+    self.job_icon:SetSize(28.5, 28.5)  -- ★ 2026-09-24 用户：当前比例再 ×0.8（38→30.4）
     self.job_icon:SetPosition(-257, 207)
     self.job_icon:Hide()          -- 初始隐藏；无职业时 Refresh 会把它关掉
 
@@ -583,7 +888,9 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     --   ★ 放大 1.2 倍：宽 930×1.2 = 1116，高 22×1.2 = 26
     --     宽 1116 中心 x=40 → 左缘 -518，右缘 598（内框 ±616 内，余 18）
     self.exp_bg = self.content:AddChild(Image("images/global.xml", "square.tex"))
-    self.exp_bg:SetSize(558, 13)       -- ★ 第三轮：缩小 50%（1116×26 → 558×13）
+    -- ★ 2026-09-24 用户：**只缩长度**（"长缩小"）→ 宽 ×0.7 = 390.6，高度 13 不动
+    --   中心不动 → 左缘 = -33 - 390.6/2 = -228.3（导航右缘 -228.8，刚好让开）
+    self.exp_bg:SetSize(390.6, 13)
     -- ★ 第四轮：右移120px+下移40px → (-110,128)
     --   ⚠️ 但导航下移200后 nav1 在 y[110,201]、x[-502,-320]，经验条左缘 -389 压 nav1；
     --   且右移后压到 Lv 文字(x[-10,90])。→ 左缘让开 nav 右缘(-320)，中心 x=-33
@@ -593,10 +900,10 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
 
     self.exp_fill = self.content:AddChild(Image("images/global.xml", "square.tex"))
     self.exp_fill:SetSize(0, 13)
-    self.exp_fill:SetPosition(-312, 105.5)   -- 左缘 = -33-279 = -312，让开 nav
+    self.exp_fill:SetPosition(-228.3, 105.5)   -- 左缘 = -33 - 390.6/2 = -228.3，让开 nav
     self.exp_fill:SetTint(0.72, 0.72, 0.72, 0.95)
 
-    self.exp_text = self.content:AddChild(Text(UIFONT, 26))
+    self.exp_text = self.content:AddChild(Text(UIFONT, 26))   -- 高度没缩 → 字号保持 26
     self.exp_text:SetString("职业经验 0/100")
     self.exp_text:SetColour(0.55, 0.48, 0.38, 0.95)
     self.exp_text:SetPosition(-33, 105.5)   -- 跟灰条走
@@ -645,17 +952,20 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         local w = Widget("quest_item")
 
         -- 底框（背景板）
+        -- ★ 2026-09-24 用户：还原最原来的版本 —— **不要颜色底板**，只留描边 + 分隔线
+        --   原来 0.85,0.68,0.25,0.28 的金色底板整块去掉（alpha=0），元素留着方便以后要回来
         w.bg = w:AddChild(Image("images/global.xml", "square.tex"))
-        w.bg:SetSize(ROW_W, 64)
-        w.bg:SetTint(0.85, 0.68, 0.25, 0.28)
+        w.bg:SetSize(ROW_W, ROW_H)
+        w.bg:SetTint(0, 0, 0, 0)
 
-        -- 行框体：4 条描边（外扩 4，线宽 4）
+        -- 行框体：4 条描边（外扩 4，线宽 4）—— 半高统一由 ROW_H 推，改行高只动一处
         w.frame = {}
+        local RH2 = ROW_H / 2
         local frame_lines = {
-            { x = 0,                   y = 32 + FOFF,  w = ROW_W + FOFF * 2, h = FT },
-            { x = 0,                   y = -32 - FOFF, w = ROW_W + FOFF * 2, h = FT },
-            { x = -(ROW_W / 2) - FOFF, y = 0,          w = FT, h = 64 + FOFF * 2 },
-            { x = (ROW_W / 2) + FOFF,  y = 0,          w = FT, h = 64 + FOFF * 2 },
+            { x = 0,                   y = RH2 + FOFF,  w = ROW_W + FOFF * 2, h = FT },
+            { x = 0,                   y = -RH2 - FOFF, w = ROW_W + FOFF * 2, h = FT },
+            { x = -(ROW_W / 2) - FOFF, y = 0,           w = FT, h = ROW_H + FOFF * 2 },
+            { x = (ROW_W / 2) + FOFF,  y = 0,           w = FT, h = ROW_H + FOFF * 2 },
         }
         for _, ln in ipairs(frame_lines) do
             local line = w:AddChild(Image("images/global.xml", "square.tex"))
@@ -665,36 +975,36 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             table.insert(w.frame, line)
         end
 
-        -- 顶部红条（转职行）
+        -- 顶部红条（转职行）—— y 由 ROW_H 推，贴在行内上沿下 2px
         w.bar = w:AddChild(Image("images/global.xml", "square.tex"))
         w.bar:SetSize(ROW_W, 6)
-        w.bar:SetPosition(0, 26)
+        w.bar:SetPosition(0, RH2 - 5)
         w.bar:SetTint(0.85, 0.22, 0.18, 0.95)
         w.bar:Hide()
 
         -- 顶部白色小横条（每日"普通任务"行）
         w.barw = w:AddChild(Image("images/global.xml", "square.tex"))
         w.barw:SetSize(ROW_W, 4)
-        w.barw:SetPosition(0, 26)
+        w.barw:SetPosition(0, RH2 - 4)
         w.barw:SetTint(1, 1, 1, 0.7)
 
-        w.label = w:AddChild(Text(UIFONT, 34))
+        w.label = w:AddChild(Text(UIFONT, 32))
         w.label:SetString("")
         w.label:SetColour(0.9, 0.9, 0.9, 1)
-        w.label:SetPosition(-250, 0)
+        w.label:SetPosition(-(ROW_W / 2) + 80, 0)   -- 行内左缘起 80（缩窄后不再用固定 -250）
         w.label:SetHAlign(ANCHOR_LEFT)
 
         -- ★ 2026-09-16 UI（A 版最小改动）：计数左移 22 —— 原来贴着滚动条，眼睛要跑两边
-        w.stat = w:AddChild(Text(UIFONT, 30))
+        w.stat = w:AddChild(Text(UIFONT, 28))
         w.stat:SetString("")
         w.stat:SetColour(0.6, 0.6, 0.6, 1)
-        w.stat:SetPosition(228, 0)
+        w.stat:SetPosition((ROW_W / 2) - 102, 0)   -- 行内右缘起 102（让开滚动条，缩窄后同理）
         w.stat:SetHAlign(ANCHOR_RIGHT)
 
         -- ★ 2026-09-16 UI（A）：行底一条浅分隔线 —— 相邻任务行有层次，不再只靠两根细边框
         w.div = w:AddChild(Image("images/global.xml", "square.tex"))
         w.div:SetSize(ROW_W - 60, 2)
-        w.div:SetPosition(0, -34)
+        w.div:SetPosition(0, -(ROW_H / 2) + 4)     -- 行内下沿上 4px（老值 -34 是 64 高时的行外）
         w.div:SetTint(0.45, 0.36, 0.24, 0.30)
 
         return w
@@ -723,11 +1033,11 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         end
 
         if data.adv then
-            w.bg:SetTint(0.42, 0.40, 0.38, 0.55)
+            w.bg:SetTint(0, 0, 0, 0)   -- ★ 2026-09-24：不着色底板（原 0.42,0.40,0.38,0.55）
             w.bar:Show()
             w.barw:Hide()
         else
-            w.bg:SetTint(0.85, 0.68, 0.25, 0.28)
+            w.bg:SetTint(0, 0, 0, 0)   -- ★ 2026-09-24：不着色底板（原 0.85,0.68,0.25,0.28）
             w.bar:Hide()
             w.barw:Show()
         end
@@ -738,7 +1048,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             w.stat:SetString("✓ 完成")
             w.label:SetColour(0.4, 0.8, 0.4, 1)
             w.stat:SetColour(0.3, 0.8, 0.3, 1)
-            w.bg:SetTint(0.25, 0.5, 0.28, 0.32)
+            w.bg:SetTint(0, 0, 0, 0)   -- ★ 2026-09-24：完成态也不上色底板（原 0.25,0.5,0.28,0.32）
         else
             w.stat:SetString((data.p or 0) .. "/" .. (data.t or 1))
             if data.adv then
@@ -776,11 +1086,15 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     --     list 中心下移到 -160（顶 74），badge 中心 94（底 66），分隔线 y=66。
     --     头像底 79 与 list 顶 74 相交 5 单位 —— 但 list 首行内容从行内左缘起画、
     --     行高 78，实际文字落在行中心 -160+195=35 附近，头像底 79 只压到首行上沿空白，可接受。
-    --   ★ 2026-09-22 第二轮：任务面板右移 14px（=15 content）、长缩减 40px（=43 content）
-    --     ROW_W 840 → 797；ITEM_W 860 → 817（ITEM_W = ROW_W + 20，框外扩两侧各 10）
-    --     list 中心 x：右移 15 → -39+15 = -24
-    --     缩减后左缘 = -24-797/2 = -423（导航右缘 -400，缝 23）；右缘 = 374
-    self.list:SetPosition(-24, -160)
+    --   ★ 2026-09-22 第二轮：任务面板右移 14px、长缩减 40px（已过期，见下）
+    --   ★ 2026-09-24 第三轮（用户：任务列表行偏大/被导航压住）：
+    --     ROW_W 797 → 660；ITEM_W 817 → 680；ITEM_H 78 → 72；行底框 64 → 58（新常量 ROW_H）
+    --     list 中心 x：-24 → **122**
+    --       行左缘 = 122 - 330 = -208（导航右缘 -228.8，缝 20.8）✓ 不再被盖
+    --       行右缘 = 452，滚动条 ≈492，赞助框 512..608 全让开
+    --     纵向：widget 上下 = -160 ± 6*72/2 = 56 / -376
+    --       首行上沿 49 < 分隔线 66 ✓，末行下沿 -369 > -416 ✓ 不再压底框
+    self.list:SetPosition(122, -160)
 
     -- 2026-09-10 需求：滚动条默认常显（不超过行数也显示）
     -- 原生 RefreshView 在 CanScroll()==false 时 Hide 滚动条；这里覆写强制 Show，
@@ -884,8 +1198,15 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     if not EditMode then
         print("[Musha Edit] FATAL: 模块加载失败，edit 模式禁用")
     else
-        local _mpok, _mp = pcall(function() return _G.ModPath end)
-        EditMode.set_log_dir((_mpok and _mp) or "")
+        -- ★ 2026-09-24 修「面板打不开」：整段编辑模式必须包 pcall。
+        --   原来这里取 _G.ModPath 当日志目录 —— 该值只在 mod env 里有，require 进来的文件取不到
+        --   → nil → EditMode._dir="" → 拼出 "/musha_edit_log.json" 根路径 →
+        --   EditMode.load() 里的 io.open 直接抛 "invalid filepath"，而这一段没包 pcall
+        --   → 错误炸掉**整个面板构造** → OpenMushaPanel 的 pcall 兜住后，
+        --   面板永远推不进屏幕栈（日志最后一行停在 "[Musha Panel] 构造失败"）。
+        --   编辑模式只是辅助功能：它挂了，面板也必须照常打开。
+        local _eok, _eerr = pcall(function()
+        EditMode.set_log_dir(nil)                 -- 目录交给 EditMode._io_path() 自己探测合法路径
         EditMode.load()
         EditMode.apply_to_panel(self)
         self.edit_mode = false
@@ -934,26 +1255,51 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             local st = savebtn:AddChild(Text(UIFONT, 20))
             st:SetString("保存日志"); st:SetColour(1,1,1,1); st:SetPosition(0,0)
             savebtn:SetOnClick(function()
-                EditMode.save(); print("[Musha Edit] 日志已保存 -> " .. EditMode._path())
+                local _sok, _res, _loc = pcall(function() return EditMode.save() end)
+                if _sok and _res then
+                    print("[Musha Edit] 日志已保存 -> " .. tostring(_loc))
+                elseif _sok then
+                    print("[Musha Edit] 保存失败: " .. tostring(_loc))
+                else
+                    print("[Musha Edit] 保存抛错: " .. tostring(_res))
+                end
             end)
         end
 
--- ★ 编辑模式切换按钮（2026-09-24：从右下挪到右上，避开天使女孩）
-    --   旧位置 (555,-365) 被 3 倍天使女孩 (480,-300, 360x480) 完全盖住 → 点不到
+-- ★ 编辑模式切换按钮（2026-09-24 第二版：挪到红叉**左边**，半透明深底 + 白字「编辑」）
+    --   旧位置 (555, 365) 正好压在底图红叉 (563, 347) 上 → 看着像渲染出错，
+    --   而且把"点叉关闭"挡住了。现在让到 x=450（红叉左缘 523，按钮右缘 510，留 13 缝）。
+    --   同高 (347)，深色半透明底 + 白字，一眼能看出是按钮而不是坏图。
     self.edit_toggle_btn = self.content:AddChild(ImageButton("images/global.xml","square.tex"))
-    self.edit_toggle_btn:ForceImageSize(120,32)
-    self.edit_toggle_btn:SetPosition(555, 365)
-    self.edit_toggle_btn:SetImageNormalColour(0.2,0.85,0.2,0.95)
-    self.edit_toggle_btn:SetImageFocusColour(0.3,1,0.3,1)
+    self.edit_toggle_btn:ForceImageSize(120,34)
+    self.edit_toggle_btn:SetPosition(450, 347)
+    self.edit_toggle_btn.scale_on_focus = false
+    self.edit_toggle_btn.normal_scale = { 1, 1, 1 }
+    self.edit_toggle_btn.focus_scale  = { 1, 1, 1 }
+    self.edit_toggle_btn:SetImageNormalColour(0.08, 0.08, 0.08, 0.55)
+    self.edit_toggle_btn:SetImageFocusColour(0.16, 0.16, 0.16, 0.75)
+    self.edit_toggle_label = self.edit_toggle_btn:AddChild(Text(UIFONT, 26))
+    self.edit_toggle_label:SetString("编辑")
+    self.edit_toggle_label:SetColour(1, 1, 1, 1)
+    self.edit_toggle_label:SetPosition(0, 0)
     self.edit_toggle_btn:SetOnClick(function()
         self.edit_mode = not self.edit_mode
-        self.edit_panel:SetVisible(self.edit_mode)
-        self.edit_toggle_btn:SetImageNormalColour(
-            self.edit_mode and 0.9 or 0.2,
-            self.edit_mode and 0.4 or 0.6,
-            self.edit_mode and 0.2 or 0.6, 0.9)
+        -- ⚠️ DST 没有 SetVisible，只能 Show()/Hide()（写 SetVisible 会在这里炸）
+        if self.edit_mode then self.edit_panel:Show() else self.edit_panel:Hide() end
+        if self.edit_mode then
+            self.edit_toggle_btn:SetImageNormalColour(0.55, 0.30, 0.08, 0.80)
+            self.edit_toggle_label:SetString("编辑中")
+        else
+            self.edit_toggle_btn:SetImageNormalColour(0.08, 0.08, 0.08, 0.55)
+            self.edit_toggle_label:SetString("编辑")
+        end
     end)
         print("[Musha Edit] init done")
+        end)
+        if not _eok then
+            -- 编辑模式没起来也不能拖累面板：只打一行日志，面板照常开
+            print("[Musha Edit] 初始化失败（面板不受影响）: " .. tostring(_eerr))
+        end
     end
 
     -- ================================================================
@@ -965,6 +1311,13 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     -- 2026-09-13：装备页从"图鉴"里拆出来单独一页（原来页名叫图鉴、内容其实是装备·属性）
     --   现在：equip = 装备·属性（原内容不动），dex = 图鉴（新占位页，内容待定）
     self.page_titles = { home = "主页", skill = "技能", equip = "装备", mail = "信箱", set = "设置", gift = "礼包", dex = "图鉴" }
+    -- ★ 2026-09-24 双语：英文标题（横幅里烤死的就是这套词，兜底文字必须对齐）
+    --   见 图片/UI_en.png：Home / Skills / Mailbox / Settings / Gift Pack / Gallery
+    --   equip 无英文版横幅（页面先隐藏），这里补齐以防以后放开
+    self.page_titles_en = {
+        home = "Home", skill = "Skills", equip = "Equipment",
+        mail = "Mailbox", set = "Settings", gift = "Gift Pack", dex = "Gallery",
+    }
     -- ★ 2026-09-14 用户：「装备系统拆出来，先隐藏，后面做在右边显示」
     --   → 导航里**先不放** equip（这一版看不到入口）。页面代码（self.pages.equip / RefreshEquip）
     --     全部保留着，以后要做"右边单独显示"时，把 "equip" 加回这个表就能恢复。
@@ -1780,7 +2133,15 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     --     ⚠️ 算账：2.2 倍按钮（125.4 高）+ 间隔 17.2 = 总高 838 > 832，末个出框
     --     → 按钮缩小到 1.6 倍（91.2 高）+ 间隔 8px（8.6）= 总高 590，
     --       下移 200px 后末个底 -389 > -416 ✓，首个顶 201 < 416 ✓
-    self.nav_list:SetPosition(NAV_LEFT and -320 or 411.1, NAV_LEFT and -297 or 266)
+    -- ★ 2026-09-24 第三轮：y 由 -297 → -120（**竖向居中**，这才是注释里写的那条约束）
+    --   硬算 6 个按钮（91.2 高 + 2.87 缝 = 94.07，NAV_TOP_Y=370.4，NAV_GAP2=2.87）：
+    --     · 老值 -297：首顶 = 119，**末底 = -442.5 < -416 出框 26.5px**（截图里"图鉴"被裁就是它）
+    --     · 新值 -120：首顶 = 296 < 306（让开左上木牌），末底 = -265.6 > -277（让开左下装饰）✓
+    --   x 由 -320 **左移 180** → -500（2026-09-24 用户要求）
+    --     按钮宽 182.4 → 左缘 -500-91.2 = **-591.2 > 内框 -616** ✓ 不出内框
+    --     右缘 -500+91.2 = **-408.8**（原 -228.8），离任务行左缘 -208 空出 200
+    --     ⚠️ 纸面左缘 ≈-519、木框竖线 ≈-563 → 按钮会压在木框带上（用户要的左移效果）
+    self.nav_list:SetPosition(NAV_LEFT and -500 or 411.1, NAV_LEFT and -120 or 266)
     if NAV_ALWAYS_SHOW then
         self.nav_list:Show()          -- 左竖排常驻：开面板就能直接点页
     else
@@ -1788,68 +2149,121 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     end
     self.nav_items = {}
 
--- 导航图标（2026-09-13）：清单在 scripts/musha_nav_icons.lua（唯一真源）
-    --   哪张 tex 打包好了清单里就有哪一行；缺 tex 时下面的 pcall 会兜住 → 那行只显示文字
-    -- ⚠️ 2026-09-24 第二轮：nav_*.xml+tex 都在，但 239ec44 删了文字标签和描边，
-    --   只留透明按钮上的贴图 → 按钮在深色背景上完全看不见。
-    --   修法：恢复旧版「淡黄底 + 白描边 + 中文标签」，nav_*.tex 作为可选图标。
-    local NAV_BTN_W = 182.4
-    local NAV_BTN_H = 91.2
-    local NAV_GAP2  = 2.87
-    local NAV_TOP_Y = 416 - 91.2/2
+    -- 导航（2026-09-13 起，2026-09-24 甲案重写）：清单在 scripts/musha_nav_icons.lua（唯一真源）
+    -- ─────────────────────────────────────────────────────────────
+    -- ★ 甲案：**横幅本身就是整颗按钮**
+    --   nav_*.png 是 512×256 = 比例 2.000，而按钮 182.4×91.2 = 2.000 —— 严丝合缝。
+    --   横幅里已经烤死了标题（中文"主页" / 英文"Home"）和木牌底框，
+    --   所以**不再画白描边、不再画 Text 标签**（否则文字画两遍、边框叠边框）。
+    --   之前那版把它 ScaleToSize(28,28) 挤成小图标塞左边 = 把整张横幅压烂。
+    --
+    -- ★ 双语：英文版 nav_xxx_en.{tex,xml} 从 图片/UI_en.png 按 2列3行 切出，
+    --   和中文版（图片/UI_zh.png，即现有 nav_*.png 的来源）一模一样的切法。
+    --   挑图规则见下 UI_LANG；没有英文版的行（equip）双语共用中文版。
+    --
+    -- ★ 兜底：pcall 三级降级 —— 按语言挑的那张 → 中文版 → 纯按钮（白描边+Text）。
+    --   绝不因为缺 tex 崩面板（缺图只打一行日志）。
+    -- ─────────────────────────────────────────────────────────────
+    -- ★ 2026-09-24 用户（发版前调）：
+    --   ① 标题栏（导航木牌条）高 ×1.2 **等比**：91.2 → 109.44，宽 182.4 → 218.88（保持 2:1，贴图不压扁）
+    --   ② 条间**视觉**间隔缩 1/3。实测 nav_*.png 中文 6 张（GDI+ 量 alpha>16 包围盒）：
+    --        木牌可见高 ≈ 盒高 73.6%，且上下留白对称 → 缝是上下两块留白之和
+    --        老视觉缝 = (91.2+2.87) − 0.736×91.2 ≈ 26.9 → 目标 = 26.9×2/3 ≈ 18.0
+    --        新盒 109.44 → 木牌可见 80.6 → 需要盒距 98.5 → NAV_GAP2 = 98.5 − 109.44 ≈ **−10.9**
+    --        （负值 = 盒子重叠 10.9px，抵消贴图放大后变大的留白，视觉上仍留 ≈18px 缝）
+    --   列账（nav_list y=−120 不变）：
+    --        首顶 = −120 + 416 = 296 不变（< 306 让开左上木牌 ✓）
+    --        末底 = 296 − (5×98.54 + 109.44) = **−306.1**（老 −265.6）
+    --          ⚠️ 进入左下装饰区（< −277）29px，离外框 −416 还有 110 —— 不出框，但会盖到花丛兔子
+    --        左缘 = −500 − 109.44 = **−609.44 > −616** ✓（余 6.56，仍压木框带=用户要的左移效果）
+    --        右缘 = −500 + 109.44 = −390.6（任务行左缘 −208，空 182.6 ✓）
+    local NAV_BTN_W = 218.88
+    local NAV_BTN_H = 109.44
+    local NAV_GAP2  = -10.9
+    local NAV_TOP_Y = 416 - NAV_BTN_H / 2
 
-    -- 导航图标清单（从 musha_nav_icons.lua 读，和 modmain 注册资产用同一份）
+    -- 语言：modmain.lua 语言块算出 suffix 后挂到 TUNING.MUSHA_UI_LANG（zh/en/ko/ru/jp）
+    --   ⚠️ 面板可能取不到该值 → 当英文处理（不报错）
+    local UI_LANG = (TUNING and TUNING.MUSHA_UI_LANG) or "en"
+
+    -- 导航图清单（从 musha_nav_icons.lua 读，和 modmain 注册资产用同一份）
+    --   atlas/elem = 本次语言要画的那张；fb_* = 中文版（加载失败时的第二选择）
     local NAV_ICON = {}
     local ok_nav, NAVICON = pcall(require, "musha_nav_icons")
     if ok_nav and type(NAVICON) == "table" then
         for _, def in ipairs(NAVICON) do
-            NAV_ICON[def.key] = { atlas = "images/" .. def.file .. ".xml", elem = def.file .. ".tex" }
+            local pick = def.file
+            -- 非中文 + 有英文版 → 用英文版；ko/ru/jp 没自己的横幅，也用英文版（比中文版合适）
+            if UI_LANG ~= "zh" and def.file_en then pick = def.file_en end
+            NAV_ICON[def.key] = {
+                atlas   = "images/" .. pick .. ".xml",
+                elem    = pick .. ".tex",
+                fb_atlas= "images/" .. def.file .. ".xml",
+                fb_elem = def.file .. ".tex",
+            }
         end
     end
+    print("[Musha Panel] 导航语言 = " .. tostring(UI_LANG))
 
     for i, key in ipairs(self.page_order) do
-        local b = self.nav_list:AddChild(ImageButton("images/global.xml", "square.tex"))
+        local def = NAV_ICON[key]
+        local pos_y = NAV_TOP_Y - (i - 1) * (NAV_BTN_H + NAV_GAP2)
+
+        -- ① 按语言挑的那张 → ② 中文版 → ③ square.tex 纯按钮
+        local b, used_art, tries = nil, false, {}
+        if def then
+            tries[#tries+1] = { def.atlas, def.elem }
+            if def.fb_elem ~= def.elem then tries[#tries+1] = { def.fb_atlas, def.fb_elem } end
+        end
+        for _, tr in ipairs(tries) do
+            local ok, w = pcall(function()
+                return self.nav_list:AddChild(ImageButton(tr[1], tr[2]))
+            end)
+            if ok and w then b, used_art = w, true break end
+        end
+        if not b then
+            b = self.nav_list:AddChild(ImageButton("images/global.xml", "square.tex"))
+        end
+
         b:ForceImageSize(NAV_BTN_W, NAV_BTN_H)
-        b:SetPosition(0, NAV_TOP_Y - (i - 1) * (NAV_BTN_H + NAV_GAP2))
+        b:SetPosition(0, pos_y)
         b.scale_on_focus = false
         b.normal_scale = { 1, 1, 1 }
         b.focus_scale  = { 1, 1, 1 }
-        b:SetImageNormalColour(0.96, 0.90, 0.62, 0.95)   -- 淡黄底
-        b:SetImageFocusColour(1.00, 0.97, 0.80, 1)       -- 悬停变亮
 
-        -- 白框：4 条边线
-        for _, ln in ipairs({
-            { 0,   NAV_BTN_H/2, NAV_BTN_W, 3 },
-            { 0,   -NAV_BTN_H/2, NAV_BTN_W, 3 },
-            { -NAV_BTN_W/2,    0,   3, NAV_BTN_H },
-            { NAV_BTN_W/2,     0,   3, NAV_BTN_H },
-        }) do
-            local line = b:AddChild(Image("images/global.xml", "square.tex"))
-            line:SetSize(ln[3], ln[4])
-            line:SetPosition(ln[1], ln[2])
-            line:SetTint(1, 1, 1, 0.95)
-        end
-
-        -- 中文标签
-        local t = b:AddChild(Text(UIFONT, 28))
-        t:SetString(self.page_titles[key])
-        t:SetColour(0.32, 0.26, 0.18, 1)          -- 淡黄底上用深色字
-        t:SetPosition(8, 0)
-
-        -- 导航图标：图放左边 28x28，文字整体右移 8 让"图+字"看着居中
-        --   缺 tex 时 pcall 兜住：只打一行日志，该行保持纯文字
-        if NAV_ICON[key] then
-            local ok = pcall(function()
-                local ic = b:AddChild(Image(NAV_ICON[key].atlas, NAV_ICON[key].elem))
-                ic:ScaleToSize(28, 28)
-                ic:SetPosition(-41, 0)
-                t:SetPosition(8, 0)
-            end)
-            if not ok then print("[Musha] 导航图标没加载上（tex 打包了吗？）: " .. tostring(key)) end
+        local t = nil   -- 只有纯文字兜底才建；正常走横幅时保持 nil
+        if used_art then
+            -- 横幅 = 整颗按钮：平时压暗一档，悬停回全亮（选中态由 SetActivePage 调 normal 色）
+            b:SetImageNormalColour(0.86, 0.83, 0.78, 1)
+            b:SetImageFocusColour(1, 1, 1, 1)
+        else
+            -- 兜底：透明底 + 白描边 + 标签（深色面板上的可见性修法）
+            b:SetImageNormalColour(1, 1, 1, 0)
+            b:SetImageFocusColour(1, 1, 1, 0.10)
+            for _, ln in ipairs({
+                { 0,   NAV_BTN_H/2, NAV_BTN_W, 3 },
+                { 0,   -NAV_BTN_H/2, NAV_BTN_W, 3 },
+                { -NAV_BTN_W/2,    0,   3, NAV_BTN_H },
+                { NAV_BTN_W/2,     0,   3, NAV_BTN_H },
+            }) do
+                local line = b:AddChild(Image("images/global.xml", "square.tex"))
+                line:SetSize(ln[3], ln[4])
+                line:SetPosition(ln[1], ln[2])
+                line:SetTint(1, 1, 1, 0.95)
+            end
+            t = b:AddChild(Text(UIFONT, 28))
+            -- 兜底文字也按语言挑（横幅正常时不走这里；走到了至少不是中文糊英文玩家一脸）
+            local titles = (UI_LANG ~= "zh" and self.page_titles_en) or self.page_titles
+            t:SetString((titles and titles[key]) or self.page_titles[key] or tostring(key))
+            t:SetColour(0.97, 0.94, 0.82, 1)
+            t:SetPosition(0, 0)
+            print("[Musha] 导航横幅没加载上，已退纯文字: " .. tostring(key))
         end
 
         b:SetOnClick(function() self:SetActivePage(key) end)
-        table.insert(self.nav_items, { key = key, btn = b, text = t })
+        -- _art 留空并加 _is_art：横幅模式下 art 就是按钮本身，
+        --   选中态由 SetActivePage 走 SetImageNormalColour（不碰 SetTint，ImageButton 未必有该方法）
+        table.insert(self.nav_items, { key = key, btn = b, text = t, _art = nil, _is_art = used_art })
     end
 
     self.nav_triangle:SetOnClick(function()
@@ -1902,6 +2316,16 @@ function MushaPanelScreen:Refresh()
 
 local has_job = md.carrer_base ~= nil and md.carrer_base ~= ""
 
+    -- ★ 赞助入口（2026-09-24）："愿者上钩" → 荷包热区跟着闸门走；
+    --   96x65 的赞助框太扎眼 → **始终不显示**（只在编辑模式里留着预览用）。
+    --   ⚠️ DST Widget **没有 SetVisible()**（技能 dst-api-pitfalls.md:121），只能 Show()/Hide()。
+    --      上一版写成 SetVisible → Refresh 炸掉 → 构造失败 → 面板推不进屏幕栈 → 导航点不动。
+    local _sponsor_ok = SponsorUnlocked(md)
+    if self.spons_hot then
+        if _sponsor_ok then self.spons_hot:Show() else self.spons_hot:Hide() end
+    end
+    if self.sponsor_frame then self.sponsor_frame:Hide() end
+
     -- 标题 / 等级 / 经验 颜色
     if has_job then
         self.job_text:SetColour(0.8, 0.6, 0.3, 1)
@@ -1915,10 +2339,12 @@ local has_job = md.carrer_base ~= nil and md.carrer_base ~= ""
         self.exp_bg:SetTint(0.35, 0.35, 0.35, 0.4)
     end
 
-    -- ★ 更新预告：常驻显示
+    -- ★ 2026-09-24 用户："这个蓝色底线赶紧去掉，太遮掩啦" → 更新预告横幅撤下
+    --   （蓝条压住下面的任务行，且文案"部分贴图待补全"已过期；控件保留在构造处，
+    --    以后要恢复预告时把这两行改回 Show() 即可）
     if self.update_banner then
-        self.update_banner:Show()
-        self.update_banner_text:Show()
+        self.update_banner:Hide()
+        self.update_banner_text:Hide()
     end
 
     -- ★★ 2026-09-19 修（用户实测：转职后主面板还显示"战士"）：
@@ -1959,8 +2385,8 @@ local has_job = md.carrer_base ~= nil and md.carrer_base ~= ""
     local pct = exp_next > 0 and math.min(exp / exp_next, 1) or 0
     -- ★ 第三轮：经验条整体缩 50%（558×13）
     --   ★ 第四轮：右移+下移后与 nav1 / Lv 文字冲突 → 移到 (-33, 105.5)，左缘 -312
-    self.exp_fill:SetSize(558 * pct, 13)
-    self.exp_fill:SetPosition(-312 + 279 * pct, 105.5)
+    self.exp_fill:SetSize(390.6 * pct, 13)                -- ★ 2026-09-24：只缩长度，高 13 不动
+    self.exp_fill:SetPosition(-228.3 + 195.3 * pct, 105.5)  -- 左缘 -228.3 + 半宽 195.3 × pct
     if has_job and pct <= 0.001 then
         self.exp_bg:SetTint(0.3, 0.3, 0.3, 0.35)
         self.exp_fill:SetTint(0.72, 0.72, 0.72, 0.35)
@@ -2676,16 +3102,26 @@ function MushaPanelScreen:SetActivePage(name)
     self.active_page = name
 
     -- 导航项选中态（2026-09-22：贴图按钮，用缩放+亮度区分，不改贴图内容）
-    --   it._art 是按钮上的标题栏贴图 Image；nil 时整个跳过（不崩）
+    --   2026-09-24 甲案：横幅模式下按钮**自己**就是图 → 走 SetImageNormalColour 调亮度；
+    --     悬停是 SetImageFocusColour，两条通路互不打架（悬停时 focus 色覆盖 normal 色）。
+    --   it._art / 纯文字兜底模式：art 为 nil 时只缩放，不崩。
     for _, it in ipairs(self.nav_items or {}) do
         local b, art = it.btn, it._art
         if b then
-            if it.key == name then
+            local sel = (it.key == name)
+            if sel then
                 b:SetScale(1.06, 1.06, 1)                 -- 当前页：放大 6%
-                if art then art:SetTint(1, 1, 1, 1) end   -- 全亮
             else
                 b:SetScale(1, 1, 1)
-                if art then art:SetTint(0.82, 0.78, 0.72, 0.9) end  -- 其余压暗一档
+            end
+            if art then
+                -- 旧通路（子 Image 作标题栏贴图）：仍按原逻辑调 tint
+                if sel then art:SetTint(1, 1, 1, 1)
+                else       art:SetTint(0.82, 0.78, 0.72, 0.9) end
+            elseif it._is_art and b.SetImageNormalColour then
+                -- 横幅通路：选中全亮，其余压暗一档
+                if sel then b:SetImageNormalColour(1, 1, 1, 1)
+                else       b:SetImageNormalColour(0.86, 0.83, 0.78, 1) end
             end
         end
     end

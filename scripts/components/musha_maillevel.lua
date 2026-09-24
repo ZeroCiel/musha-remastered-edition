@@ -27,10 +27,11 @@ local TIER_WIDGET = {
     [5]  = "musha_mailbox_shadow_u5",
     [7]  = "musha_mailbox_shadow_u7",
     [9]  = "musha_mailbox_shadow_u9",
+    [11] = "musha_mailbox_shadow_u11",   -- ★ 2026-09-24：老档满档 11 的兜底档（新档由套件 IV 直上 12）
     [12] = "musha_mailbox_shadow_u12",
 }
 
--- 取"不大于 n 的最大档"（万一存档里是 11 这种非标准值，也要能落到 9 档而不是报 nil）
+-- 取"不大于 n 的最大档"（11 = 老档满档值，现在有专属档；其它怪值落到相邻低档，不报 nil）
 local function WidgetNameFor(n)
     n = n or 3
     local best, bestn = TIER_WIDGET[3], -1

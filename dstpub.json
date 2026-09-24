@@ -29,7 +29,9 @@
     "musha-weapon-skill-plan.md",
     "musha-部件总注释.md",
     "musha-药剂师大锅-design.md",
-    "musha-职业估期与排期.md"
+    "musha-职业估期与排期.md",
+    "MushaLauncher.ps1",
+    "MushaLauncher.runtimeconfig.json"
   ],
   "keep": []
 }

@@ -8,7 +8,7 @@
 | 界面 | 文件 | 触发 | 背景 | 状态 |
 |---|---|---|---|---|
 | 技能书弹窗 | components/musha_skillui.lua | skillbook 物品 | bookpage_bg | ✅ 已横版化（卡 592x400） |
-| 职业面板 | widgets/musha_panel_screen.lua | B 键 / musha 角色 | bookpage_bg | ✅ 已横版化（卡 503x340） |
+| 职业面板 | widgets/musha_panel_screen.lua | 技能书右键（B 键 2026-09-24 已移除） / musha 角色 | bookpage_bg | ✅ 已横版化（卡 503x340） |
 | 笔记剧情页 | widgets/musha_note_screen.lua | note 物品 | musha_note_bg(1800x1011, 5月旧图) | ⏳ 独立旧风格，未统一 |
 | HUD 注册 | widgets/musha_panel_registered.lua | controls 后置 | — | 只是挂载，无视觉 |
 | note 注册 | widgets/musha_note_registered.lua | controls 后置 | — | 只是挂载，无视觉 |

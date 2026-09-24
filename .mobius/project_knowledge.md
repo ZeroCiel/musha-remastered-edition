@@ -13,7 +13,7 @@
 
 - **角色与职业**：4 基础职业（战士/法师/游侠/刺客）+ 6 进阶（剑士/近卫/药剂师/元素法师/吟游诗人/月影猎手）；服务端 `musha_profession_component` + replica，等级/经验为累计制 `exp_table`。
 - **任务系统**（`components/musha_quest.lua`）：每日任务（每日 N 个，可累积，上限 10）+ 转职任务（雕像接取，一次 1 个，3 轮进阶）；8 类事件推进，discover 类跨天作废。
-- **面板 UI**（`screens/musha_panel_screen.lua`）：真 Screen + `TEMPLATES.ScrollingGrid`，5 页 = 主页/技能/信箱/设置/图鉴；入口 B 键 + 技能书，右上三角展开导航。
+- **面板 UI**（`screens/musha_panel_screen.lua`）：真 Screen + `TEMPLATES.ScrollingGrid`，5 页 = 主页/技能/信箱/设置/图鉴；入口 = 技能书/职业书右键（`musha_open_skill_panel` 事件）+ 控制台命令；**B 键入口 2026-09-24 已按用户要求移除**（B 是原生键，抢它会跟原版打架），左竖排导航常驻（NAV_ALWAYS_SHOW，x=-500）。
 - **局内设置系统**：`musha_world_settings`（刷怪开关/倍率、每日任务数、经验倍率）+ `musha_player_settings`（生命/精力恢复倍率、调试）；经 ModRPC 修改、随存档保存。
 - **技能系统**：`scripts/skills/musha_skill_data.lua` + `components/_musha_skills.lua.bak`（未启用；启用后恢复 heal_skill 任务类）。
 - **物品/prefab**：职业书、便签（note）、技能书、剑/矛、tome；多语言 zh/en/ko/ru（ja 计划中）。

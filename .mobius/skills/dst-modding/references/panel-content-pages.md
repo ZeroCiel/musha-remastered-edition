@@ -32,6 +32,10 @@
 
 ## 3. 内容源放 `scripts/` 下：require 的坑与兜底
 - 静态数据表放 `<mod>/scripts/xxx.lua`，**末尾必须 `return {…}`**。
+- ★★★ **构造函数里跑的任何辅助子系统（编辑模式/日志/持久化）必须整体 pcall。**
+  2026-09-24 真实事故：`io.open` 路径非法抛 `invalid filepath` → 没包 pcall → 炸掉**整个面板构造**
+  → `OpenMushaPanel` 的 pcall 兜住后直接 return，**面板永远打不开**（连查两三天）。
+  详见 `references/panel-open-failure-io-open-invalid-filepath.md`。
 - ★ 面板是 `pcall(require, "screens/xxx")` 进来的 → mod 的 `scripts/` 就是 require 根，
   所以 `require("musha_changelog")` 命中 `scripts/musha_changelog.lua`（不用写 `scripts/` 前缀）。
 - ★★ **必须 pcall + 内联兜底**。否则日志文件里一个语法错就会让**整个面板打不开**：

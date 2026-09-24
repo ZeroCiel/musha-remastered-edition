@@ -172,7 +172,7 @@ end
       end
   end)
   ```
-- **⚠️ 不要加 `if TheWorld.ismastersim then return end` 过滤**：单机/主机模式下玩家自己就是服务端，服务端 `set(true)` 时**本端也触发 dirty 事件**，被这行过滤掉 → 主机自己永远打不开（症状："右键有菜单但点了没反应"，B 键却能开——B 键绕过 net_bool 直接调 UI）。修法：两端都处理，靠 `value()` 判断即可（set(false) 复位时 value=false 自然不触发）。
+- **⚠️ 不要加 `if TheWorld.ismastersim then return end` 过滤**：单机/主机模式下玩家自己就是服务端，服务端 `set(true)` 时**本端也触发 dirty 事件**，被这行过滤掉 → 主机自己永远打不开（症状："右键有菜单但点了没反应"（当时 B 键却能开——B 键绕过 net_bool 直接调 UI；**注：B 键入口 2026-09-24 已按用户要求移除，别再拿它当对照**）。修法：两端都处理，靠 `value()` 判断即可（set(false) 复位时 value=false 自然不触发）。
 - **net_bool 必须复位才能反复触发**：`set(true)` 只在值变化时发 dirty。连续右键第二次若值仍是 true 不会触发 → 服务端 `set(true)` 后 `DoTaskInTime(0, set(false))` 复位，下次才能再开。
   服务端触发：`doer._panel_net:set(true)`。
 - **坑：net_bool 值不变不触发 dirty**——set(true) 后再 set(true) 第二次无效。必须 0 帧后复位：

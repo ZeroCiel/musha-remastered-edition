@@ -9,13 +9,20 @@
 --           images/nav_xxx.tex + images/nav_xxx.xml（做法同 bookpage_bg）
 --   ⚠️ png 文件名必须是 ASCII：中文名转出来的 xml 是空的（工具不认中文名）
 --   ⚠️ 转完 tex/xml 之后必须重启游戏（assets 只在开游戏时加载一次）
+--
+-- ★ 2026-09-24 双语：加 file_en = 英文版横幅（从 图片/UI_en.png 按 2列3行切出）
+--   - 有 file_en 的行：英文玩家看到 nav_xxx_en.tex，中文玩家看到 file
+--   - 没有 file_en 的行（equip）：两种语言都用 file
+--   - modmain 注册时**两种语言都注册**（assets 在语言判定之前跑），面板构造时才按
+--     TUNING.MUSHA_UI_LANG 挑。所以只要 tex/xml 在，切语言就有图。
+--   - 英文版只有横幅（整颗按钮），中文版同理 → 两侧走同一套渲染，不会中英不一致。
 -- ================================================================
 return {
-    { key = "home",  file = "nav_home"  },   -- 主页：房子
-    { key = "skill", file = "nav_skill" },   -- 技能：枝干
-    { key = "equip", file = "nav_equip" },   -- 装备：胸甲
-    { key = "mail",  file = "nav_mail"  },   -- 信箱：信封
-    { key = "set",   file = "nav_set"   },   -- 设置：齿轮
-    { key = "gift",  file = "nav_gift"  },   -- 礼包：礼物盒
-    { key = "dex",   file = "nav_dex"   },   -- 图鉴：放大镜
+    { key = "home",  file = "nav_home",  file_en = "nav_home_en"  },   -- 主页：房子 / Home
+    { key = "skill", file = "nav_skill", file_en = "nav_skill_en" },   -- 技能：魔法书 / Skills
+    { key = "equip", file = "nav_equip"  },                            -- 装备：胸甲（无英文版，双语共用）
+    { key = "mail",  file = "nav_mail",  file_en = "nav_mail_en"  },   -- 信箱：信封 / Mailbox
+    { key = "set",   file = "nav_set",   file_en = "nav_set_en"   },   -- 设置：齿轮 / Settings
+    { key = "gift",  file = "nav_gift",  file_en = "nav_gift_en"  },   -- 礼包：礼物盒 / Gift Pack
+    { key = "dex",   file = "nav_dex",   file_en = "nav_dex_en"   },   -- 图鉴：书 / Gallery
 }

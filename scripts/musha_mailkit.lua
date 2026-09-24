@@ -2,7 +2,9 @@
 -- musha_mailkit.lua — 升级套件（共用实现）
 --   2026-09-19 新建。设计稿：musha-信箱邮包设计.md
 --
---   用途：信箱收件箱 3 → 5 → 7 → 9 → 11 格，每档做一件套件。
+--   用途：信箱收件箱 3 → 5 → 7 → 9 → 12 格，每档做一件套件。
+--   ★ 2026-09-24 用户：满档放开到 12（原"第 12 格以后做"作废）；第 4 件一次 +3，
+--     "为什么是 3"不写明，让玩家自己摸摸头皮；老档 11 格由 _u11 widget 兜着。
 --   玩家**背包里带着对应档的套件**时，右键信箱的动作从「触摸」变成「升级」。
 --
 --   ⚠️ 为什么是 4 个 prefab 而不是 1 个带等级的道具：
@@ -36,7 +38,9 @@ function MushaMailKit.Make(step)
         end
     end
     if def == nil then
-        def = { prefab = "musha_mailkit_" .. tostring(step), step = step, to = 3 + 2 * step }
+        -- ★ 2026-09-24 满档放开 12：第 4 件一次 +3（老公式 3+2*step 只当第 1~3 件的兜底）
+        local KIT_TO = { 5, 7, 9, 12 }
+        def = { prefab = "musha_mailkit_" .. tostring(step), step = step, to = KIT_TO[step] or (3 + 2 * step) }
     end
 
     -- 素材自检：图标还没画 → 借原版莎草纸图标；地上借原版 papyrus.zip（都在游戏里）
