@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spriter_data scml_version="1.0" generator="BrashMonkey Spriter" generator_version="r7">
-    <folder id="0">
-        <file id="0" name="item.png" width="1024" height="1024" pivot_x="0.5" pivot_y="0.5"/>
+    <folder id="0" name="musha_recall_stone">
+        <file id="0" name="item.png" width="88" height="132" pivot_x="0.5" pivot_y="0.5"/>
     </folder>
     <entity id="0" name="musha_recall_stone">
         <animation id="0" name="idle" length="1000" interval="100">
@@ -11,8 +11,8 @@
                 </key>
             </mainline>
             <timeline id="0" name="item">
-                <key id="0" spin="0">
-                    <object folder="0" file="0" y="25" angle="353.202117" scale_x="0.25" scale_y="0.25"/>
+                <key id="0" time="0" spin="0">
+                    <object folder="0" file="0" x="0" y="0"/>
                 </key>
             </timeline>
         </animation>
