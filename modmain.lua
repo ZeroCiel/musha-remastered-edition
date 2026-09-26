@@ -175,17 +175,22 @@ Safe("技能图标 assets", function()
     end
     local ids = require("musha_skill_icons")
     local registered = {}
+    local nreg = 0
     for _, id in ipairs(ids) do
         local xml = "images/skill_icons/" .. id .. ".xml"
         local tex = "images/skill_icons/" .. id .. ".tex"
         if SoftExists(xml) and SoftExists(tex) then
             table.insert(Assets, Asset("ATLAS", xml))
             table.insert(Assets, Asset("IMAGE", tex))
-            table.insert(registered, id)
+            -- ★ 2026-09-27 修（用户：技能树图标没装上）：原来是 table.insert → 存成**数组**，
+            --   而唯一消费方 IconAtlas(musha_skill_tree.lua:46) 是按 T[id] **查表** → 永远查不到
+            --   → 6 张图全退回占位（灰块+技能名）。改成 map（注释口径本来就是"id 挂到表上"）。
+            registered[id] = true
+            nreg = nreg + 1
         end
     end
     TUNING.MUSHA_SKILL_ICONS = registered
-    print("[Musha] 技能图标 assets 注册: " .. #registered .. " / " .. #ids .. " 张（缺的等 Mod Tool 转 tex）")
+    print("[Musha] 技能图标 assets 注册: " .. nreg .. " / " .. #ids .. " 张（缺的等 Mod Tool 转 tex）")
 end)
 
 -- ★ 2026-09-20 物品图标图集：全局声明进 mod 的 Assets（清单唯一真源 scripts/musha_item_icons.lua）

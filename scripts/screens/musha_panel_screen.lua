@@ -1804,10 +1804,13 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             local SkillTree = require("widgets/musha_skill_tree")
 
             -- ① 右栏「技能详情」（默认收起，点节点才出）
-            --   ★ 2026-09-27 用户「技能树往右上」→ detail 右移 (298→330) 给树腾出往右空间
+            --   ★ 09-27 二改（用户「技能树按 hermes 原来的写法 / 要固定」）：树永远 (0,-26) 不再左右跳，
+            --     树视口右缘 = 0 + 596/2 = 298 → 详情得让到 414（左缘 298）才不压树，
+            --     否则树的透明拖拽层盖住详情左半，加点按钮左半点不动。
+            --     （09-27 上一版 detail 298→330 / 树 61,8 / 展开 -88,8，全部撤回）
             local DW, DH = 232, 380
             self.skill_detail = root:AddChild(Widget("skill_detail"))
-            self.skill_detail:SetPosition(330, -14)
+            self.skill_detail:SetPosition(414, -14)
             local dbg = self.skill_detail:AddChild(Image("images/global.xml", "square.tex"))
             dbg:SetSize(DW, DH)
             dbg:SetTint(0.995, 0.99, 0.975, 0.99)
@@ -1844,11 +1847,9 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                 w = 596, h = 424,
                 on_select = function(e) self:ShowSkillDetail(e) end,
             }))
-            -- ★ 09-25「技能栏变动方位」：默认居中（详情没开时右边空着也是空着）；
-            --   点节点出右栏详情时左移让位，见 ShowSkillDetail
-            -- ★ 2026-09-27 用户「技能位置太下，往右上」→ 收起态右移到内纸中心 +61、上移 (0,-26)→(61,8)
-            --   （对齐 礼包/图鉴 等 09-27b 统一右移 +61；展开态仍左移让位右栏，见 ShowSkillDetail）
-            self.skill_tree:SetPosition(61, 8)
+            -- ★ 09-27 二改（用户「技能树按 hermes 原来的写法 + 要固定」）：
+            --   回到 hermes 收起态 (0,-26)，并且**永不再左右跳**（09-27 上一版 61,8 撤回）
+            self.skill_tree:SetPosition(0, -26)
 
             -- ③ 版式切换按钮 —— ★ 2026-09-21 用户拍板「直接横排 不要竖排了」→ **不再创建这两颗按钮**
             --   竖排列表相关的 widget（skill_grid / skill_tabs / skill_foot / skill_empty）仍在，
@@ -1865,15 +1866,17 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         local root = self.pages.gift
         root:SetPosition(0, -33)
 
-        -- 页框贴整页内纸（2026-09-25 底板合并，算法见 skill 页 ① 注释）；冷白占位底撤
-        local fr = root:AddChild(Widget("page_frame"))
-        fr:SetPosition(61, 4)
-        FrameLines(fr, 932, 638, 0, 6, 1, 1, 1, 1)
+        -- ★ 09-27 用户「那框白纸是什么，得修掉」→ 沿用 09-26 拍板：页框全撤
+        --   （底图 panel_bg_alt 自带内纸边线；这个 932x638 是按旧 1199x769 口径校的，
+        --    实测内纸 = content x -408..575、中心 +83.5 → 既错位、又多压一层纯白线）
+        -- local fr = root:AddChild(Widget("page_frame"))
+        -- fr:SetPosition(61, 4)
+        -- FrameLines(fr, 932, 638, 0, 6, 1, 1, 1, 1)
 
         -- ★ 2026-09-14 用户：① 礼包（标题）左移 220 像素 ② 下面那行提示"跟随"，
         --    但最终定位改成挂在【标题的右下角】再各内缩 15 像素（-15x,-15y）
         -- 2026-09-14 再调：标题再左移 40、上移 12；下面那行在"跟随结果"基础上再加 120 x
-        local GIFT_HEAD_X, GIFT_HEAD_Y = 61, PAGE_H / 2 - 46 - 12 + 12   -- ★ 09-27b 用户礼包右移居中：标题居中到内纸中心+61（原 -295，09-14 左移链已废；提示行仍跟随标题右下）；旧注 (-295, 254) ← 2026-09-14 用户"再往左 -32x"
+        local GIFT_HEAD_X, GIFT_HEAD_Y = 84, PAGE_H / 2 - 46 - 12 + 12   -- ★ 09-27 用户「三行没居中」实测改：内纸真中心 = +83.5（09-27b 写的 +61 是按旧白框 932x638 推的，偏左 22.5）。原 -295；旧注 (-295, 254) ← 2026-09-14 用户"再往左 -32x"
         local HEAD_HALF_W, HEAD_HALF_H = 32, 16        -- 标题"礼包"=2 个 32 号字 → 半宽≈32、半高≈16
         local HINT_GAP = 15                            -- 右下角内缩量
         local HINT_EXTRA_X = 120                       -- 提示行额外右移（2026-09-14）
@@ -1899,7 +1902,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         --   2026-09-14 用户：「再下 12 像素」→ 95 - 12 = 83
         --   2026-09-14 用户：「再下移 5 像素」→ 83 - 5 = 78
         self.gift_body = root:AddChild(Widget("gift_body"))
-        self.gift_body:SetPosition(61, 78)   -- ★ 09-27b 用户：礼包右移居中（内纸中心=+61）
+        self.gift_body:SetPosition(84, 78)   -- ★ 09-27 用户「三行没居中」：内纸实测 -408..575 → 中心 +83.5（09-27b 的 +61 偏左 22.5）
     end
 
     -- 信箱页（更新日志）：外圈橙色框条 + 内层橙灰底 + 底部翻页
@@ -1946,10 +1949,10 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         local root = self.pages.equip
         root:SetPosition(0, -33)
 
-        -- 页框贴整页内纸（2026-09-25 底板合并，算法见 skill 页 ① 注释）；冷白占位底撤
-        local fr = root:AddChild(Widget("page_frame"))
-        fr:SetPosition(61, 4)
-        FrameLines(fr, 932, 638, 0, 6, 1, 1, 1, 1)
+        -- ★ 09-27 同礼包页：白框撤（09-26 已拍板"页框全撤"，礼包/图鉴/装备这三处漏了）
+        -- local fr = root:AddChild(Widget("page_frame"))
+        -- fr:SetPosition(61, 4)
+        -- FrameLines(fr, 932, 638, 0, 6, 1, 1, 1, 1)
 
         self.eq_head = root:AddChild(Text(UIFONT, 32))
         self.eq_head:SetColour(0.28, 0.22, 0.15, 1)
@@ -2030,10 +2033,11 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         local root = self.pages.dex
         root:SetPosition(0, -33)
 
-        -- 页框贴整页内纸（2026-09-25 底板合并，算法见 skill 页 ① 注释）；冷白占位底撤
-        local fr = root:AddChild(Widget("page_frame"))
-        fr:SetPosition(61, 4)
-        FrameLines(fr, 932, 638, 0, 6, 1, 1, 1, 1)
+        -- ★ 09-27 同礼包页：白框撤（09-26 已拍板"页框全撤"，礼包/图鉴/装备这三处漏了）
+        --   实测内纸 = content x -408..575、中心 +83.5；这框 932x638 @61,4 既错位又多一层纯白线
+        -- local fr = root:AddChild(Widget("page_frame"))
+        -- fr:SetPosition(61, 4)
+        -- FrameLines(fr, 932, 638, 0, 6, 1, 1, 1, 1)
 
         -- ★ 2026-09-16 用户「上面根本没排」：PageTip 自带位置是 (0,0)（= 页面正中），
         --   原来标题被压在卡片后面 → 这里挪到页面上方；列表也跟着上移（见下面 SetPosition）
@@ -2969,13 +2973,15 @@ function MushaPanelScreen:ShowSkillDetail(e)
     if not e then
         self.skill_detail:Hide()
         -- ★ 09-25：详情收起 → 技能树回中
-        if self.skill_tree then self.skill_tree:SetPosition(61, 8) end   -- ★ 09-27 收起态右移+61 上移 (0,-26)→(61,8)
+        -- ★ 09-27 二改（用户「要固定」）：树固定在 hermes 原位 (0,-26)，收起/展开都不动
+        if self.skill_tree then self.skill_tree:SetPosition(0, -26) end
         return
     end
     self.skill_detail:Show()
-    -- ★ 09-25：详情展开 → 技能树左移让位（0 → -124，避开右栏 182..414）
-    -- ★ 09-27 用户「技能树往右上」→ 展开位从 (-124,-26) 往右上到 (-88,8)；detail 已右移到 330（左缘214），树右缘 210 留缝不压
-    if self.skill_tree then self.skill_tree:SetPosition(-88, 8) end
+    -- ★ 09-25：详情展开 → 技能树左移让位（原 0 → -124）
+    -- ★ 09-27 二改（用户「树要固定，点了不要左右乱动」）：**不再左移**，树保持 (0,-26)；
+    --   详情让到 414（左缘 298 = 树视口右缘）贴着树放，两者不重叠
+    if self.skill_tree then self.skill_tree:SetPosition(0, -26) end
 
     -- 中文按字数折行（DST 的 Text 不会自动换行，手动插 \n；UTF-8 逐字取）
     local function Wrap(str, n)
