@@ -4,7 +4,14 @@
 
 2026-09-25 夜间按 opencode（exported/_tools + hermes dst-art-pipeline）的口径重建。
 渲染数学沿用 musha_scml_render.py 实测那套（y 翻转矩阵 / pivot 从底算 / z 升序叠加），
-编译 zip 解码沿用 dump_anim_frames.py（BILD v6 / ANIM v4：v 不翻转、anim y 朝下、tx/ty=元件中心）。
+编译 zip 解码沿用 dump_anim_frames.py（BILD v6 / ANIM v4），并修正一处历史遗留：
+  ★ anim 图集（KTEX flag 0xfffd…，scml.exe 与官方 anim 皆如此）在解码视图里是垂直
+    倒序存储的，引擎加载时自行翻转（图标 tex flag 0xfffc 不翻）。所以：
+    · zip 预览必须把 uv 裁剪区垂直翻回来才是游戏所见（本工具已内置）；
+    · dump_anim_frames.py 的渲染因此一直上下颠倒（placement 正确、像素颠倒），
+      其"v 不翻转"口诀只对"定位区域"成立。四路证据：item.png / 信差包 / musha 脸 /
+      wilson swap_icon 的图集存储 MAE 全是"上下翻"完胜，而 wilson/musha 游戏内正立。
+  → 结论：游戏里素材是正的，别因此改源图；预览工具补一次 FLIP_TOP_BOTTOM 即可。
 
 支持的两种源：
   ① scml 工程     exported/<name>/<name>.scml（按 interval 采样出帧，台阶保持 = scml.exe 的落帧口径）
@@ -111,13 +118,17 @@ def parse_build(zip_path):
             frames.append(dict(num=fnum, x=x, y=y, w=w, h=hh, astart=astart, nverts=nverts))
         syms.append(dict(hash=h, frames=frames))
     nv = r.u32()
-    verts = [[r.f32() for _ in range(6)] for _ in range(nv)]
+    verts = [r.f32() for _ in range(nv * 6)]          # x,y,z,u,v,sampler 原始保留（瓦片渲染要用）
     names = _parse_names(r)
     for s in syms:
         s["name"] = names.get(s["hash"], "hash_%d" % s["hash"])
         for f in s["frames"]:
-            us = [verts[i][3] for i in range(f["astart"], f["astart"] + f["nverts"])]
-            vs = [verts[i][4] for i in range(f["astart"], f["astart"] + f["nverts"])]
+            raw = verts[f["astart"] * 6:(f["astart"] + f["nverts"]) * 6]
+            # sampler = 该瓦片所在图集页索引（scml.exe 素材多时会分页 atlas-0/1/...）
+            f["verts"] = [(raw[k], raw[k + 1], raw[k + 3], raw[k + 4], raw[k + 5])
+                          for k in range(0, len(raw), 6)]
+            us = [v[2] for v in f["verts"]]
+            vs = [v[3] for v in f["verts"]]
             f["uv"] = (min(us), min(vs), max(us), max(vs)) if us else None
     return dict(name=build_name, atlases=atlases, syms=syms,
                 sym_by_hash={s["hash"]: s for s in syms}, total=total)
@@ -153,7 +164,13 @@ def parse_anim(zip_path):
                 elems.append(dict(sym=sh, frame=fi, layer=lh, m=m))
             frames.append(dict(elems=elems))
         anims.append(dict(name=name, rate=rate, frames=frames))
-    return dict(anims=anims)
+    # 尾部 hash→名字表（图层名在 anim.bin 里，用于过滤 swap/overlay 层）
+    names = {}
+    try:
+        names = _parse_names(r)
+    except Exception:
+        names = {}
+    return dict(anims=anims, names=names)
 
 
 def decode_atlas_tex(tex_path):
@@ -190,13 +207,32 @@ def _blit(canvas, src, dx, dy):
     canvas.alpha_composite(src, (dx, dy))
 
 
+# 游戏运行时默认隐藏的图层（dump_anim_frames.py 同款）：离线预览也必须过滤，
+# 否则 swap_body/swap_hat/swap_face 等默认贴图会画在角色身上（棕色椭圆事故）
+HIDE_DEFAULT = {
+    "arm_carry", "lantern_overlay", "swap_face", "beard", "hat", "head_hat",
+    "hair_hat", "swap_body", "swap_body_tall", "milestone_companion",
+}
+
+
+def layer_hidden(name):
+    if not name:
+        return False
+    n = name.strip().lower()
+    if n in HIDE_DEFAULT:
+        return True
+    return ("swap" in n) or ("carry" in n) or ("overlay" in n)
+
+
 class ZipSource:
     """编译 anim zip → 逐帧 PIL Image（所见 = 游戏所见）"""
 
     def __init__(self, zip_path, anim_name=None, scale=1.0):
         self.path = zip_path
         self.build = parse_build(zip_path)
-        anims = parse_anim(zip_path)["anims"]
+        animdata = parse_anim(zip_path)
+        anims = animdata["anims"]
+        self.layer_names = animdata.get("names", {})
         if anim_name is None:
             anim_name = anims[0]["name"]
         self.anim_name = anim_name
@@ -207,57 +243,97 @@ class ZipSource:
         self.fps = anim["rate"]
         self.scale = scale
         self.symbols = [s["name"] for s in self.build["syms"]]
-        aw, ah, rgba = self._atlas()
-        self.atlas = Image.frombytes("RGBA", (aw, ah), bytes(rgba))
+        self.pages = [Image.frombytes("RGBA", (w, h), bytes(rgba))
+                      for _, w, h, rgba in self._atlases()]
         self.frames = self._render()
 
-    def _atlas(self):
+    def _atlases(self):
+        """解码 build 里所有图集页 → [(名字, w, h, rgba)]"""
+        out = []
         with zipfile.ZipFile(self.path) as z:
-            tmp = os.path.join(HERE, "_tmp")
-            os.makedirs(tmp, exist_ok=True)
-            out = os.path.join(tmp, os.path.basename(self.build["atlases"][0]))
-            with open(out, "wb") as f:
-                f.write(z.read(self.build["atlases"][0]))
-            return decode_atlas_tex(out)
+            for name in self.build["atlases"]:
+                tmp = os.path.join(HERE, "_tmp")
+                os.makedirs(tmp, exist_ok=True)
+                p = os.path.join(tmp, os.path.basename(name))
+                with open(p, "wb") as f:
+                    f.write(z.read(name))
+                aw, ah, rgba = decode_atlas_tex(p)
+                out.append((name, aw, ah, rgba))
+        return out
 
     def _render(self):
         b = self.build
-        minx = miny = 10 ** 9
-        maxx = maxy = -10 ** 9
-        placed = []                              # (frame_idx, z, x0, y0, w, h, uv)
+        # 通用逐 quad 渲染：world = M_anim × build_vert + (tx, ty)
+        #   M = [[m0, m1], [m2, m3]]（row-major a,b,c,d），支持旋转/镜像/缩放/分页；
+        #   恒等矩阵时与旧 crop+flip+place 逐像素等价（已对照验证）。
+        #   每角 uv 直接对应（图集倒序存储由顶点 v 编号天然吸收，无需显式翻转）。
+        quads = []                               # (fi, z, page, uniq_corners)
         for fi, fr in enumerate(self.anim["frames"]):
             for e in fr["elems"]:
+                lname = self.layer_names.get(e["layer"], "")
+                if layer_hidden(lname):
+                    continue                                   # swap/carry/overlay 层：运行时隐藏
                 s = b["sym_by_hash"].get(e["sym"])
                 if not s:
                     continue
                 f = next((f for f in s["frames"] if f["num"] == e["frame"]), None)
-                if not f or not f["uv"]:
+                if not f or not f.get("verts"):
                     continue
+                a_, b_, c_, d_ = e["m"][0], e["m"][1], e["m"][2], e["m"][3]
                 tx, ty = e["m"][4], e["m"][5]
-                x0 = tx + f["x"] - f["w"] / 2.0
-                y0 = ty + f["y"] - f["h"] / 2.0           # y 朝下：上边缘
-                minx, miny = min(minx, x0), min(miny, y0)
-                maxx, maxy = max(maxx, x0 + f["w"]), max(maxy, y0 + f["h"])
-                placed.append([fi, e["m"][6], x0, y0, f["w"], f["h"], f["uv"]])
-        if not placed:
+                vs = f["verts"]
+                page = int(round(vs[0][4])) if len(vs[0]) > 4 else 0
+                if page < 0 or page >= len(self.pages):
+                    page = 0
+                pw, ph = self.pages[page].size
+                corners = []
+                for (bx, by, u, v, pg) in vs:
+                    wx = a_ * bx + b_ * by + tx
+                    wy = c_ * bx + d_ * by + ty
+                    corners.append((wx, wy, u * pw, v * ph))
+                uniq = []
+                for c in corners:
+                    if c not in uniq:
+                        uniq.append(c)
+                if len(uniq) < 3:
+                    continue
+                quads.append((fi, e["m"][6], page, uniq))
+        if not quads:
             raise SystemExit("动画里没有可渲染的元件")
-        placed.sort(key=lambda r: r[1])          # z 升序（同帧内后贴的在上面）
+        quads.sort(key=lambda q: q[1])           # z 升序（同帧内后贴的在上面）
+
+        gx0 = gy0 = 10 ** 9
+        gx1 = gy1 = -10 ** 9
+        for fi, z, page, uniq in quads:
+            for (wx, wy, ax, ay) in uniq:
+                gx0, gy0 = min(gx0, wx), min(gy0, wy)
+                gx1, gy1 = max(gx1, wx), max(gy1, wy)
         PAD = 2
-        cw = max(1, int(round(maxx - minx)) + PAD * 2)
-        ch = max(1, int(round(maxy - miny)) + PAD * 2)
+        cw = max(1, int(round(gx1 - gx0)) + PAD * 2)
+        ch = max(1, int(round(gy1 - gy0)) + PAD * 2)
         self.canvas_size = (cw, ch)
-        aw, ah = self.atlas.size
+
         buf = [None] * len(self.anim["frames"])
-        for fi, z, x0, y0, w, h, (u0, v0, u1, v1) in placed:   # placed 本身按 z 升序（elem 遍历序）
+        for fi, z, page, uniq in quads:
             cv = buf[fi]
             if cv is None:
                 cv = buf[fi] = Image.new("RGBA", (cw, ch), (0, 0, 0, 0))
-            crop = self.atlas.crop((int(u0 * aw), int(v0 * ah), int(u1 * aw), int(v1 * ah)))
-            crop = crop.resize((max(1, int(round(w))), max(1, int(round(h)))), Image.NEAREST)
-            # v 不翻转（dump_anim_frames.py 实测）；tx/ty + 帧中心 = 元件中心，y 朝下
-            dx = int(round(x0 - minx)) + PAD
-            dy = int(round(y0 - miny)) + PAD
-            _blit(cv, crop, dx, dy)
+            page_img = self.pages[page]
+            nwx, nwy, nax, nay = min(uniq, key=lambda p: p[0] + p[1])
+            swx, swy, sax, say = min(uniq, key=lambda p: p[0] - p[1])
+            sex, sey, sax2, say2 = max(uniq, key=lambda p: p[0] + p[1])
+            nex, ney, nax2, nay2 = max(uniq, key=lambda p: p[0] - p[1])
+            bw = max(1, int(round(sex - nwx)))
+            bh = max(1, int(round(sey - nwy)))
+            # PIL QUAD：data = 源（图集）四角 NW/SW/SE/NE → 输出 (0,0),(0,h),(w,h),(w,0)
+            data = (nax, nay, sax, say, sax2, say2, nax2, nay2)
+            try:
+                tile = page_img.transform((bw, bh), Image.QUAD, data, resample=Image.BILINEAR)
+            except Exception:
+                continue
+            dx = int(round(nwx - gx0)) + PAD
+            dy = int(round(nwy - gy0)) + PAD
+            _blit(cv, tile, dx, dy)
         frames = []
         for cv in buf:
             if cv is None:
@@ -604,10 +680,15 @@ def write_scml(out_path, entity, anims, folders):
 
 
 def compile_scml(scml_path, outdir):
-    """官方 scml.exe：<file.scml> <outdir> → <outdir>/anim/<name>.zip"""
+    """官方 scml.exe：<file.scml> <outdir> → <outdir>/anim/<name>.zip
+    坑：输入必须是相对 cwd 的裸文件名（cwd = scml 所在目录），输出目录给绝对路径；
+    否则 scml.exe 会把输入路径拼到输出目录下找不到。"""
     if not os.path.exists(SCML_EXE):
         raise SystemExit("找不到 scml.exe: " + SCML_EXE)
-    r = subprocess.run([SCML_EXE, scml_path, outdir], cwd=os.path.dirname(os.path.abspath(scml_path)),
+    scml_path = os.path.abspath(scml_path)
+    outdir = os.path.abspath(outdir)
+    r = subprocess.run([SCML_EXE, os.path.basename(scml_path), outdir],
+                       cwd=os.path.dirname(scml_path),
                        capture_output=True, text=True, errors="replace")
     if r.stdout.strip():
         log(r.stdout.strip())
@@ -663,7 +744,7 @@ def demo(outdir):
 
 # ════════════════ GUI ════════════════
 
-def run_gui(src_path, anim_name=None, scale=2.0, bg_name="checker"):
+def run_gui(src_path, anim_name=None, scale=2.0, bg_name="checker", auto_close_ms=None):
     import tkinter as tk
     from tkinter import ttk, filedialog, messagebox
 
@@ -788,6 +869,8 @@ def run_gui(src_path, anim_name=None, scale=2.0, bg_name="checker"):
     root.rowconfigure(0, weight=1)
     redraw()
     tick()
+    if auto_close_ms:
+        root.after(auto_close_ms, root.destroy)
     root.mainloop()
 
 
@@ -806,6 +889,8 @@ def selftest(src_path):
     comp = comp.resize((comp.width * 2, comp.height * 2), Image.NEAREST)
     ph = ImageTk.PhotoImage(comp)
     cv.create_image(10, 10, image=ph, anchor="nw")
+    cv.configure(width=comp.width + 20, height=comp.height + 20)
+    root.geometry("%dx%d" % (comp.width + 40, comp.height + 60))
     root.update_idletasks()
     root.update()
 
@@ -839,7 +924,7 @@ def main():
     scale = None
     outdir = os.path.join(HERE, "_tmp", "sp_export")
     bg_name = "checker"
-    export = selft = False
+    export = selft = guitest = False
     i = 1
     while i < len(args):
         a = args[i]
@@ -854,6 +939,9 @@ def main():
             bg_name = args[i + 1]; i += 2
         elif a == "--selftest":
             selft = True; i += 1
+        elif a == "--guitest":
+            export = False
+            guitest = True; i += 1
         else:
             i += 1
     if selft:
@@ -865,7 +953,7 @@ def main():
     if export:
         export_frames(src, outdir, bg_name=bg_name)
     else:
-        run_gui(src_path, anim, scale or 2.0, bg_name)
+        run_gui(src_path, anim, scale or 2.0, bg_name, auto_close_ms=2000 if guitest else None)
     return 0
 
 

@@ -6,12 +6,12 @@ local EditMode = {}
 
 -- 默认值（与 musha_panel_screen.lua 当前值同步；Hermes 重写代码后同步更新）
 EditMode.ELEMENTS = {
-  { name="close_btn",       label="关闭按钮",     cat="主页",   x=563,  y=347,  sx=1,   sy=1,   w=80,   h=80,   visible=true,  desc="底图右上角红叉的隐形热区；坐标来自 panel_bg.png 红色连通域实测(img 1112..1183/30..98)" },
+  { name="close_btn",       label="关闭按钮",     cat="主页",   x=573.0, y=371.0, sx=1,   sy=1,   w=81.8, h=85.4, visible=true,  desc="右上角红叉按钮热区（close_x 贴图=唯一X，底图烤叉已擦除，悬停1.24缩放）；09-27b 右移到最右上顶角(573,371)；09-26 B案：盘心=星bbox中心(1412,85)→content 圆心(538.8,370.0)；★ 09-27 修双X：09-26晚 +25(563.8) 只挪控件没重烤底图→两叉错开，归位 538.8" },
   { name="job_text",        label="职业名文字",   cat="主页",   x=40,   y=230,  sx=300, sy=70,  w=300,  h=70,   visible=true,  desc="职业名，LEFT对齐" },
   { name="job_icon",        label="职业头像",     cat="主页",   x=-257, y=207,  sx=30.4,sy=30.4,w=30.4, h=30.4, visible=true,  desc="三职业图标(战士/剑士/近卫)，初始隐藏；2026-09-24 用户定：当前比例再×0.8(38→30.4)" },
   { name="level_text",      label="等级文字",     cat="主页",   x=22,   y=170,  sx=34,  sy=34,  w=34,   h=34,   visible=true,  desc="Lv.1；2026-09-24 用户定：左移18px(40→22)" },
   { name="angel_new",      label="天使女孩装饰", cat="主页",   x=480,  y=-352, sx=390, sy=520, w=390,  h=520,  visible=true,  desc="右下角天使女孩 —— 09-25 三改：用户'比例按2.0算改成1.8'=432x576×0.9 → 390x520（仍 3:4；仍高于2.8底线）。中心不动 (480,-352)，脚底下探 ≈-460，允许溢出" },
-  { name="purse",           label="荷包",          cat="主页",   x=600,  y=-306, sx=48,  sy=72,  w=48,   h=72,   visible=true,  desc="★ 09-25 三改：挪到大腿/裙子内侧（'像人一样'）600,-306，随天使1.8 重算挂点；★ 赞助入口（愿者上钩，点开两段式面板）" },
+  { name="purse",           label="荷包",          cat="主页",   x=485, y=-380, sx=48,  sy=72,  w=48,   h=72,   visible=true,  desc="★ 09-27 三调：482,-376 → 485,-380（右3 下4）；旋转 +7 在构造函数（编辑模式不接管 rotation；历次 15→50→-60→+7）；★ 赞助入口（愿者上钩，点开两段式面板）" },
   { name="sponsor_frame",   label="赞助二维码框架",cat="主页",   x=560,  y=-150, sx=96,  sy=65,  w=96,   h=65,   visible=false, desc="赞助入口(可点)：点了弹微信收款码；源图 1526x1031 等比 96x65；★ 2026-09-24 用户定：不直接显示(visible=false)，要考察玩家" },
   { name="decor_button",    label="左侧装饰按钮", cat="主页",   x=-450, y=230,  sx=117, sy=66,  w=117,  h=66,   visible=false, desc="用户不要，已隐藏(代码留着)" },
 }

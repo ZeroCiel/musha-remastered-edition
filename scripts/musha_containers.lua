@@ -174,3 +174,26 @@ print("[Musha] 容器参数已登记: musha_advance_altar（1 格 / ui_chest_1x1
 --     · widget 打开时（containerwidget.lua:136）读的就是 `widget.slotbg[i]` → 叉号自动对
 --   ⚠️ 换档时箱子如果正开着，已建好的格子还是旧的 → 关掉重开一次即可（升级本来就要重新点信箱）
 -- ============================================================
+
+
+-- ============================================================
+-- 兔子背包（2026-09-26）：8 格 = 原版背包同款 2x4（ui_backpack_2x4）
+-- ============================================================
+params.musha_rabbitbackpack =
+{
+    widget =
+    {
+        slotpos = {},
+        animbank = "ui_backpack_2x4",
+        animbuild = "ui_backpack_2x4",
+        pos = Vector3(-5, -80, 0),
+    },
+    issidewidget = true,
+    type = "pack",
+    openlimit = 1,
+}
+
+for y = 0, 3 do
+    table.insert(params.musha_rabbitbackpack.widget.slotpos, Vector3(-162, -75 * y + 114, 0))
+    table.insert(params.musha_rabbitbackpack.widget.slotpos, Vector3(-162 + 75, -75 * y + 114, 0))
+end

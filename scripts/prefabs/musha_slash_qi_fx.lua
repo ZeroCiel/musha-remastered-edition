@@ -125,9 +125,27 @@ local FX_ROT_OFFSET = 0                       -- 贴图朝向补偿（度）—�
 --   · ⚠️ 常量与 zip **必须配对**：只改常量不换包 = 月牙看不见（包里没有那个名字的动画）
 --   · 若点名播仍整体偏：偏 45° 整数倍 → 改素材相位（crescent_gen.py 的 PHASE_DEG）重出图，
 --     别动 Transform 旋转（DST 的飞行方向就是实体旋转，一动就偏航）
-local USE_ENGINE_FACING = false   -- true = 引擎按掩码挑面（需要官方后缀名版 scml）
+-- ★★ 2026-09-26 用户指令「动画命名方向是错的，按官方的写法做八个面」→ **切引擎挑面（= 本行 true）** ★★
+--   · 根因（实测闭环 dir_measure/crescent_reorient）：旧图按**世界格中心** 45k+22.5° 经
+--     K_SCREEN=0.5 压扁投影 → **屏幕指向不均匀**（间隔 79.3/38.7/23.4/38.7°），对官方标签偏差
+--     +8.4/+42.7/+36.4/+14.8°（dir1/2/5/6 错近半格，且裸改名会撞名）→ "方向错位"的真根子是**图**，
+--     不是引擎那层映射（旧引擎版实测失败是被这张错图污染的证据）。
+--   · 已修：`exported/_tools/crescent_reorient.py` 把 8 张图逐张转到 nominal 屏幕角（复测 0.0° +
+--     对照图目检通过）；工程归位 `exported/crescent_moon/`；官方名 scml 重编 →
+--     anim.bin 掩码 [64,8,128,4,32,2,16,1] 与 scml 动画顺序逐条核对 PASS。
+--   · 成对已换：本行 true + `anim/crescent_cyan8.zip` = 官方名包（md5 D8AAF5F21E02FBEC296FEAB847BABC91）。
+--     回退套件：旧点名包 `anim/_bak_crescent_cyan8_点名_20260926.zip`、
+--     点名 scml `exported/crescent_moon/_bak_scml_点名声_20260926.scml`、
+--     原图 `exported/crescent_moon/_bak_dirs_原版_20260926/` → 回退 = 本行改 false + 旧包拷回（必须成对）。
+--   · 待实测（FACING_DEBUG=true 会打旋转角）：引擎"旋转→挑哪面"仍在 C++ 黑箱，
+--     若整体偏 45° 整数倍或镜像 → 只对调 scml 里 slash_* 的名字后重编，**别动 Transform 旋转**
+--     （旋转=飞行方向，MotorVel 沿自身旋转飞，一动就偏航）。
+local USE_ENGINE_FACING = false   -- ★ 09-27 用户实测「飞出去的面不对」→ 切回代码点名播（定向图+立式 billboard）
+                                   --   实测结论：SetEightFaced 模式下面片躺在地平面里转（八面向=地面贴图口径），
+                                   --   剑气斩要的是立式刃面。点名播方向源 = DirIndexFromRotation（09-18 已修准）。
+                                   --   回退：本行改 true（必须配对官方名版 crescent_cyan8.zip，md5 D8AAF5F2…）
 local FACING_ANIM       = "slash" -- 仅 USE_ENGINE_FACING = true 时才用（官方名版 scml 的基础名）
-local FACING_DEBUG      = true    -- 实测期打印"旋转角 → 引擎实际选中哪一面"；定稿后改 false
+local FACING_DEBUG      = false   -- 定稿关闭（要再查就临时开）"旋转角 → 引擎实际选中哪一面"；定稿后改 false
 
 -- 8 个方向名（只给调试用；顺序 = 引擎的朝向位顺序）
 local FACING_NAMES = { "slash_right", "slash_upright", "slash_up", "slash_upleft",
@@ -347,7 +365,8 @@ local function SpawnLocalParticles(x, y, z)
         local ok = pcall(function()
             p.AnimState:SetBank(bank)
             p.AnimState:SetBuild(bank)
-            p.AnimState:PlayAnimation(ART.fly)
+            -- 引擎挑面模式：包里只有基础名 slash（slash_dir0..7 已不在），粒子也得播基础名
+            p.AnimState:PlayAnimation(USE_ENGINE_FACING and FACING_ANIM or ART.fly)
             p.AnimState:SetLightOverride(1)
         end)
         if not ok then p:Remove() else

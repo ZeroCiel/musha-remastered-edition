@@ -21,11 +21,22 @@
        每元素: u32 符号hash, u32 build内帧号, u32 图层hash, 7 个 float (a,b,c,d,tx,ty,z)
   · 元件落点 = anim 的 tx/ty + build 帧的 x/y（x,y 是元件中心）
   · z 越大越靠前
-  ★ 2026-09-20 实测两条（都踩过）：
-    ① **v 不用翻转**：tex2png 解出来的图集（自上而下）跟 build.bin 顶点里的 u/v 是同一套朝向。
-       翻了反而全错（实测 headbase/hair/foot 的不透明率从 61%/58%/27% 掉到 0%）。
+  ★ 实测结论（2026-09-20 三条 + 2026-09-25 两条，都踩过）：
+    ① **u/v 不用翻转**：u/v 与图集存储是配套朝向，翻图集或翻 u/v 会全错
+       （实测 headbase/hair/foot 的不透明率从 61%/58%/27% 掉到 0%）。
     ② **anim 的 y 是朝下的**（= scml 里 object y 取反），渲染时要按"y 越大越靠下"排；
        按 y 朝上再翻一次 → 人会上下颠倒 + 部件散架。
+    ③ **★ anim 图集解码视图是垂直倒序存储的（引擎加载自带翻转；图标 tex 0xfffc 家族不翻）**
+       —— 2026-09-25 四路 MAE 实锤（回城石 / 信差包 / musha 脸 / 官方 wilson swap_icon，
+       图集存储 vs 源图全部"上下翻"完胜 13~35 vs 79+）。所以本工具的预览**一直上下颠倒**
+       （placement 对、像素倒）；游戏内素材全是正的，**别因此改源图**。
+       修法 = 翻每个 sprite 的采样像素、布局不动（flip_v_rows；不翻成品整帧、不翻图集、不翻 u/v —— ①仍然成立）。
+       同口径已实现在 sp_model_tool.py（crop FLIP_TOP_BOTTOM）；档案：夜间报告_20260925.md。
+    ④ **★ scml.exe 把大图切成瓦片分散打包（每 6 顶点 = 1 个 quad），素材多还会分页图集**：
+       顶点第 6 个 float（sampler）= 所在页码。必须逐 quad 按页采样再贴回；
+       按整帧 u/v 包围盒采样会串到邻瓦片/别页 —— 审片"双挂坠"穿帮的根源。
+       未切块（单 quad）时两法完全等价。同口径已实现在 sp_model_tool.py（逐 quad+页）；
+       档案：夜间报告_20260925.md。
 """
 import os
 import struct
@@ -112,9 +123,11 @@ def parse_build(path):
     for s in syms:
         s["name"] = names.get(s["hash"], "hash_%d" % s["hash"])
         for f in s["frames"]:
-            us = [verts[i][3] for i in range(f["astart"], f["astart"] + f["nverts"])]
-            vs = [verts[i][4] for i in range(f["astart"], f["astart"] + f["nverts"])]
+            f["verts"] = [verts[i] for i in range(f["astart"], f["astart"] + f["nverts"])]
+            us = [v[3] for v in f["verts"]]
+            vs = [v[4] for v in f["verts"]]
             if us:
+                # 整帧 uv 包围盒只作空值兜底；渲染走逐 quad（见文件头④）
                 f["uv"] = (min(us), min(vs), max(us), max(vs))
             else:
                 f["uv"] = None
@@ -255,6 +268,23 @@ def blit_rgba(canvas, cw, ch, src, sw, sh, dx, dy):
                 canvas[j + 3] = max(canvas[j + 3], a)
 
 
+def flip_v_rows(buf, w, h):
+    """把一张 w×h 的 RGBA 采样结果垂直翻转（行序反转），返回新缓冲。
+
+    2026-09-25 发现：anim 图集（KTEX 0xfffd 家族）解码视图是**垂直倒序存储**的，
+    引擎加载时自带翻转，所以按存储原样采出来的像素相对游戏是上下颠倒的
+    （四路 MAE 实锤：回城石/信差包/musha脸/wilson swap_icon，游戏内素材全是正的）。
+    修法 = **翻每个 sprite 的采样像素，布局（anim y 朝下的落点）一动不动** ——
+    与 sp_model_tool.py 的 crop.transpose(FLIP_TOP_BOTTOM) 同口径。
+    注意：不能翻成品整帧（布局会跟着镜像，头脚互换）；不翻图集文件、不翻 u/v。
+    """
+    stride = w * 4
+    out = bytearray(len(buf))
+    for y in range(h):
+        out[y * stride:(y + 1) * stride] = buf[(h - 1 - y) * stride:(h - y) * stride]
+    return out
+
+
 def render_frames(build_zip, anim_zip, anim_name, outdir, scale=1, sheet=False, show_all=False):
     b = parse_build(build_zip)
     a = parse_anim(anim_zip)
@@ -267,7 +297,10 @@ def render_frames(build_zip, anim_zip, anim_name, outdir, scale=1, sheet=False, 
         near = [x["name"] for x in a["anims"]]
         raise SystemExit("anim 包里没有动画 %r；可选：%s" % (anim_name, ", ".join(near)))
 
-    aw, ah, rgba = decode_atlas(build_zip, b["atlases"][0], outdir)
+    # 全部图集页都解码：scml.exe 素材多时会分页 atlas-0/1/...（顶点 sampler=页码），
+    # 只读 0 页会把别页瓦片的位置采成 0 页的错图
+    pages = [decode_atlas(build_zip, nm, outdir) for nm in b["atlases"]]
+    aw, ah, rgba = pages[0]
     print("图集 %dx%d   build=%s   动画 %s（%d 帧, %.1f fps, root=%s）"
           % (aw, ah, b["name"], anim["name"], len(anim["frames"]), anim["rate"], anim["root"]))
 
@@ -320,18 +353,30 @@ def render_frames(build_zip, anim_zip, anim_name, outdir, scale=1, sheet=False, 
             f = next((f for f in s["frames"] if f["num"] == e["frame"]), None)
             if not f or not f["uv"]:
                 continue
-            w = max(1, int(round(f["w"] * scale)))
-            h = max(1, int(round(f["h"] * scale)))
-            # u/v 直接用（实测不用翻，见文件头）
-            u0, v0, u1, v1 = f["uv"]
-            rect = (u0, v0, u1, v1)
-            src = sample_atlas(aw, ah, rgba, rect, w, h)
             tx, ty = e["m"][4], e["m"][5]
-            x0 = tx + f["x"] - f["w"] / 2.0
-            y0 = ty + f["y"] - f["h"] / 2.0            # y 朝下：上边缘
-            dx = int(round((x0 - minx) * scale)) + PAD * scale
-            dy = int(round((y0 - miny) * scale)) + PAD * scale
-            blit_rgba(canvas, cw, ch, src, w, h, dx, dy)
+            verts = f["verts"]
+            # 逐 quad 采样：每 6 顶点 = 1 个瓦片 quad（scml.exe 大图切块），第6个 float = 所在图集页。
+            # 整帧 u/v 包围盒会串到邻瓦片/别页（"双挂坠"穿帮根源，见文件头④）；
+            # 未切块（单 quad）时逐 quad 与包围盒完全等价，无回归。
+            for k in range(0, len(verts) - len(verts) % 6, 6):
+                g = verts[k:k + 6]
+                xs = [qv[0] for qv in g]; ys = [qv[1] for qv in g]
+                us = [qv[3] for qv in g]; vs = [qv[4] for qv in g]
+                sx0, sy0, sx1, sy1 = min(xs), min(ys), max(xs), max(ys)
+                page = int(round(g[0][5]))
+                if not 0 <= page < len(pages):
+                    page = 0
+                qw = max(1, int(round((sx1 - sx0) * scale)))
+                qh = max(1, int(round((sy1 - sy0) * scale)))
+                # u/v 直接用（实测不用翻，见文件头①）
+                src = sample_atlas(*pages[page], (min(us), min(vs), max(us), max(vs)), qw, qh)
+                src = flip_v_rows(src, qw, qh)   # 图集倒序存储 → 采样像素翻回游戏方向（文件头③；布局不动）
+                # quad 落点 = anim 落点 + build 帧中心 + quad 中心相对偏移（y 朝下；与旧整帧落点在单 quad 时恒等）
+                x0 = tx + f["x"] + sx0
+                y0 = ty + f["y"] + sy0
+                dx = int(round((x0 - minx) * scale)) + PAD * scale
+                dy = int(round((y0 - miny) * scale)) + PAD * scale
+                blit_rgba(canvas, cw, ch, src, qw, qh, dx, dy)
 
         if write_png:
             img = Image(cw, ch, canvas)

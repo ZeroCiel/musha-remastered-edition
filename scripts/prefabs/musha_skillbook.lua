@@ -6,6 +6,7 @@
 -- ====================================
 
 local assets = {
+    Asset("ANIM", "anim/musha_skillbook.zip"),
     Asset("ATLAS", "images/inventoryimages/musha_skillbook.xml"),
     Asset("IMAGE", "images/inventoryimages/musha_skillbook.tex"),
 }

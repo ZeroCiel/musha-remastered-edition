@@ -267,22 +267,9 @@ function MushaSkillTree:SetSkills(list)
         return PAD + col * COL_DX + NODE / 2, -(PAD + row * ROW_DY + NODE / 2)
     end
 
-    -- ② 每棵树：一块淡底 + 树名（都是书页风，不花）
-    for _, t in ipairs(tree_order) do
-        local g = groups[t]
-        local maxr = 0
-        for _, e in ipairs(g) do maxr = math.max(maxr, e.tree_y or 0) end
-        local w = (tree_cols[t] - 1) * COL_DX + NODE + 32
-        local h = maxr * ROW_DY + NODE + 32
-        local x0 = PAD + (tree_offx[t] or 0) * COL_DX - 16 + w / 2          -- 底块中心 x
-        local y0 = -(PAD - 16 + h / 2)                                        -- 底块中心 y
-        local bg = self.canvas:AddChild(Image("images/global.xml", "square.tex"))
-        bg:SetSize(w, h)
-        bg:SetPosition(x0, y0)
-        bg:SetTint(1, 1, 1, 0.5)
-        -- ★ 2026-09-21 用户：「左边的横排 不显示职业名称的字 如 战士…等」→ 组标题不画了
-        --   （树与树之间的分隔只靠这块淡底 + 空一列 GAP_COL，不再写"战士/剑士"）
-    end
+    -- ② 每棵树：★★ 2026-09-27 用户「去掉技能书书本外框，只留里面图标」
+    --   → 整棵树的淡底块不画了（原来 SetTint(1,1,1,0.5) 的底框 =「书本外框」），
+    --     图标/连线直接摆书页上；树与树之间靠 GAP_COL 空列区分。
 
     -- ③ 连线（画在节点下面）
     for _, t in ipairs(tree_order) do

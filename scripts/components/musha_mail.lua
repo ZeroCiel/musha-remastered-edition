@@ -22,6 +22,7 @@ local MushaMail = Class(function(self, inst)
     self.inst = inst
     self.has_mailbox = false      -- 是否已绑定过信箱（第一次绑定永久生效）
     self.starter_bag = false      -- ★ 是否已经发过"出生信差包"（存进组件存档：老玩家没有这个字段 → 补发一次）
+	self.musha_rabbitpack_granted = false   -- ★ 兔子背包 15 天发放标记（随组件存档）
     self.shadow = nil             -- 运行时引用（不存档）
 
     -- 只有服务端需要定时补投
@@ -327,6 +328,7 @@ function MushaMail:OnSave()
     return {
         has_mailbox = self.has_mailbox or false,
         starter_bag  = self.starter_bag or false,
+		musha_rabbitpack_granted = self.musha_rabbitpack_granted or false,
     }
 end
 
@@ -334,6 +336,7 @@ function MushaMail:OnLoad(data)
     if data ~= nil then
         self.has_mailbox = data.has_mailbox or false
         self.starter_bag  = data.starter_bag or false
+		self.musha_rabbitpack_granted = data.musha_rabbitpack_granted or false
     end
 end
 

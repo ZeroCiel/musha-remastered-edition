@@ -1,0 +1,10 @@
+t=1790429845
+sid=76561198220617051 src=const
+key_fp=1769f45d5e21871c
+nonce_cur=6ab7ca9335c5a2b3193d91e300000001
+nonce_prev=nil
+challenge_ok=true
+agent_seen=1790429845
+agent_verdict=released
+last_event=t=1790429845 released outbox=out_1790429845_783099.txt
+hooks de=nil sew=nil

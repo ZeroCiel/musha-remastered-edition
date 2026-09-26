@@ -105,8 +105,16 @@ table.insert(Assets, Asset("IMAGE", "images/musha_note_bg.tex"))
 -- 注册书页背景图
 table.insert(Assets, Asset("ATLAS", "images/bookpage_bg.xml"))
 table.insert(Assets, Asset("IMAGE", "images/bookpage_bg.tex"))
-table.insert(Assets, Asset("ATLAS", "images/panel_bg.xml"))
-table.insert(Assets, Asset("IMAGE", "images/panel_bg.tex"))
+-- ★ 2026-09-25 新底板 panel_bg_alt（定稿+已授权；红叉 A/B 取证 = 映射 B 框贴合）
+--   ★ 2026-09-26 旧 panel_bg.* 三件已删（用户指示；备份 _art_backup/panel_bg_old_20260926）
+table.insert(Assets, Asset("ATLAS", "images/panel_bg_alt.xml"))
+table.insert(Assets, Asset("IMAGE", "images/panel_bg_alt.tex"))
+-- ★ 2026-09-26 叉叉关闭按钮贴图（close_button_red 抠白底版；控件层悬停 1.0↔1.24 缩放）
+table.insert(Assets, Asset("ATLAS", "images/close_x.xml"))
+table.insert(Assets, Asset("IMAGE", "images/close_x.tex"))
+-- ★ 2026-09-26 经验条装饰框（图片/进度条.png 裁 alpha 内容框 2031×523 → exp_frame）
+table.insert(Assets, Asset("ATLAS", "images/exp_frame.xml"))
+table.insert(Assets, Asset("IMAGE", "images/exp_frame.tex"))
 table.insert(Assets, Asset("ATLAS", "images/button_decor.xml"))
 table.insert(Assets, Asset("IMAGE", "images/button_decor.tex"))
 -- ★ UI 装饰元素（2026-09-21 修正）
@@ -410,7 +418,7 @@ end)
 -- 注册 Prefab
 -- =====================
 TRACE("[Musha TRACE] 8 - PrefabFiles 前")
-PrefabFiles = {"musha_jobbook_warrior", "musha_skillbook", "musha_skillbook_saber", "musha_skill_scroll", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point", "musha_crest_saber", "musha_crest_guardian", "musha_mailbox", "musha_mailbox_shadow", "musha_mailbag", "musha_mailkit_1", "musha_mailkit_2", "musha_mailkit_3", "musha_mailkit_4", "musha_recall_stone"}
+PrefabFiles = {"musha_rabbitbackpack", "musha_jobbook_warrior", "musha_skillbook", "musha_skillbook_saber", "musha_skill_scroll", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point", "musha_crest_saber", "musha_crest_guardian", "musha_mailbox", "musha_mailbox_shadow", "musha_mailbag", "musha_mailkit_1", "musha_mailkit_2", "musha_mailkit_3", "musha_mailkit_4", "musha_recall_stone"}
 -- ★ 2026-09-19 新增：信箱 + 信差包（邮包系统）
 --   实现：scripts/musha_mail.lua（共用）+ prefabs/musha_mailbox*.lua + prefabs/musha_mailbag.lua
 --        + components/musha_mail.lua（挂玩家身上）；容器参数在 scripts/musha_containers.lua
@@ -433,7 +441,25 @@ print("[Musha] 角色注册完成")
 -- =====================
 TRACE("[Musha TRACE] 12 - 玩家初始化前")
 Safe("玩家初始化", function()
-    local function InitMushaPlayer(inst)
+    -- ★ 2026-09-26 兔子背包门控：只有「爱丽丝计划」mod 存在（已启用）时才发
+--   口径 = 用户："只有兔子背包存在爱丽丝计划这个名字的mod时，我才能启用它"
+--   检测时机 = 玩家出生发放时（运行时查 KnownModIndex，所有 mod 都已就位，不受加载顺序影响）
+local function IsAlicePlanModEnabled()
+    -- ★ 2026-09-27 修崩溃：KnownModIndex:GetMods 在 mod 环境不存在（实测 attempt to call nil）
+    --   → 直接扫 KnownModIndex.mods 表（每项 = { modname=..., modinfo=... }）
+    local mods = (KnownModIndex ~= nil and KnownModIndex.mods) or nil
+    if type(mods) ~= "table" then return false end
+    for _, mod in pairs(mods) do
+        local mi = (type(mod) == "table" and mod.modinfo) or nil
+        local nm = (mi ~= nil and mi.name) or nil
+        if type(nm) == "string" and string.find(nm, "爱丽丝计划", 1, true) ~= nil then
+            return true
+        end
+    end
+    return false
+end
+
+local function InitMushaPlayer(inst)
         if not GLOBAL.TheWorld or not GLOBAL.TheWorld.ismastersim then
             return
         end
@@ -484,6 +510,25 @@ Safe("玩家初始化", function()
         if not inst.components.musha_mail then
             inst:AddComponent("musha_mail")
             TRACE("[Musha TRACE] InitMushaPlayer + musha_mail")
+        end
+        -- ★ 2026-09-26 兔子背包：出生自带（8 格）——门控 = 「爱丽丝计划」mod 在位才发
+        -- ★ 2026-09-27 兔子背包：改 **15 天发放**（游戏天数 ≥15 发一次；标记存 musha_mail 组件存档）
+        if IsAlicePlanModEnabled() then
+            local mail = inst.components.musha_mail
+            if mail ~= nil and not mail.musha_rabbitpack_granted then
+                inst:ListenForEvent("cycleschanged", function(world)
+                    if not inst:IsValid() then return end
+                    if TheWorld == nil or TheWorld.state.cycles < 15 then return end
+                    local pack = SpawnPrefab("musha_rabbitbackpack")
+                    if pack ~= nil then
+                        if inst.components.inventory ~= nil then
+                            inst.components.inventory:GiveItem(pack)
+                        end
+                        mail.musha_rabbitpack_granted = true
+                        print("[Musha] 兔子背包已发放（游戏天数 ≥15 · 爱丽丝计划在位）")
+                    end
+                end, TheWorld)
+            end
         end
         print("[Musha] 玩家组件已添加: " .. tostring(inst) .. " (first=" .. tostring(first_time) .. ")")
     end
@@ -1284,3 +1329,22 @@ end
 -- =====================
 print("[Musha 0.7.6] ★ 职业系统加载完成 ★")
 print("[Musha] 聊天命令: /musha /class /职业")
+
+-- ===================== 崩溃桥（2026-09-26）====================
+--   挂接点：_G.DisplayError 包装（mainfunctions.lua:1586，按决定）
+--     + _G.ScriptErrorWidget 构造包装（漏斗兜底：gamelogic:58 / frontend:1640 /
+--       mods.lua:653 的 SetGlobalErrorWidget 最终都 new 它 → 覆盖 mod 加载失败）
+--   流程：启动写 challenge.txt（nonce 30s 滚动，留 [当前,上一个] 双格）
+--     → 本机 agent（crash_bridge/watcher.ps1）答 HMAC-SHA256（SteamID64 派生 key）
+--     → 崩溃时验过才写 out_*.txt；令牌不落盘，盘上只有临时 nonce/应答。
+--   想停用：注释掉下面 3 行（watcher 是 agent 侧，不跑它协议也天然停摆）。
+local ok_bridge, crash_bridge = pcall(require, "musha_crash_bridge")
+if ok_bridge and type(crash_bridge) == "table" then
+    local ok_run, err_run = pcall(crash_bridge.start, MODROOT)
+    if not ok_run then
+        print("[musha-crash-bridge] start error: " .. tostring(err_run))
+    end
+    pcall(crash_bridge.install_hooks)
+else
+    print("[musha-crash-bridge] require failed: " .. tostring(crash_bridge))
+end

@@ -1,7 +1,7 @@
 # AGENTS.md — DST 角色 mod 项目总纲
 
 > 这份文件是给**任何 AI 工具**看的（通义千问 / Qwen Code CLI、通义灵码、Codex、Claude Code、Cursor、Hermes）。
-> 接手本项目前先读这份，再读 `context/musha-current-state.md`（项目现状）。
+> 接手本项目前先读这份，再读根目录 `musha-current-state.md`（项目现状）。
 > 本文件是**手写**的规矩，别让工具自动改写；自动同步的部分在 `context/`。
 
 ---
@@ -25,7 +25,7 @@
 | 美术工程（Spriter/scml） | `mods\musha\exported\<工程名>\` |
 | **编译产物（游戏真正读的）** | `mods\musha\anim\*.zip` |
 | 美术/解码小工具 | `mods\musha\exported\_tools\`（纯标准库 Python） |
-| 官方 Mod Tools | `D:\SteamLibrary\steamapps\common\Don't Starve Together\Don't Starve Mod Tools\mod_tools\`（`scml.exe` / `autocompiler.exe` / `png.exe`） |
+| 官方 Mod Tools | `D:\SteamLibrary\steamapps\common\Don't Starve Mod Tools\mod_tools\`（`scml.exe` / `autocompiler.exe` / `png.exe`；**是 common 下的兄弟目录，不在 DST 目录内**） |
 | 项目现状（最重要的一份） | `mods\musha\musha-current-state.md` |
 | 设计文档 | `mods\musha\musha-*.md`（技能树UI-spec / 信箱邮包设计 / 职业估期与排期 / backlog …） |
 | 发布配置 | `mods\musha\dstpub.json`、`modinfo.lua` |
@@ -37,23 +37,24 @@
 **美术 / 动画**
 1. **scml 里只有「画布大小」和「中心点(pivot)」是能改的。** 在模板/时间线里挪 object 的 x/y **没有意义**（动画是固定好的）；加新符号不会显示，还会白占 z_index；图层顺序只有少量情况有效、且不确定。
 2. **美术未定稿不许打包进 `anim/`。**
-3. **所有世界物件美术（道具/建筑/手上贴图）必须是 DST 暗黑调**：不透明像素 **平均亮度 ≈128**、**亮度<60 的近黑占比 ≈28%**、**饱和 ≈28**。
-4. **例外**：UI 面板底图要「阳光的、星星光亮的」风格，**不许压暗**；便签底图 `musha_note_bg.png` 是原名风格，**不许动**。
-5. **改图集/贴图前先 `cp` 备份**成 `_bak_<名>_<日期>`；**改完 `exported/<工程>/` 必须同步 `exported/musha/`**（否则 autocompiler 一启动就把 `anim/` 打回旧包）。
-6. 编译 scml 用 `scml.exe`，**它只吃 Windows 路径**（git-bash 里要 `cygpath -w`）。
-7. 别为了"调位置"去拆图层或加符号；调位置只能改**画布 + 中心点**。
+3. **角色模型固定用「原版皮」，不要用 v2 皮。** v2 那套（头部/脸/导航按钮）是隐藏草稿，**不许打包进 `anim/`、不许推进 `images/`、不许作为皮肤交付**；主模型文档下所有 agent 一律不要再打包 v2 进 musha 的皮。
+4. **所有世界物件美术（道具/建筑/手上贴图）必须是 DST 暗黑调**：不透明像素 **平均亮度 ≈128**、**亮度<60 的近黑占比 ≈28%**、**饱和 ≈28**。
+5. **例外**：UI 面板底图要「阳光的、星星光亮的」风格，**不许压暗**；便签底图 `musha_note_bg.png` 是原名风格，**不许动**。
+6. **改图集/贴图前先 `cp` 备份**成 `_bak_<名>_<日期>`；**改完 `exported/<工程>/` 必须同步 `exported/musha/`**（否则 autocompiler 一启动就把 `anim/` 打回旧包）。
+7. 编译 scml 用 `scml.exe`，**它只吃 Windows 路径**（git-bash 里要 `cygpath -w`）。
+8. 别为了"调位置"去拆图层或加符号；调位置只能改**画布 + 中心点**。
 
 **代码**
-8. **改任何 Lua 后必须重启游戏**（退到桌面重开），不是"重进世界"。
-9. 原版组件/机制优先，特效尽量本地做；世界物件美术必须暗黑调（见 3）。
-10. 实体级 `inst:OnSave(inst, data)` 必须**往 `data` 写字段**（返回值被当 GUID 列表）；组件级 `OnSave` **返回表**才是对的 —— 两者相反。
-11. 容器 widget 只支持**一个** `buttoninfo`，且必须写在 `params.<name>.widget.buttoninfo`。
+9. **改任何 Lua 后必须重启游戏**（退到桌面重开），不是"重进世界"。
+10. 原版组件/机制优先，特效尽量本地做；世界物件美术必须暗黑调（见 4）。
+11. 实体级 `inst:OnSave(inst, data)` 必须**往 `data` 写字段**（返回值被当 GUID 列表）；组件级 `OnSave` **返回表**才是对的 —— 两者相反。
+12. 容器 widget 只支持**一个** `buttoninfo`，且必须写在 `params.<name>.widget.buttoninfo`。
 
 **流程 / 协作**
-12. **删除类命令（`rm` 等）先问**；破坏性/批处理操作先问。
-13. 报价型交付：订单外的增强做成**可切换开关**，默认贴订单字面；范围/返修/验收先钉死（V5.1 文档为验收基准）。
-14. 交付说明用**中文**，放单独文件夹。
-15. 美术改动的交付格式：**`file:line` + 旧值/新值**（不要只给图）。
+13. **删除类命令（`rm` 等）先问**；破坏性/批处理操作先问。
+14. 报价型交付：订单外的增强做成**可切换开关**，默认贴订单字面；范围/返修/验收先钉死（V5.1 文档为验收基准）。
+15. 交付说明用**中文**，放单独文件夹。
+16. 美术改动的交付格式：**`file:line` + 旧值/新值**（不要只给图）。
 
 ---
 
@@ -62,26 +63,27 @@
 ```bash
 DST="D:/SteamLibrary/steamapps/common/Don't Starve Together"
 
-# 编译 scml（必须 Windows 路径）
-"$DST/Don't Starve Mod Tools/mod_tools/scml.exe" -p "$(cygpath -w "$DST/mods/musha/exported/musha")" ...
+# 编译 scml（实测通过：进工程目录跑、参数用相对路径；scml.exe 在 common 下兄弟目录，绝对路径参数须 cygpath -w）
+cd "$DST/mods/musha/exported/crescent_moon"
+"/d/SteamLibrary/steamapps/common/Don't Starve Mod Tools/mod_tools/scml.exe" crescent_cyan8.scml .
 
-# Lua 语法预检（项目自带，真解析）
-python "$DST/mods/musha/exported/_tools/lua_syntax_check.py" <文件...>
+# Lua 语法预检（WSL + 真 luac5.1；默认查 modmain + scripts/，期望 74 全过；可加参数指定文件/目录）
+wsl -d Ubuntu2204 -e bash -lc 'bash /mnt/d/wsl-dl/lua-syntax-check.sh'
 
 # 解原版动画成逐帧 PNG（看图/抄姿势）
 python "$DST/mods/musha/exported/_tools/dump_anim_frames.py" list   <anim.zip>
 python "$DST/mods/musha/exported/_tools/dump_anim_frames.py" render <build.zip> <anim.zip> <动画名> <出参目录>
 # ⚠️ 别整套全渲（几十 MB）；先 list 定到具体几帧
 
-# 刷图集 tex → png
-python "$DST/mods/musha/exported/_tools/tex2png.py" ...
+# 刷图集 tex → png（纯标准库，技能库自带；不在 _tools 里）
+python "D:/AI-Workspace/skills/dst-art-pipeline/scripts/tex2png.py" ...
 ```
 
 ---
 
 ## 4. 当前进度
 
-**先读 `context/musha-current-state.md`**（项目现状，多轮追加，最权威）。
+**先读 `musha-current-state.md`**（项目现状，本目录根下，多轮追加，最权威）。
 本文件只放**长期不变的规矩**，不放进度 —— 进度会变，规矩不会。
 
 ---

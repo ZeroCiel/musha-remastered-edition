@@ -3,6 +3,10 @@
 > 用法：开工先扫「队列」→ 按「命令」跑校验 → 需要历史/踩坑细节再 `grep` 档案（`musha-log-2026-09.md`）。
 > 维护规则：新内容写这张；被替换掉的老条目搬进档案，别删。
 
+## 🚨 特别重要（2026-09-25 用户指令，所有会话遵守）
+**皮肤/版本优先级：一律优先使用仓库的 Musha 原版本皮（`exported/musha/`），暂时禁止使用 v2（`exported/musha v2/`）——直到 AI 重画完成、用户另行通知切换为止。** 此条涉及面板/BG 及一切角色素材的取用口径。
+另：主页 BG（panel_bg.png）用户将自行重修；变体底图已交付 `images/panel_bg_alt.png`（主页+技能页切换用，1741x1157 透明底）。panel_screen.lua 头部坐标对齐等 opencode 与用户定稿后进行。
+
 ## 项目
 `D:\SteamLibrary\steamapps\common\Don't Starve Together\mods\musha`（作者的 DST mod，作者 Ciel/雪儿）
 面板 = Screen + ScrollingGrid，导航 7 页：主页 / 技能 / 装备 / 信箱 / 设置 / 礼包 / 图鉴
@@ -11,6 +15,11 @@
 - `musha-药剂师大锅-design.md` — 药剂师（法师分支）大锅：设定图 9 条调整清单 + 素材规格 + **771 行现成抄本** `references/norse_mythology_portablepot.lua`（官方 `stewer` 组件）+ 分 P1~P4
 - `musha-职业估期与排期.md` — 近卫/法师线：**设计要求 vs 代码现状对照表** + 估期（近卫最小 2.5~3.5 天 / 全套 7~9 天；法师线 5~7 天起，全套 16~22 天）+ 关键路径
 - ⚠️ 近卫**盾机制（MP 当护盾）全项目 0 行**；元素法师/药剂师 0 行；`class_traits.mage/elementalist` 只有数值雏形
+
+## 📋 新功能构想清单（2026-09-26 用户口述，待排期）
+时光沙漏 / 老奶奶的指针(树洞触发回秋天) / 强化胡萝卜 / 魔法杖(光炮+法力) / 缩小药 /
+引导书(寻宝) / 兔子背包(8格5页) / 茶杯猫(猪王交易100金永久失配方) / 爱丽丝计划(星图)。
+**明细与拆件见 `musha-新功能构想_20260926.md`**（mod 根目录），排期等用户拍板。
 
 ## 📌 队列（2026-09-14 收工状态）
 
@@ -96,6 +105,9 @@
 
 ### 🔴 2026-09-18 用户睡前提的两条（**下次开工先看这里**）
 **1. 月牙斩"方向错位"** ← 用户实测结论
+- ✅ **2026-09-26 已根治（详见 ⑲）**：根因 = 8 张方向图指向**不均匀**（对官方标签偏 +8.4~+42.7°，
+  按世界格中心投影 + K_SCREEN=0.5 压扁所致），不是引擎；已按官方写法重做（reorient 0.0° 复测 +
+  官方名 scml 重编 + 成对切换 `USE_ENGINE_FACING=true`）。下面 09-18 的点名播修法降级为历史/回退参考。
 - 刚做的处理（已提交）：**切回"代码按方向点名播"** —— `USE_ENGINE_FACING = false`，
   且 `anim/crescent_cyan8.zip` 已换成**点名声版**（slash_dir0..7，编译实测确认）。
   8 面（引擎挑面）版备份：`anim/_bak_crescent_cyan8_8面_20260918.zip` +
@@ -226,14 +238,15 @@
 ## 🔧 命令（每次改完必跑）
 - 语法校验：`wsl -d Ubuntu2204 -e bash -lc 'bash /mnt/d/wsl-dl/lua-syntax-check.sh'`（期望「检查 N 个文件：全部通过」）
   · `luac5.1` 只在 WSL 里，Windows 侧找不到，别去 C:/D: 盘 find
-- 方向图生成：`python exported/crescent_cyan/make_dirs.py`（纯标准库，约 30 秒；Windows 侧无 PIL）
+- 方向图**重定向**（对齐官方朝向；重跑 `crescent_gen.py` 后必过）：`python exported/_tools/crescent_reorient.py`
+  （⚠️ 必须用 Python311：`C:\Users\Administrator\AppData\Local\Programs\Python\Python311\python.exe` —— PATH 上的 python 是 hermes venv、没 PIL；旧命令 `exported/crescent_cyan/make_dirs.py` 的目录已不存在）
 - 角色造型换衣（中式素布衣）：`python exported/_tools/cn_cloth.py [--apply 1..5|--revert]` ← **首选**
   旧稿：`draw_cloth.py`（布纹重画）/ `gray_cloth.py`（纯去色）
   （纯标准库；配套 `exported/_tools/{pnglib,ascii_view,palette_scan}.py` —— 没视觉模型时用 ascii_view 看图）
 - **发布前素材自检**：`python exported/_tools/check_assets.py`
   （扫全项目 `Asset("类型","路径")`，报"声明了但文件不存在"的项 —— 这类缺失会让 RegisterPrefabs 阶段 assert，
    整个 mod 被禁；2026-09-14 生命树枝、2026-09-16 便签各踩过一次）
-- **打包**：`D:\饥荒开发\tool\DST Mod Tool.exe`（GUI；tex 和 anim 都只能走它）
+- **打包**：首选 `art_manager.exe`「打包 anim」按钮（校验 scml → scml.exe 逐编 → 产物复核，静默失败逐条明示，见 ⑫）；tex 走「发布 PNG」/`art_update.py publish`。旧 GUI `D:\饥荒开发\tool\DST Mod Tool.exe` 降为备选。
 - **皮肤模板（build 源 → Spriter 工程 + 参考图）**：`python exported/_tools/make_skin_template.py <源目录> <输出目录> <名字> [--from-scml 现有工程.scml]`
   · 只转换：`python exported/_tools/buildxml_to_scml.py <源目录> <输出目录>`
   · 拼装预览：`python exported/_tools/musha_scml_render.py <x.scml> <out.png> --keys 0,5,20 --scale 0.5`
@@ -241,7 +254,11 @@
 - 原版写法定要看**当前版本**：`unzip -o -q data/databundles/scripts.zip "scripts/xxx.lua" -d /tmp/gd`
   （`data/databundles/scripts/` 那个旧解包目录行号对不上）
 
-## 🗂 Gitee（用户旧账号 ZeroCiel，卡在只读部署公钥）
+## 🗂 Gitee（用户账号 cielciel / 命名空间 ZeroCiel）
+- ★ **2026-09-25 推送成功**：4 个本地提交（7238023、1017bc3、0de7040、45eff68）已全部推上 origin/master。
+  · HTTPS + 私人令牌；**用户名必须写 `cielciel`**（写 ZeroCiel 报 `The token username invalid`）
+  · `git push https://cielciel:<令牌>@gitee.com/ZeroCiel/musha-remastered-edition.git master`
+  · 令牌不落盘、不写进任何仓库文件；改 SSH 或换令牌问用户。
 - ★ **同账号下还有两个有用的老仓库（2026-09-18 发现，可直接 clone 参考）**：
   · `ZeroCiel/Musha-beta`（2022-02-16）= **Musha 2.0 旧版**：`main/` 编号式结构 + `scripts/widgets/`（`my_image.lua` = 旧"文字框架"，图片控件自带 Text 子控件；`_animbutton.lua`；`Norse_mythology_System.lua` = 旧 Wiki/技能页）、`main/08.Musha_Skill.lua`、`main/Old Data/old_Skill.lua`(236KB 技能数据)
     → 已 clone 到 `D:\wsl-dl\Musha-beta`，关键 5 个文件抄进 `references/musha_beta_2.0/`
@@ -1317,6 +1334,11 @@ python dump_anim_frames.py render <build.zip> <anim.zip> <动画名> <出参目�
    渲染要按 "y 越大越靠下"；按 y 朝上再翻一次 → 人上下颠倒且部件散开。
    自检口径：**foot 的 ty(-10) 比 leg 的 ty(-40) 大 → 脚在腿下面 ✓**；headbase(-120) 最小 → 在最上面 ✓
 
+> **⚠️ 2026-09-25 更正（详见文末 ⑬ 段）**：上面这批出图**方向其实一直是上下颠倒的** —— anim 图集
+> 解码视图是垂直倒序存储（引擎加载自带翻转，四路 MAE 实锤），当时只验了"placement 对、像素倒"没看出来。
+> 工具已补「sprite 级翻转 + 逐 quad/分页采样」双修。**09-20 这批产物别当方向参考**；
+> 游戏内素材本来全是正的、源图无需改。
+
 ### 产物
 - `exported/_test_out/威尔逊站立/idle_loop/`（66 帧 + `_idle_loop_总览.png`）
 - `exported/_test_out/威尔逊站立/idle/`（2 帧静态站姿 + 总览）
@@ -1784,4 +1806,427 @@ close_button_red / wechat_qr）。但 `images/ui_elements.tex` **从来没被转
       无界面自检（已实测）：`--dump <file>` → 27 张全绿；`--publish <png> <图名>` → tex 2796368B 与同源一致、新图无旧图不建备份（语义同 python 版），测试残留已清。
       桌面已建快捷方式「musha 贴图管理.lnk」。
     - **跨 agent/会话没有推送通知机制**——新会话/子 agent 靠本状态文档与 README_ART.md 发现工具；接线与贴图改动一律**完全重启游戏**才生效。
+- **⑫ 2026-09-25（四）：Gitee 推送完成 + art_manager 升级「scml 校验 + anim 自动打包」+ 部署 D:\饥荒开发**
+    - **★ Gitee 推送**：4 提交已推上 origin/master（凭据用法见上方 Gitee 段）。之后要不要再推一律先问用户（手机热点）。
+    - **需求来源（用户原话）**：「部署完美术开发工具（含自动打包）就把 exe 打包到 D:\饥荒开发，仅支持本体 mod」
+      「官方打包老是出错，有一些错乱的 scml 没打包好，但是也不告知开发者」。
+    - **art_manager.exe 升级**（源码 `exported/_tools/art_manager.cs`，重编译命令在 .cs 头部）：
+      · 「校验 scml」/「打包 anim（校验+编译）」两个按钮 + `--check <报告文件>` / `--pack <出参目录> <报告文件>` CLI。
+      · 校验口径：XML 可解析（报行/列）、根节点 spriter_data、`<folder>/<file>` 贴图文件逐个存在、
+        `<animation>` **按动画段隔离**校验 timeline 引用（timeline id 每段从 0 重编，全局比对=假阳性，初版踩过）、
+        同名 zip 覆盖预警；同文件同消息去重防刷屏。**ERROR 的 scml 打包时跳过并写明**（官方是静默产坏包）。
+      · 打包：先删旧 `anim\<名>.zip` 逼出真产物 → `scml.exe <工程.scml> <mod根>` 逐个编译（2 参，进度走 stderr，
+        异步收双流防堵死，300s 超时强杀）→ 核对产物存在 + 新鲜 + 非空；退出码=失败数，报告文件明示每条原因。
+      · 路径自适应（exe 放哪都认得出本体）：`art_manager.cfg`（png=/scml=/mod=，兼容旧单行）→ exe 相对位
+        `..\..`（_tools 下）→ 硬编码 `mods\musha`；png.exe/scml.exe 同目录推导。备份目录恒为
+        `mod\exported\_tools\_art_backup`（部署副本与仓内副本共用一处备份）。
+    - **实测全过**：`--check` 16 个 scml 全绿（0 ERROR/0 WARN，初版把 16 全误报成空工程=标签名 bug，已修）；
+      `--pack` 全量 16/16 成功、0 失败、378s（musha 主工程 83s、祭坛 60s），产物到临时目录 —— 严守
+      「美术未定稿不许打包进 anim/」铁律，真打包只由用户在 GUI 里点。
+    - **部署完成**：`D:\饥荒开发\art_manager.exe`（27136B）。从部署位跑 `--check` 全绿（路径回退验证）、GUI 启动 3s 存活。
+      桌面快捷方式「musha 贴图管理.lnk」指向仓内 _tools 副本，两副本功能一致。
+    - 本轮改动（art_manager.cs/.exe、状态文档、README_ART）**尚未 git 提交**，等用户拍板后随下次推送一起。
+- **⑬ 2026-09-25（五）：接球「两个重大发现」→ dump_anim_frames.py 双修（图集倒存翻转 + 逐 quad 分页采样）**
+    - 来源：`exported/_tools/夜间报告_20260925.md`（另一会话夜间全链路：`sp_model_tool.py` 窗口化/逐帧截图/
+      视觉审片/scml 总成，两轮审片过）+ 用户转告「修了 opencode 工具链的历史坑，有空转告 opencode」。
+      报告 L42 明写「opencode 的文件没动，只在此存档」→ 唯一遗留 = `dump_anim_frames.py`，本轮接住闭环。
+    - **发现①：anim 图集解码视图是垂直倒序存储的（引擎加载自带翻转；图标 tex 0xfffc 家族不翻）**。
+      证据 = 回城石 / 信差包 / musha 脸 / 官方 wilson swap_icon 四路 MAE（13~35 vs 79+ 完胜）。
+      dump 预览因此一直上下颠倒（placement 对、像素倒）；**游戏内素材全是正的，别因此改源图**；
+      09-20 那批 dump 产物不可当方向参考（该条目已加更正注）。回城石昨晚的修复**无需任何改动**（用户确认）。
+    - **发现②：scml.exe 把大图切瓦片分散打包（每 6 顶点 = 1 个 quad）+ 素材多时分页图集**
+      （顶点第 6 个 float = 所在页码）。按整帧 u/v 包围盒采样会串邻瓦片/别页 —— 审片「双挂坠」穿帮的根源；
+      单 quad（未切块）时两法完全等价。
+    - **dump_anim_frames.py 修复（本轮）**：
+      · `flip_v_rows`：翻**每个 sprite 的采样像素**、布局（anim y 朝下落点）一动不动。
+        （首版翻成品整帧 = 布局镜像头脚互换，A/B/C 三联目测证伪后改；与 sp 的 `crop FLIP_TOP_BOTTOM` 同口径。）
+      · 逐 quad 采样：`parse_build` 存 `f["verts"]`，绘制段每 6 顶点一组（x,y 定位、u,v 取图、sampler 定页）
+        采样贴回；**全部图集页都解码**（原来只读 atlas-0，分页 build 会取错图）。`f["uv"]` 包围盒仅留空值兜底。
+      · 文件头结论补齐四条：①u/v 不翻 ②y 朝下 ③图集倒存→翻采样像素 ④逐 quad 按页。
+    - **验证**：musha.zip `BUILD_PLAYER` frame_00/10 与 sp_model_tool（已过两轮视觉审片的参考实现）对拍
+      **逐姿态一致**（正面腮红 / 背面辫子 / 侧脸精灵耳+紫瞳）；wilson `idle_wilson` 77 帧出图无回归、直立。
+      A=原版（像素倒）/ B=成品整帧翻（废图）/ C=sprite 翻 三联对照存 `Temp\opencode`（临时）。
+    - 夜间报告另记 scml.exe 相对路径坑（cwd 相关）；本仓 `art_manager --pack` 走**绝对路径**已 16/16 全过 —— 两口径并存无冲突。
+    - 口径：凡解包图集出图的工具一律「翻采样像素 + 逐 quad 按页」；两发现档案 = 夜间报告 +
+      `README_模型工具.md`。sp 侧 `--export` 逐帧图 + `REVIEW_TASK.md` 审片任务书 → 过审再编译进 anim/。
+    - 本轮改动：`exported/_tools/dump_anim_frames.py`（+ 状态文档）—— **未提交**，与 ⑫ 的改动一起等拍板。
 
+
+
+## ⑭ 2026-09-25 新版底图换页任务（进行中：水印修复迭代，未 publish、未接线）
+
+- **用户原话目标**：主页一张 bg，其他技能页时底页 bg 要换；找 zcode 修、图包没修好 → 交给自家 AI。
+- **源图**：`图片\其他版本背景的bg 大小疑问 面板字体待修.png`（1888x1312，豆包生成，09-25 11:34 写入；名字本身就是 zcode 备注：大小疑问 + 面板字体待修）。
+- **摸底结论（全部数值验证过）**：
+  - 大小答案：游戏内与现役同框拉伸到 1232x832（新图 1.439→1.481 横向 +2.9%；现役 1.559→1.481 横向 -5%）→ 同量级，**不裁不缩直接用**。
+  - 接线对齐：内容纸横向 ±3px、导航条/外框基本重合（50/50 叠合图目检）→ 五页页框 (61,4)/932x638 **不用动**。
+  - 红叉：横向比例已对齐（0.9566 vs 0.9560）；纵向上新叉比现役低 ~27px → **非主页页把 close_btn 改 (562,320)**（80x80 热区正好罩新叉 74x70）；主页保持 (563,347)。改法放 SetActivePage，按页 profile。
+  - 分工（按文件名+用户原话推定，**待确认**）：主页=现役横线纸版，其余页=新版。
+- **水印「豆包AI生成」修复**：位置 x[1657..1860] y[1243..1287]，半透明白字+深棕描边，压底带/花瓣/奶油边。
+  - v1 整块克隆 → 右边界接缝跳变 155（天然 3）✗ 作废。
+  - v2 亮字掩膜+逐行插值 → 描边没入掩膜，端点被描边污染 → 填成灰影 ✗。
+  - v3 加深描边掩膜 → 叶绿被横扫出涂抹、奶油区字底残影、单端点长条填平出拖影。
+  - **v4 现状**：core 判据 b>med+20（三种底色验算）+ 深描边（跳过泛绿像素、6px 邻域、sum<ref-55）+ 逐行水平插值（横条纹/暗线按行原样重建）+ 花瓣白压白排除。字形主体已消；**仍剩横纹拖影 + 奶油区字底残影（residual bright=428）** → 等 v5 收尾。
+  - 脚本（全在 Temp\opencode，纯本地）：`wm_fix4.py`（主流程，出 new_nowm4.png）；诊断 `wm_phase1*`/`wm_arc_trace.py`/`wm_probe.py`/`wm_verify.py`；裁片 `wm_after4_d2.png`（目检用）。已作废：wm_fix2/3。
+- **待办顺序**：v5 消残影 → 目检+给用户过目（art_update.py 规矩：publish 前预览）→ `art_update.py publish` 出 tex/xml → 面板接线（SetActivePage 换贴图 + close_btn 按页 profile，编辑模式冲突已想过：SetActivePage 不在编辑态时才重设）→ lua 平衡校验 → 完全重启进游戏验收。
+- **「面板字体待修」**：新版木牌 Musha 字=亮黄泡泡字，旧版=米黄渐变柔字；修法三选（整块移植旧牌/只调色向旧版/先不修进游戏看）**待用户拍板**，尚未动手。
+- **vibeX/gitee 拉取结果**（用户当轮授权的 fetch 已执行）：master 零新提交（只是把我们自己推的 45eff68 同步到位）；远端仅 hook + master 两条 head，hook = 9-21 老祖先分支（eea8e98 右键存信箱），**编辑模式重做没推上来** → 无可审阅/可合并；需让 vibeX 推上来或告知仓库。本地工作区仍有未提交改动（见 ⑫⑬），真有 incoming 时先提交再拉。
+- **⚠️ 用户热点流量超支（09-25）**：本轮起**禁止任何联网**（fetch/push/pull/websearch 全停），只做本地操作，直到用户解禁。
+
+
+## ⑮ 2026-09-25 晚：换页 bg 暂停（图作废/分工改口径）+ 酒馆配方图标重做完成
+
+### 换页 bg 线 → 暂停，等即梦新图
+- **新图作废**：`图片\其他版本背景的bg 大小疑问 面板字体待修.png` 被（zcode 或谁）画了 6 层任务栏搞坏，用户说白跑了、自己去**即梦**重出；**水印修复线（v4，见 ⑭）就此停止，不再修图**。
+- **分工新口径（用户原话）**：主页 = 原版 bg；技能树页 = 另一张（即梦重出）；其余页 = 合并版本（上下一致，不分 2 个框）。
+  - 待确认：主页「原版」指哪个文件 —— A) 合并前两框版（git `239ec44`）B) bookpage_bg V2（现存）C) 用户取回的文件。
+  - 好消息：**合并前版本本地 git 就有**（`45eff68` 合并版 / `239ec44` 两框版），不用跑远路取。
+- 即梦图到位后**很可能要重算 bg 大小**——测量管线现成：红叉/内纸/导航地标测量 + `overlay_5050.py` 叠合（⑭ 里全流程可复用）。
+- **`images/panel_bg.png` 12:45 被外部改动**（1023854B，未提交；提交版=45eff68）。游戏读 `.tex`（04:04 版）→ **进游戏不受影响**；坏 png 只在下次 convert/publish 才生效。恢复：`git checkout 45eff68 -- images/panel_bg.png`。
+- vibeX 编辑模式：截至 09-25 11:45 fetch **远端零新提交、无可审对象**；封网期间无法复查。
+- ⚠️ 用户热点流量超支：只做本地操作，联网全停到解禁。
+
+### 酒馆（祭坛）配方图标重做 ✅ 20:58 完成
+- **scml 审查结论：没问题**。`exported/musha_advance_altar/musha_advance_altar.scml`（1184B）：单帧静态 idle，唯一引用 `hotel.png`（1549×1015，scale 0.49，pivot 0.485/0.132）——已从旧祭坛帧换成酒馆新画（scml 09-24 改）；旧帧 `musha_advance_altar-0.png` 闲置未引用；结构合法无断链。
+- 渲染验证：`dump_anim_frames.py render anim/musha_advance_altar.zip ... idle` → **40 帧全同**（1470437B×40，静态）；`idle_00.png` 1557×1023 目检 = 完整酒馆（挂账牌/酒桶/炊烟），透明底干净。
+- **新图标 128×128**（模组惯例全是 64²；128²=pow2 更清晰，UI 显示尺寸不变零风险）：idle_00 裁 alpha bbox → LANCZOS 缩放 → 可见区居中（paste 不带 mask，带 mask 会把 alpha 平方吃掉微光）。
+- 入位：`images/inventoryimages/musha_advance_altar.png`（16778B）+ `art_update.py convert`（同目录默认出 tex/xml；**`--out` 会被 main() 参数剥离吞掉，勿用**）→ tex=21960B、xml 188B。
+- 核验：`Element name="musha_advance_altar.tex"` = modmain L581/582（atlas/image）、`musha_dex.lua` L137 引用 → **lua 零改动**；uv 0.00390625 = 128² 半像素 ✓。
+- 旧三件套备份：`exported/_tools/_art_backup/musha_advance_altar_20260925_205708/`。
+- **生效需完全重启 DST**；进游戏看制作栏酒馆配方 + 图鉴图标。
+
+
+## ⑯ 2026-09-25 夜：五条反馈落地（天使/荷包/星星）+ bg 新口径 v3
+
+用户五条（原话要点）：天使太虚、荷包偏离页面、战士旁少一颗星、bg 准备换**通用一张**（技能树滚动另做，zode 在做，等通知）、当前职业[缺的东西]要按职业参考设计考虑。
+
+### 已改（需完全重启 DST 生效）
+1. **天使虚化**：`musha_panel_screen.lua` `SetTint(1,1,1,0.7)` → **0.95**。已验原图 `images/angel_new.png` 700×954 实心（46% 全不透明像素、线条干脆）→ 虚的锅全在 tint。
+2. **荷包偏离页面**：`(600,-306)` → **`(475,-358)`**，三处同步：构造（L608）、`spons_hot` 热区（L849）、`musha_edit_mode.lua` ELEMENTS（x/y+desc）。
+   - 几何：页面右缘 +527；旧位 48×72 旋转15° 右缘≈630（整个飘在木框外）；新位右缘≈507（余 20），底 -399 > -416。
+   - 挂点 = 天使裙面正中（美术坐标 341,488；天使 390×520@(480,-352) 换算），不碰她的手（手在美术 px>500=框外区）。
+   - 嫌歪/微调 → 编辑模式直接拖（ELEMENTS 已同步）。
+3. **战士旁星星**：新增 `job_star`（`Text(UIFONT,30)` "★"，金 0.98/0.78/0.15）。
+   - Refresh 里按标题估宽（CJK=64、ASCII=32、≥3字节按64）→ 中心 = 左缘(-110)+宽+缝30 → "战士"≈47，"战士 → 近卫"≈269（宁右勿压）。
+   - 无职业 title="" 隐藏；**可见性对齐 job_text:IsVisible()**（防别的页 Refresh 漏星）；已加入 `pages.home` 表。
+   - ⚠️ 若游戏里 ★ 变豆腐 → UIFONT 缺 U+2605，改走贴图星（需素材）。
+
+### bg 新口径 v3（覆盖 ⑮ 的三档方案）
+- **所有页通用一张底图**（不再分主页/技能树/其余三档）；**技能树页滚动单独做**；zode 出图，等用户通知。
+- **给 zode 的硬要求（转达）**：通用底图必须**职业无关**——战士徽章 / 职业名 / "当前职业"角标 / 经验条这类**因职业而异**的东西不能烤进底图（烤死=换职业穿帮）；这些归代码层（`job_icon`/`job_text`/`job_star`/exp 条）或做成可换覆盖件。
+- 已目检 `images/panel_bg.png`（12:45 外部改动版）= 黄框空页 + 任务行 + 翼水印，**无职业元素** ✓ 当前底图职业无关成立。
+
+### 职业参考设计差距清单（待用户排优先级，本轮只补了星）
+- ✅ 标题金星 —— 已补。
+- ⬜ "当前职业"角标（参考稿右上粉飘带）—— 现无对应物。
+- ⬜ Lv 徽标样式（参考稿是彩色描边 chip）—— 现在纯白文字。
+- ⬜ 职业台词引语行（参考稿"以剑为誓…"）—— 现无。
+- ⬜ 任务行进度条化（参考稿每行蓝条）—— 属任务区（用户说任务标题栏在改，另行）。
+
+### 校验
+- `lua_balance_f2.py`：panel_screen **OK**（depth/括号全 0）；edit_mode 1 处 `)` 下溢 = `jesc` 转义函数让校验器误报，**git HEAD 原版同在**（偏移仅差 8 字符），非本次改动问题。
+- 荷包/星星改动全为本地文件操作，无联网。
+
+
+## ⑰ 2026-09-25 夜：panel_bg_alt.png 定稿信号（核验✅）+ 任务栏底图选型 + 接线顺序结论
+
+### 定稿信号（口径，按用户要求记档供 zode/用户核对）
+- 文件：`images/panel_bg_alt.png`，**1741×1157**，**透明底**，面板内容即全图边界（含 **36px 呼吸边距**）。
+- 徽章 / 称号 / Lv / 经验条 / 首行起点的对齐**按这个尺寸做**。
+- **已核验**（alt_verify_g1.py）：尺寸 1741×1157 ✓；alpha bbox (36,36,1705,1121)=四边精确 36 ✓；框外全透明（角点 alpha 0）、框内实心（中心 255）✓；透明占比 18.9%（=36px 边距+圆角切角，账对得上）；纸面均亮度 237.5。
+
+### landmark 扫描（alt_landmark_g2 / alt_rows_g3）
+- 纵向色阶跳变 @ymid：外框 ≈ x61 与 x1680（左右对称 ✓）、框内边 ≈ 104/1666、导航分隔 ≈ x281、**内容框 ≈ x[317,1608]**。
+- 横线：y114/207（Musha 牌/顶区）、y1102（底框）；低阈值补扫 y360–1120 仅 y1041/y1102（内容框底边/外框底边）。
+- **结论：alt 没有烤任务行线** —— 内容纸是干净的。
+
+### 接线顺序（由上条直接推出，重要）
+- 现行任务行的"行底"= 老 panel_bg 里烤出来的；**alt 换上后行底会消失** →
+  **alt 必须与任务栏行底图同批接线**（单换 alt = 任务区裸奔）。等任务栏图定稿后一次接完。
+
+### 坐标换算（接线时用）
+- 内容中心 native = (870.5, 578.5)（36..1705 / 36..1121 的中点）。
+- `content_xy = (native_xy − 中心) × k`，k 由**展示尺寸**定：若维持 BG 1232×832 → kx=1232/1741=0.7076、ky=832/1157=0.7191（横纵差 1.6%，可忽略或改展示 1232×819 求等比）。
+- 五个锚点（徽章/称号/Lv/经验条/首行起点）等设计侧按 1741×1157 给出 native 坐标后套公式；或我按 landmark（内容框 [317,1608]）+ 现役比例先出初值。PANEL_ZOOM=0.93 故事不变。
+
+### 任务栏底图选型（用户问"三张选哪张 + 淡蓝要不要更透明"）
+- 收到的是：面板参照图 + **两张淡蓝胶囊**（扁平哑光款 / 亮面高光款）；第三张若没传上来，放 `图片/` 再看。**推荐扁平哑光款**：
+  1. 可展开=高度会变，扁平款中段均匀、拉伸不变形；亮面款顶部高光条/底部渐变一拉就糊；
+  2. 行内文字（任务名、0/5）压均匀底色对比稳定，高光款的反光会从字下穿过；
+  3. 扁平款 9-slice 友好（中段纯色，两端圆角切帽）。
+- **透明度不改图、走代码**：图保持不透明，`SetTint` alpha 起手 **0.7**（一行数字、重启即调）；抢眼→0.6；底线 0.55（再低丢"可点容器"存在感）。展开/悬停可用同 knob 分级（0.8 / 0.85）。
+- **硬前提**：① 即梦水印（"AI生成"角标 + "即梦AI" logo）必须干净导出，带水印不进图包；② 白底≠透明底，要 PNG alpha（以 panel_bg_alt 的 36px 透明边距为标准）。
+- 候选图落盘 `图片/` 后我做体检（尺寸/水印/白底/中段均匀度）再定稿。
+
+### 可展开（后期）要点
+- 行 = 独立 widget（alt 无行线，天然支持）；固定宽 660，双态高（收起 / 展开自适应内容）；拉伸用扁平款 9-slice 或上下端盖；展开动画走高度/SetScale 过渡，行间距由 list 自动重排；热区随高度同步。
+- 现行代码任务行 = 文本+进度件（行底靠 bg 烤线）→ 展开改造时给每行加 Image 底 + 排版重排。
+
+### 待命状态
+- bg 线：接线**就绪不抢跑**（等任务栏图定稿 + 用户点头 → alt+行底+五锚点一次接完 → 完全重启验收）。
+- 天使/荷包/星星（⑯）等完全重启一起验。
+
+
+## ⑱ 2026-09-26：黑线取证终局答复 + 换底板接线 + 去底板/荷包/赞助重排落地
+
+### 黑线根因——终局答复（供用户回来核对；全部本地脚本取证，未联网）
+**结论：导航缝里没有线。** 旧说法"主页缝透黑"是看走眼，更正。证据链：
+- nav 六张 + nav_equip 留白区**任意** alpha>8 像素 = 0（nav_pad_any_p8；上一轮按颜色筛会漏亮棕，这轮不筛色）→ nav 牌画不进缝一个像素。
+- 三版底图（HEAD / 12:45 / alt）缝芯 = 实心奶油 `(250,240,185,255)`，无透明窟窿、无半透明暗。
+- f0/f1/f2 缝隙 run list：缝芯只有三条**竖**线 —— 左框 `[-600..-593]`、框内线 `[-565..-563]`、中缝分隔 `[-434..-431]`（全为 art）；其余暗像素 = 缝顶牌匾花饰下垂 + 内容侧（更新志文字 / 粉红装饰 / 页框左缘），nav 柱中段背景 = 实心奶油、code 未画横线。
+- 全面板宽扫描（whole_width_p9，五缝高 ±6、全 x、≥40px 黑跑）：f1/f2 全 NONE，唯一例外 = f1 战士标题牌底边（-322..-199，画自带）。
+- 全截图横线清单（line_inventory_pa，≥100px、全高程）里"黑"的定案：
+  | 位置 | 根因 | 性质 |
+  |---|---|---|
+  | 面板顶黑带 cy356..416 全宽、下沿绕木牌不规则 | 底图顶部**本来就透明**（png 顶 50 行不透明占比 0→0.35、py55 起 0.98，牌+装饰只占 1/3 宽）→ 透出 self.black 0.6 压暗的世界 | 设计（牌浮出页顶）；alt 同款透明上沿（alt_top_alpha_pf 同曲线），换上后不变 |
+  | 信箱页纸框黑描边 y≈295 横贯 -405..527 + 左右下边 | 代码 L1740 `FrameLines(0.15,0.10,0.06)`「深棕黑压边」5px | 代码、有意为之；嫌黑改一个颜色参数（等用户点头） |
+  | 主页战士标题牌内深条 y112..128 | 标题牌美术 | 画 |
+  | 面板底缘深线 cy-368..-406 | 底图美术自带（png 行 731-758 实测有） | 画 |
+- 用户若指①顶黑带或②信箱页框，回来圈一下再定；不改也能用。
+
+### 本轮已改 5 项（**需完全重启 DST** 生效）
+1. **换底板接线（判决 = 映射 B 框贴合）**：modmain L112-113 注册 `panel_bg_alt` ATLAS/IMAGE（旧 panel_bg 注册保留可回滚）；panel L535-536 → `Image("images/panel_bg_alt.xml","panel_bg_alt.tex")` + `SetSize(1285.1, 887.2)`。
+   - 验算：红叉 (1625,127) → (1625-870.5)×1285.1/1741=**556.9** ≈ 现役 close_btn (563,347) 的 x、(578.5-127)×887.2/1157=**346.2** ≈ 347 ✓（A 框贴合差 29px 弃）；margin (1285.1-1232)/2=26.6、(887.2-832)/2=27.7 透明外溢不可见；content/close_btn/nav/页框**零改动**。
+   - xml 元素名 `panel_bg_alt.tex` 与 Image() 第二参一致（读文件核过）✓；tex/xml 21:56 已转好，本轮未再 convert。
+2. **礼包/图鉴去底板**：gift card fill `alpha 0.95→0`（L3098）、dex `w.bg alpha 0.22→0`（L1919）；FrameLines 框线 / chip 全保留（"同一底色的设计"= 框线部分）。技能页卡片底不在指令范围（未动）。
+3. **荷包微调**：`(475,-358)` → **`(478,-370)` 三处同步**（构造 L624、`spons_hot` 热区 L869、edit_mode L14 x/y+desc）；旋转 `15` → **`50`**（L628，按 DST 正数=逆时针下发；视觉反了改 **-20**，只此一处）。edit_mode 只管 x/y/w/h/visible、不接管 rotation。
+4. **赞助面板（第四张版面）重排**：pbg `alpha 0.96→0.99`（L713，压任务字透穿撞引文）、btn1 `spons_sec 95→98`（L734）、btn2 `spons_bot -5→-19`（L791）；标题190 / 引文-170 沉底不动；认领钮在二级页未动（风险自担口径不碰）。
+5. **校验**：`lua_balance_check` 三文件全 **BALANCED**；`editmode_balance_f3` HEAD/CURRENT 同深度，唯一 `)` 下溢 = jesc 误报（HEAD 同在，非本次改动）。
+
+### 换 alt 的可见后果（已授权、属预期，记档防忘）
+- 老 panel_bg 里烤的**任务行行底会消失**（alt 干净无行线；现行任务行 = 文本+进度件，行底全靠烤线）→ 等任务栏底图（推荐扁平哑光款、`SetTint` alpha 起手 0.7）落盘 `图片/` 后补行底。alt 先行是用户授权的，行底缺位不是 bug。
+- 五锚点（徽章/称号/Lv/经验条/首行起点）为代码内容坐标；映射 B 下 alt 框≈旧框 → 不用改；重启后若视觉有偏，按上面 B 验算式微调。
+
+### 排任务（等用户排期）
+- **技能书 vs hermes**：图已目检 —— 黑 tooltip 条、右侧白缝、布局稀疏、占位图标；参照 hermes 重排（参照程度/优先级等拍板）。
+- 信箱页框黑边要不要软化（L1740 颜色，一行）。
+- git 提交/推送、AGENTS.md 刷新、0.7.10 changelog 口径、10:31 产物去留、图片/35 张源图入仓等一串沿以前各节，仍等拍板。
+
+### 验收清单（用户回来）
+- **完全重启 DST**（tex 变了）→ 面板：新底板上屏（红叉仍能点关）、礼包/图鉴无底板只剩框线、荷包 (478,-370) 斜 50（反向改 -20）、赞助面板两钮均布且底不透字。
+- 顶黑带 / 信箱页框黑边看不顺眼就圈位置。
+
+## ⑲ 2026-09-26：月牙斩按官方写法重做八个面（命名方向根因实测 + 工程归位 + 成对切换）
+
+### 用户指令（原文）
+「动画命名方向是错的 你要按官方的写法来做八个面，或者看看应该怎么导入——按软件工程的方式正常导入 才能使用。 否则就得做SG 发出去飞的是怎么做的了。」
+
+### 根因（实测闭环，非猜测）：错的是**图的指向**，不是引擎
+- 测量工具：`exported/_tools/crescent_reorient.py`（PCA 主轴 + 前后判别，flight = 弦向-90°；先在临时副本标定旋转符号约定，再施转，复测 ≤2° 才算过）
+- 旧 8 张图对官方 nominal 标签的偏差（实测）：
+  | dir | 官方名 | 旧飞行指向 | nominal | 偏差 |
+  |---|---|---|---|---|
+  | 0 | downright | 53.4° | 45 | +8.4 |
+  | 1 | down | 132.7° | 90 | **+42.7** |
+  | 2 | downleft | 171.4° | 135 | **+36.4** |
+  | 3 | left | 194.8° | 180 | +14.8 |
+  | 4 | upleft | 233.4° | 225 | +8.4 |
+  | 5 | up | 312.7° | 270 | **+42.7** |
+  | 6 | upright | 351.4° | 315 | **+36.4** |
+  | 7 | right | 14.8° | 0 | +14.8 |
+- 机理：生成器按**世界格中心** 45k+22.5° 经 `K_SCREEN=0.5` 压扁投影 → 屏幕指向间隔 79.3/38.7/23.4/38.7° **不均匀**；图与生成器意图自洽（差恒 +93° = 弦向口径 + 约3°"上窄下宽"倾斜）→ 根子在"世界格中心"这套口径本身。
+- 推论：① **裸改名修不了**（left/right 各抢两张、down/up 无人指 = 撞名）→ 必须重定图的指向；② 09-16「引擎挑面失败」的证据被这张错图污染，不能据此怪引擎；③ 再跑 `crescent_gen.py` 会按旧口径把指向打回去 → 重跑后必须补过 `crescent_reorient.py`。
+
+### 落地（全本地可验证、未联网）
+1. **工程归位**（= 用户要的"按软件工程方式正常导入"）：桌面 `光斩素材_第4版_20260916` → `exported/crescent_moon/`
+   - 主工程 `crescent_cyan8.scml` = **官方后缀名版**；点名版 → `_bak_scml_点名声_20260926.scml`；原 8 图 → `_bak_dirs_原版_20260926/`
+2. **重定指向**：`python exported/_tools/crescent_reorient.py` → 8 张全部转到 nominal（45/90/…/315/0），闭环复测 **0.0° 全过** + 对照图目检（8 格凸面全与箭头同向）
+3. **官方编译**（CLI 不开 GUI）：工程目录下 `mod_tools/scml.exe crescent_cyan8.scml .` → `anim/crescent_cyan8.zip`（989,945 B）
+4. **包内自检 PASS**：anim.bin 8 条 `slash` 掩码 = `[64,8,128,4,32,2,16,1]`，**与 scml 动画顺序逐条吻合**（slash_downright→file0 … slash_right→file7）；8 个后缀名字符串在；对照现役包 = `slash_dir0..7`
+5. **成对切换**（铁律：常量与 zip 必须成对）：fx `USE_ENGINE_FACING = true`（现 **L143**，`FACING_DEBUG` 仍 true）+ 换包 md5 `D8AAF5F21E02FBEC296FEAB847BABC91`；旧点名包备份 `anim/_bak_crescent_cyan8_点名_20260926.zip`
+   - 顺手修一处引擎模式隐患：消散粒子 `PlayAnimation(ART.fly)` → `USE_ENGINE_FACING and FACING_ANIM or ART.fly`（否则粒子点名失败 = 空白）
+6. **Lua 校验**：WSL luac5.1 → **74 个文件全部通过**
+
+### 用户验收 + 校准（FACING_DEBUG=true 已开）
+- **完全重启 DST** → 放月牙斩 2~3 个已知方向（上 / 右下 / 左…）：**月牙凸面应与飞行方向一致**
+- 日志会打旋转角；若整体偏 45° 整数倍或呈镜像 → 只**对调 scml 里 `slash_*` 的名字**后重编（一条命令），**别动 Transform 旋转**（旋转=飞行方向，MotorVel 沿自身旋转飞）
+- 看不到月牙 = 配对被拆 → 按回退套件处理
+- **回退（必须成对）**：`USE_ENGINE_FACING=false` + `_bak_crescent_cyan8_点名_20260926.zip` 拷回；点名版要连图一起回旧口径 → `_bak_dirs_原版_20260926/` 拷回再重编
+
+### "否则就得做 SG" 的答复
+- **不用做 SG**：飞行链已是原版口径 —— projectile 组件 + `RotateToTarget`（旋转即方向，铁律第 7 条）+ `SetMotorVel`，这套在跑；官方挑面只接管"贴图按旋转选面"这一层，两层互不干涉。
+
+## ⑳ 2026-09-26 断电恢复：星图/mobius 收尾 + 标靶盘点 + 新 bug 两条（导出动画进行中）
+
+### 断电后重跑（用户：「重新跑一下你的工作」）
+- `.mobius/project_knowledge.md` **头部横幅已加**（用户拍板「1」，结构标题未删）：实证 = 09-13 生成、09-24 16:49 重跑**仅改 1 行**（面板入口 B 键移除），其余冻结在 0.7.6
+- 星图同步：对比实录 1 按 git 实证改准、doc.mobius note 更新；校验 **68/68 全绿**
+- 更正前一轮口误：文件里**没有 `_generated_at` 时间戳行**（当时乱码输出骗的）——「假新鲜时间戳」不成立；真相 = 09-24 重跑过但正文没跟上版本/任务
+
+### 标靶盘点（用户：「里面标靶还有什么」→ 逐条实测）
+- **已实现**：图鉴页（`scripts/musha_dex.lua` 在，且核心模块行自己写 5 页含图鉴 = 自相矛盾）／信箱页 P2／TRACE 清理（09-17 33 处改走 `TRACE()` 开关）／每日任务默认 4（`musha_world_settings.lua:16`）／技能页（在 5 页内）／`TEST_DAILY_COUNT=nil`（quest L138 实测）／4+6 职业、`DAILY_MAX=10` 均在
+- **仍开放**：P0 验证（= ⑱⑲ 等你重启验收）／任务扩编 13→30（未核数）／刷怪器 P4（全仓实测无 `musha_spawner`）／`musha_skill_data.lua:91` TODO／README-与-modinfo 不同步（= 星图对比 3/4，已拍板下版一并修）／等级经验校正（暂缓）／changelog 来源／美术清单（待画师）／周边统一
+- **过期口径**：版本行 0.7.6（实际 0.7.10）／「ja 计划中」（`speech_musha_jp.lua` 已存在）
+
+### 新 bug（用户 09-26 报告，原话）
+1. 「转职后 面板没更新 没变」——**09-26 已定位并修**：刷新链全通实测（UseAdvanceCrest `musha_profession_component.lua:1397` PushSettings→replica DoUpdata→`gamedata_dirty`→面板 `_on_dirty`→Refresh，标题/五子页都刷；`advance_quest` 在完成时 `musha_quest.lua:442` 已清不背锅）。**唯一卡旧态 = 职业头像**：`musha_panel_screen.lua` 09-22 拍板"二转后头像不变"按 `carrer_base` 取图 → 转完剑士徽章还是"战士"，用户 09-26 实测推翻该口径。修法（最小 diff）：L2432 改 `JOB_TEX[md.carrer_special] or JOB_TEX[md.carrer_base]`（special 空/没有自动退回基础）；L105 `DIRTY_EVENTS` 补 `musha_job_changed`（职业落地直达刷新，不再单押 gamedata_dirty）。备份 `screens/musha_panel_screen_20260926.bak`（168840B 与改前一致）；WSL luac **74 全过**。**待重启 DST 验收**（转职后看徽章换图）
+2. 「左边斩出去 反的」——⑲ 预案正中：若确为镜像 → **只对调 scml 里 `slash_*` 的名字**后重编（别动 Transform 旋转）
+
+### 导出动画（用户：「你需要导出动画让我看看」）
+- 新工具 `exported/_tools/dump_facings.py`（伴生、不改 dump_anim_frames：8 面裸名都是 `slash`、朝向存在 facing 字节里，原工具点不了第 N 面）
+- shipped 包 md5 `D8AAF5F21E02FBEC296FEAB847BABC91` ✓；f 序号↔官方名按 ⑲ 出厂记录 = f0=downright … f3=left … f7=right
+- 渲染完成（断点续渲：f0/f1 跳过、图集跨面缓存）→ 8 面全出；**对照表实证：渲染 == 源图逐面全吻合、无翻转，左面 f3 凸面朝左 ✓ —— 素材层没错，左斩"反的"症结在引擎挑面层（⑲ 预案：FACING_DEBUG 日志 → 对调 scml slash_* 名字重编）**
+
+## ㉑ 2026-09-26 贴叉叉 + 删旧 panel_bg + tex 重打（用户四点指示）
+
+### 1. 贴叉（「把叉叉贴上去，叉叉已经可用了」= `images/close_button_red.png` 916x926 白底，09-21 就在）
+- 工具 `exported/_tools/make_close_x_20260926.py`（可复现）：白洪泛抠底（边沿灌，X 白笔画被红圈包住不可达）→ `_tmp/close_x.png` 253x256；金星实测 = HSV 掩码 + **连通域岛链**（星=深棕描边包住的岛，框带触窗边全弃；左右臂被饱和度谷切断 → bbox 间隙≤16px 归并）→ 星 bbox **x1373..1451 y61..109**
+- 定位 = 覆盖搜索（圆须罩整星+3px 描边，搜"圆顶高出星顶 extra"×最小 D）→ **圆心 (1412,98) D=94**（extra=7）；QC 目检过：金星零外露、抠图无白边、白 X 笔画完好
+- 入库走 `art_update.py publish` → `images/close_x.{png,tex,xml}`（tex 87.5KB）+ 贴叉版 `panel_bg_alt.png`（旧三件自动备份 `_art_backup/panel_bg_alt_20260926_060807`）
+- **双层设计**：底图烤叉（可见 + ChatGPT ui_preview 预览可见）+ 控件层叠同一张 close_x（各边 +4 content 盖死烤叉 → 不会双 X）→ 悬停 1.0↔1.24 缩放才有视觉（贴死在底图上的叉动不了）
+
+### 2. tex 陈旧实锤与重打（⑱ 黑线没过的根子）
+- `art_update.py status`：**panel_bg_alt STALE**（27 新 1 旧）；旧 xml UV 反推 = 4096x2048 装 **1741x1157 旧图 2 倍** → 游戏一直跑旧底图
+- publish 重打后新 UV u2=0.7498×2048=1535.5 ✓ = **1536 新图**；status 复查 **29 全新 0 STALE 0 MISSING**
+
+### 3. 旧 panel_bg 删除（「panel_bg 旧版本 去掉」）
+- 备份 `_art_backup/panel_bg_old_20260926/`（png+xml+tex）→ 删 `images/panel_bg.{png,xml,tex}`
+- `modmain.lua` L108-109 注册同步删（不删=缺资产报错）、L111 注释改口；close_x 两行注册插在 alt 后
+- `modmain.lua` L121 `close_button_red` 预载**没动**（无代码引用，别人接的线）；UI_ELEMENTS 照旧
+
+### 4. 关闭按钮接线（⚠️ 三处同步全做了）
+- `musha_panel_screen.lua:572` 换 `ImageButton("images/close_x.xml","close_x.tex")`；ForceImageSize 80x80→**81.8x85.4**、SetPosition (563,347)→**(538.8,358.7)**、alpha 0/0.12→**1/1**；新增 `TweenCloseScale`（0.12s 8 步线性：GainFocus 1.0→1.24、LoseFocus 回落、OnClick 先 Cancel 再 PopScreen）——house L366 悬停缩放同款 API（SetOnGainFocus 本文件 6 处在用）
+- `musha_edit_mode.lua:9` ELEMENTS.close_btn 同步 x/y/w/h + desc（防 apply_to_panel 构造后盖回）
+- `星图集成.md` res.images note 改口（旧 panel_bg 已删 → 换图走 publish 管线）
+
+### 5. 校验与验收
+- 备份 `.20260926b.bak` 三份（panel_screen / edit_mode / modmain）；WSL luac5.1 → **74 全过**
+- **待完全重启 DST 验收**：①右上红叉在（金星已被替换）②悬停放大 1.24 移开回落 ③点叉关面板 ④黑边/黑线随新 tex 生效（连带⑱两项）⑤EditMode 拖关闭标记跟新坐标
+
+## ㉒ 2026-09-26 导航横幅重切（中英 12 张，用户「重切 那边图片切坏了 chatgpt用不了」）
+
+### 1. 病根与范围
+- 病根：旧切法按**固定 2列3行格子**切，横幅比格子大 → zh `nav_mail/set/gift/dex` 顶部混入**邻格碎屑**、两侧切损（`images/nav_*.png` 09-22 产物实锤）；en 同法更重（旧 h_ratio 0.602-0.867 = mail/set 带邻居碎片）
+- 源：`图片/UI_zh.png`、`图片/UI_en.png`（均 1659×948；zh 白底+局部透明混合、en 纯透明）
+- **只动像素层**：Lua/热区/edit_mode 零改动（按钮 200×100、NAV_GAP2=-8.4、2:1 口径全不变）
+
+### 2. 新切法（工具 `exported/_tools/slice_nav_20260926.py`，analyze|cut|install × zh|en 可复现）
+- ① mask=(alpha>16)&~白（白底实为透明 alpha=0，白件靠描边不丢）② **scipy 连通岛→质心落六宫格**（整兔一岛、跨谷耳尖按质心归本排；行谷 zh 373/644、en 366/635，列谷 zh 861.5、en 828.5，比例窗自适应）③ 联合包围盒**按岛 ID 剔异岛像素**（上下排 bbox 重叠 8~14px，zh 每格都中招 202~561px，不剔=带下排耳尖）→ contain 进 512×256（pad4、H_CAP 0.80、居中）
+- 账：zh h_ratio 0.684-0.801（旧 0.711-0.773）→ 视觉缝 12.7-20.3px（设计 18、旧 14.5-20.1 同量级）；en 新 0.668-0.746（旧 0.602-0.867，反而更匀）
+- QC：源图红框覆盖图 + QC 联络表各 2（`_tmp/nav_zh_20260926/qc_*`、`_tmp/nav_en_20260926/qc_*`）；岛清单 = 每宫一主岛 13.6~15.2 万 px + 零星星（全在主框内）→ 目检六格全幅完整零碎屑
+
+### 3. 装车与 publish
+- 备份：`_art_backup/nav_zh_old_20260926/`、`_art_backup/nav_en_old_20260926/`（各 6 张旧图）
+- 覆盖：zh 17:34-17:37、en 18:21 → `art_update.py publish` **12 张 tex 全重打**；status 复查 **28 up-to-date 0 STALE 0 MISSING**
+- **待完全重启 DST 验收**：导航六钮（中/英随语言）无碎屑无缺角、悬停/点击照旧
+
+## ㉓ 2026-09-26 夜：09-26 崩溃修复 + 叉号 B 案 + 经验条装饰框化 + 导航靠左 + 崩溃桥（E2E 全绿）
+
+### 1. 崩溃修复与荷包微调（行号为当前实测值）
+- `musha_panel_screen.lua:559` `btn:IsValid()` → `btn.inst == nil or not btn.inst:IsValid()`；`:569` `btn:DoTaskInTime` → `btn.inst:DoTaskInTime`（ImageButton 本体无 IsValid/DoTaskInTime，父体回收后点叉即炸 = 09-26 L555 崩溃栈根因）；备份 `.20260926c.bak`
+- 荷包 478,-370 → **482,-373** 三处一致：panel `:664`（purse）、`:909`（赞助热区同位）、`musha_edit_mode.lua:14`
+
+### 2. 叉号 B 案（根因定案 + 落盘）
+- 根因二合一：盘心 (1412,98) **锚星顶**比星 bbox 中心 (1412,85) 低 13px + 源图标 X 字形自带 +16px/916 图下偏（缩放后 +5px/253 图）
+- `make_close_x_20260926.py` 三处改造：①底改读干净备份 `_art_backup/panel_bg_alt_20260926_060807/` ②字形上移 5px（坑：白 X 是红盘的洞，须 `binary_fill_holes` 再取 mask 否则清空）③放置 B 案：星 bbox 中心 + D=94 罩不住才 +2
+- 重跑实测：close_x 盘/X 双心 (126,126) **off=(0,0)**；烤 extent x1366..1458 y38..131 **c=(1412,84.5)**；星区 uncovered=0；content **(538.8,370.0)** 与换算闭合
+- publish：`close_x`、`panel_bg_alt` 双 tex 重打（旧 atlas 自动备份 `_art_backup/*_20260926_203725 / _203728`）
+- Lua：panel `:578` SetPosition (538.8,358.7)→**(538.8,370.0)**（ForceImageSize 81.8×85.4 不变）+ `:541-548` 注释改 (1412,85)/(538.8,370.0)；edit_mode `:9` y=358.7→**370.0** + desc 同步
+- QC 待用户目检：`Temp/opencode/qc_new_glyph.png`、`qc_new_baked.png`（十字线重合、跨框对称、无重影无补丁痕）
+
+### 3. 经验条装饰框化（图片/进度条.png → images/exp_frame）
+- 精测：2056×765、alpha 内容框 2031×523；暗槽用灰绿规（lum 40..100 且 R−G<10）取最大连通域 = **x385..1810 y346..451**（1426×106、fill 0.88 圆角），直线段 y373..426、安全 fill 区 x412..1788 y376..422（旧粗测 x59..2011 是整圈描边连通污染 → 作废）
+- 设计（**邻居全不动**）：框 **295×76 @(−55,115)**（x −202.5..92.5 < 分隔线 99.5 ✓；y 77..153 = list 顶 74 / Lv 字 157 / 横幅隐藏态 75 三让）；槽显示 207×15.3、槽心 **(−45,115)**；fill 最大 **199.9×10、左缘 −144.5**；text 26 不变 @槽心
+- 落盘：裁图 `_tmp/exp_frame.png` → publish 重打；modmain `:116-117` 注册 ATLAS/IMAGE；panel `:957-959` 创建块（Image exp_frame / 295×76 / −55,115）、`:2407`/`:2412` 灰罩 → (1,1,1,1)/(1,1,1,0.5) 保色降透、`:2488-2489` fill 几何、`:2491` → (1,1,1,0.45)；QC `Temp/opencode/expframe_design.png`
+- art status：**29 up-to-date 0 STALE 0 MISSING**
+
+### 4. 导航靠左（按导航实施，报告写明可回退）
+- panel `:2210` nav_list x **−500 → −510**（仅 NAV_LEFT 分支；W=200 → 左缘 −610 > −616 余 6、右缘 −410 更让开任务行）
+- 放大不建议的账：纵向可用 583、现盒 100 用 558、极限 ≈104（+4%）；×1.2(=120) 末底 −382 砸穿花丛 −277（09-24 回调同因）；可见占比均值 0.743 已 > 旧 0.736
+
+### 5. 崩溃桥（本轮新功能，mod 侧+agent 侧全落地、E2E 实测全绿）
+- 新文件：`scripts/musha_crash_bridge.lua`（纯 Lua SHA256/HMAC，用 DST 的 bit 库）+ `crash_bridge/watcher.ps1`（.NET HMACSHA256、1s 轮询）+ `crash_bridge/start_watcher.cmd`；modmain `:1304` 起接线（require + start(MODROOT) + install_hooks，全 pcall）
+- 门禁：Lua 沙箱验不了 OS/Steam 证书 → **SteamID64 派生 key 的挑战-应答**：`key=SHA256_HEX("musha-crash-bridge/v1|76561198220617051")`（启动探 loginusers.vdf、失败退常数）；应答 = `HMAC_SHA256(ASCII(key), nonce)`；nonce **30s 滚动**留 [当前,上一个] 双格 → 过期/重放拒；**令牌不落盘**（盘上仅临时 challenge/应答）
+- 挂接：`_G.DisplayError` 包装（mainfunctions.lua:1586，按决定）+ `_G.ScriptErrorWidget` 构造兜底（gamelogic:58 / frontend:1640 / mods.lua:653 的 SetGlobalErrorWidget 漏斗全收）；同错误文本去重只发一份
+- 文件流：mod 写 `challenge.txt` → watcher 答 `agent_response.txt`（tmp+rename 防半写）→ 崩溃验过才写 `out_*.txt` → watcher 挪 `crash_inbox\`；`status.txt` / `last_event.txt` / `watcher.log` 诊断
+- 测试：WSL lua5.1 **6 向量全 PASS**（sha256 空/abc/448/896 + HMAC RFC4231 #1#2）；端到端 = 真 watcher `handshake=ok` → `released outbox=…` → `outbox_left=0 inbox_count=1`；**两侧 key_fp 一致 = 1769f45d5e21871c**
+- watcher 本会话已后台运行；重启电脑后双击 `crash_bridge/start_watcher.cmd` 再拉起
+
+### 6. 校验与验收状态
+- luac：**75 全过**（原 74 + 新模块）；art status 29 up-to-date
+- **待完全重启 DST 一次验收**：㉑+㉒ 八项、崩溃修复、荷包 482,-373、叉号 B 案、经验条新框、导航 −510；崩溃桥进游戏后看 client_log 出现 `[musha-crash-bridge] ready … key_fp=1769f45d5e21871c` 即握手侧就绪
+- git 仍未提交（HEAD=45eff68，未提交面持续扩大）；联网仍全停；月牙斩左斩等 FACING_DEBUG 日志
+
+## ㉔ 2026-09-26 深夜：加点天使修复 + 荷包/进度条二调 + 转职称谓 + 崩溃桥真机修（用户「先修musha 修完马上更新」）
+
+### 1. ★ 加点时天使冒面板（根因定案 + 修）
+- **根因**：`job_warrior.png` 本体就是**带光环的天使女孩**（职业头像）；`Refresh()` 里
+  `job_icon:Show()`/`job_star:Show()`/`quest_empty·quest_hint:Show()` 是**无条件**的
+  （约 :2449/:2470/:2524-2525 区）→ 加点=服务端推数据=`_on_dirty`→`Refresh()`
+  → 主页元素被从页面组里捞回来盖到技能页上（pages.home 整组都可能被这样露出来）
+- **修**：`musha_panel_screen.lua` Refresh **收尾**（约 :2551-2557）按当前页重新收口：
+  `active_page ~= "home"` → 把 `pages.home` 整组 Hide + 补一次 `RefreshHomeDecor()`
+- 真机日志佐证：01:05:35 开面板 → 01:05:40 五连 FROMNUM 告警（=数据推送那刻）
+
+### 2. 荷包二调 / 进度条二调 / 转职称谓（本轮点名五件）
+- 荷包：`panel:664` y **-373 → -376**（下移3）；`panel:668` rotation **+50 → -60**（倒转60°）；
+  热区 `panel:909` 同位 -376；`edit_mode:14` ELEMENTS 同步（x=482 y=-376 + desc）
+- 进度条（拉长40% + 右移180）：框 `panel:963-964` **295×76@(-55,115) → 413×76@(125,115)**；
+  槽心 **-45 → 139**（`exp_text:974`）；fill `panel:968` 初值 **-144.5 → -0.3**、
+  `panel:2494-2495` 动态 **199.9→279.9 / -144.5+99.95·pct → -0.3+139.95·pct**；
+  账：图整体横向 ×1.4 → 框内特征按中心等比（槽心偏移 +10→+14）；x -81.5..331.5、y 77..153 不变
+  ⚠️ 分隔线 y=82 会被新框横穿（x99.5..331.5 段），等用户看图拍板要不要让
+- 转职称谓「不要写战士 → 剑士 转职后直接写剑士」**三处**同改：
+  `panel:2433`（主页标题）、`panel:2693`（技能页头）、`panel:3068-3071`（装备页 Row10 职业）
+
+### 3. 崩溃桥真机挂了（client_log 实锤）+ 修
+- 日志 01:02:21：`[musha-crash-bridge] start error … musha_crash_bridge.lua:90 attempt to call upvalue 'ror'`
+- 根因：**DST 的 bit 库没有 ror**（全库 grep：47×band/33×bor/25×lshift/11×rshift、0×ror/rol）；
+  WSL 测试垫片提供了 ror → 把洞掩盖了（E2E 全绿是假绿）
+- 修：`musha_crash_bridge.lua:31-43` ror 缺席时用 `bxor(rshift(x,n), lshift(x,32-n))` 现搭
+- 回归：新写 `Temp/opencode/bridge_test_nor.lua`（垫片**不给** ror = 真机同款）→
+  6 向量全 PASS、**KEY_FP 仍 1769f45d5e21871c**
+
+### 4. 顺手修：shu mod 存档崩溃（用户贴的日志，非 musha）
+- `mods/shu/scripts/components/furaodipi_manager.lua:155` `data` nil：
+  引擎 `entityscript.lua:1908` 是 `v:OnSave()` **无参 + 要返回表** → 原实现接参且不返回
+  → 每次存档必炸，且地块数据**从来没存进去过**
+- 修：`OnSave()` 无参、建 local data、`pairs(self.tiles or {})`、**return data**；备份 `.20260926a.bak`；luac -p 过
+
+### 5. 校验与状态
+- 备份三份 `.20260926d.bak`（panel / edit_mode / crash_bridge）+ shu 一份 `.20260926a.bak`
+- WSL luac5.1：**75 全部通过**（含本轮全部改动）；shu 单文件 luac -p 过
+- 本轮**纯 Lua 改动**（tex/图零改动）→ 用户按需完全重启 DST 验收：
+  ①加点天使不再冒 ②荷包朝向/位置 ③进度条新长度位置 ④三处职业名直接写剑士
+  ⑤client_log 应见 `[musha-crash-bridge] ready … key_fp=1769f45d5e21871c`（桥首次真正挂上）
+- 未做（下一轮，等用户排队）：星图「爱丽丝计划」、小赫工作台任务核查、绘画AI推荐、
+  美术工具代码门禁/代码管理、其他页位置重置、v2 皮隐藏打包
+- 中间插曲：WSL 服务两次起不来（E_UNEXPECTED→RPC_S_CALL_FAILED→重启 vmcompute/hns 后恢复）
+
+## ㉕ 2026-09-27：星图核对任务 + 爱丽丝计划入图（用户「星图里检阅是否核对任务」）
+
+### 1. 全图核对（实测，非目测）
+- `星图集成.md` JSON 块 `json.loads` 通过；**71 星、70 个 path 全部实测存在**（col.zcode 无 path 属设计）、无重 id
+- mod 根目录 **20 份 MD 全部进图**（唯二除外：星图自身=图本身、无需自指）
+
+### 2. 本次入图 / 刷新（改前全文重读，逐处断言唯一）
+- 新增 `doc.new-features` → `musha-新功能构想_20260926.md`（9 项构想+拆件+swap_body 14 帧对照）
+- 新增 `plan.alice` → 爱丽丝计划（=新功能构想 §9；已告知 zcode；两条路线未拍板；
+  **星图侧已收录、工作台侧未整合**——TaskStarMap 接入归工作台侧、接不接用户拍板，已在 §六 记整合状态行）
+- 新增 `sys.crash-bridge` → `scripts/musha_crash_bridge.lua`（09-26 ror 修、key_fp、验收口径）
+- note 刷新：`doc.state` → ㉔ 在尾部；`tool.lua-check` → 期望 **75** 全过（含 §四.7）；
+  `sys.panel` → ㉔ 五件待验收；`verified_on` → 2026-09-27（frontmatter+json 双处）
+
+### 3. 给 Hermes 的「哪些 MD 不属实」答复（用户转达）——以星图 §四 为准
+1. `.mobius/project_knowledge.md` = **stale**（v0.7.6 vs 实际 0.7.10，近期任务大半已实现）→ 改信 `musha-current-state.md`（§四.1，09-26 已加头部横幅）
+2. `D:/Backup/Documents/Default Project/README.md` §2 过期（「EXE 待开发」→ `dsmod-packaging-tool` 已是完整工程）；§1 仍有效（§四.4）
+3. `AGENTS.md` 六处失准（L4/L85 死链、L28/L66 工具路径、L69/L77 幽灵脚本）**09-26 已修净现属实**——但路径/校验命令以星图表为准（§四.2/6/7/8）
+4. `modinfo.lua`（非 md）L1 name 0.7.9 vs L4 version 0.7.10，下版一次性全修（§四.3）
+5. 技能三副本（非不属实、是漂移风险）：改一处必须同步其余（§四.5）
+- 09-27 复核：除上述已知项，其余在图文档 path 全在、无新增失实项
+  ⚠️ Hermes 会话里 `search_files` 搜不到 `musha-current-state.md`（其检索 cwd 不在 mod 目录）——**必须给绝对路径**：
+  `D:/SteamLibrary/steamapps/common/Don't Starve Together/mods/musha/musha-current-state.md`
+
+### 4. 小赫工作台任务核查（09-27 实测 `%APPDATA%\app`）
+- 工作台运行时目录 = `%APPDATA%\app`（`name=app`）；`agent-endpoint.txt=127.0.0.1:8642` ✓；inbox 空、auto-dispatch 关
+- `workspace-store.json` → `local-sessions` 共 **4 会话**（3 空 + 1 个 37 条消息的主会话，09-26 22:10 更新）
+- 主会话里**已完整收到用户 09-26 大任务单**（人格功能/自动收集报告/爱丽丝计划/绘画AI/v2 皮/天使皮/页面位置/美术工具门禁）✓ 任务已到 hermes 手
+- hermes 回复卡在两点：①读不到聊天图片路径 ②在等用户排优先级；另其源码主线/绑定档案 = `D:\exclusive-for-hermes-gitee`（repo-bind.json projectDir）——与星图 col.workbench 记的 master 目录**不是同一份**，更新/改码认 gitee 那份
+- TaskStarMap（会话星）与本图 JSON 的接入仍未做（§六，归工作台侧、用户拍板）
+
+## ㉖ 任务栏批次一（09-27 04:3x 落地，待完全重启验收）
+- **用户拍板（本批口径）**：任务栏=面板主页任务列表区换底（粉书 musha_skillbook、透明0.6、周围深蓝实线）；行右端小三角 静止◀、点开向下插详情子行；详情=需要什么+奖励；猎犬=任务需求里显示；抽奖=1池120件不放回、抽空重置、3星/抽、面板新页；蔬菜组=随机一种 20个+40专属种子（只可种不可食）；星星=任务奖励、右键+3~7职业经验
+- **落地十处**：panel_screen —— `QLIST_X/Y=122,-160` 常量（底图/框/列表共用）、`quest_bg` 粉书 ForceImageSize+SetTint(1,1,1,0.6)、`quest_bg_frame`=FrameLines 深蓝(0.10,0.18,0.35,1) 4px、行 ctor 加 `clicker`整行热区+`caret`◀▼(UIFONT字形)、`req/rwd` 详情文字、`hound`=UIAnim(bank=hound, build=hound_red, idle, scale0.45)、apply_fn 详情分支（深蓝淡底+藏三角）、`BuildQuestItems()`（展开插 detail 行，Refresh/点三角共用）、pages.home 收编 bg/frame；musha_quest —— SyncToPanel 日常/转职各加 `ty`+`exp`（json 通用通道）
+- 语法 **76 文件全过（04:33）**；76=75+新建 `musha_rabbitbackpack.lua`（另一路 agent 03:03-03:19 动过 modmain/mail/languages/containers 与本批不冲突）
+- **验收点**：底图放大糊不糊、◀▼字形（变方框→回退"<"/"v"）、猎犬大小/位置（scale 0.45 可调）、深蓝色值可调
+- 未动（后续批次）：抽奖页 UI、星星 prefab、蔬菜/专属种子、任务奖励物品字段（随星星一起）

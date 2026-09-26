@@ -1,0 +1,138 @@
+{
+  "bg": "images/panel_bg_alt.png",
+  "scale": 1.0,
+  "note": "v1 草案：坐标以 panel_bg_alt.png(1741x1157) 左上为原点。数字全部可调——保存本文件预览自动刷新。",
+  "elements": [
+    {
+      "name": "close_btn",
+      "kind": "text",
+      "pos": [
+        1518,
+        88
+      ],
+      "text": "✕",
+      "size": 30,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "note": "X 已烤在底图里，这里只做位置标记"
+    },
+    {
+      "name": "badge",
+      "kind": "image",
+      "tex": "images/inventoryimages/musha_jobbook_warrior.png",
+      "pos": [
+        390,
+        475
+      ],
+      "size": [
+        72,
+        72
+      ],
+      "anchor": "center",
+      "note": "职业徽章=job_icon，代码层换"
+    },
+    {
+      "name": "title",
+      "kind": "text",
+      "pos": [
+        448,
+        446
+      ],
+      "text": "称号：远行者",
+      "size": 26,
+      "color": [
+        122,
+        84,
+        40,
+        255
+      ]
+    },
+    {
+      "name": "lv",
+      "kind": "text",
+      "pos": [
+        445,
+        486
+      ],
+      "text": "Lv 12",
+      "size": 22,
+      "color": [
+        255,
+        224,
+        130,
+        255
+      ]
+    },
+    {
+      "name": "expbar_bg",
+      "kind": "rect",
+      "pos": [
+        560,
+        492
+      ],
+      "size": [
+        420,
+        18
+      ],
+      "color": [
+        90,
+        70,
+        40,
+        220
+      ],
+      "radius": 9
+    },
+    {
+      "name": "expbar_fill",
+      "kind": "rect",
+      "pos": [
+        562,
+        494
+      ],
+      "size": [
+        260,
+        14
+      ],
+      "color": [
+        255,
+        200,
+        80,
+        255
+      ],
+      "radius": 7
+    },
+    {
+      "name": "rows",
+      "kind": "rows",
+      "pos": [
+        320,
+        570
+      ],
+      "size": [
+        1100,
+        66
+      ],
+      "gap": 14,
+      "rows": 6,
+      "note": "首行起点=rows.pos，行数/行高/间距在此调"
+    },
+    {
+      "name": "star_dec_1",
+      "kind": "image",
+      "tex": "images/inventoryimages/musha_jobbook_warrior.png",
+      "pos": [
+        120,
+        900
+      ],
+      "size": [
+        36,
+        36
+      ],
+      "note": "示例：框外装饰星（占位）"
+    }
+  ]
+}

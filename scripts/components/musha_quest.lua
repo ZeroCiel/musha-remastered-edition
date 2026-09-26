@@ -845,6 +845,8 @@ function MUSHA_QUEST:SyncToPanel()
             p = q.progress,
             t = q.target,
             done = q.done or false,
+            ty = q.type, -- ★ 2026-09-27：面板详情子行"需要什么"用（json 通道通用，直接带）
+            exp = q.exp, --   + "奖励：职业经验 N" 预览
         })
     end
 
@@ -876,6 +878,8 @@ function MUSHA_QUEST:SyncToPanel()
             p = self.advance_quest.progress,
             t = self.advance_quest.target,
             done = self.advance_quest.done or false,
+            ty = self.advance_quest.type, -- ★ 2026-09-27：同上，详情子行用
+            exp = self.advance_quest.exp,
         }
     else
         pc.userdata.advance_quest = nil
