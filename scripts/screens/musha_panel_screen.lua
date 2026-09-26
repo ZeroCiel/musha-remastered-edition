@@ -97,7 +97,7 @@ local NAV_ALWAYS_SHOW = true
 --       行高 58 + 行距 72 → 6 行占 432，底行下沿 -369 > -416 不再压底框
 local ITEM_W = 680          -- 行 widget 宽（含框外扩）= ROW_W + 20（框外扩两侧各 10）
 local ITEM_H = 72           -- 行高 = 行距
-local VISIBLE_ROWS = 6
+local VISIBLE_ROWS = 5         -- ★ 09-27 用户拍板 6→5：内纸下沿实测 content y=-351（老注释-416 错 65），6 行 418+框 24=442 > 可用 415
 local ROW_W = 660           -- 底框宽度（框/白条/红条同步）
 local ROW_H = 58            -- 行底框高（描边/红条/白条/分隔线都由它推）
 
@@ -404,7 +404,7 @@ end
 --   ★ 2026-09-18 加 onclick：锁本身也能点（点它 = 用背包里的技能书解锁）
 local function MakeLockButton(parent, size, x, y, tipfn, onclick)
     local b = parent:AddChild(ImageButton("images/skilltree.xml", "locked.tex"))
-    b:SetSize(size, size)
+    b:ForceImageSize(size, size)   -- ImageButton 无 SetSize（继承 Button 非 Image）
     b:SetPosition(x, y)
     b.scale_on_focus = false                       -- 别吃 ImageButton 默认的 focus 放大（会爆框）
     b:SetImageNormalColour(0.58, 0.52, 0.44, 0.95)
@@ -604,7 +604,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     end
     self.close_btn = self.content:AddChild(ImageButton("images/close_x.xml", "close_x.tex"))
     self.close_btn:ForceImageSize(81.8, 85.4)
-    self.close_btn:SetPosition(573.0, 371.0)   -- ★ 09-27b 用户：右移到UI最右上顶角（卡角616,416-半尺寸40.9,42.7-2px边距）；底图烤叉已擦除(erase_close_x_20260927)，控件=唯一X（原B案538.8已废）；
+    self.close_btn:SetPosition(585.0, 371.0)   -- ★ 09-27c 用户：右移12px（573→585）；
         --   历史：zcode 两次只挪控件（563.8→553.8）造成两叉错开，已归位。改此值必须同步 edit_mode ELEMENTS.close_btn；若真要移位须重烤 panel_bg_alt（动像素+重打tex+完全重启），先问用户
     self.close_btn.scale_on_focus = false
     self.close_btn.normal_scale = { 1, 1, 1 }
@@ -1045,20 +1045,11 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     -- ================================================================
     local FT = 4
     local FOFF = 4
-    local QLIST_X, QLIST_Y = 122, -160   -- 列表中心：底图/框/列表共用一处，改位只动这里
+    local QLIST_X, QLIST_Y = 122, -140   -- 列表中心：底图/框/列表共用一处，改位只动这里（-160→-140，5 行后往上收，框 [52,-332] 全在内纸内：下沿 -351、主纸右缘 ≈+576、经验条底 77）
 
-    -- ★ 2026-09-27 用户："把这个（技能书粉图）设置为任务栏，透明0.6，周围要求实线、深蓝色"
-    --   底图 = musha_skillbook 库存图（64×64 拉伸当底，先上车后调；嫌糊再谈重画）
-    --   深蓝实线 = FrameLines 4px（RGB≈26,47,90）
-    --   ⚠️ 必须建在 self.list **之前**：后加的子件会画到列表上面，盖住任务行
-    local QBG_W, QBG_H = ITEM_W + 44, VISIBLE_ROWS * ITEM_H + 24
-    self.quest_bg = self.content:AddChild(Image("images/inventoryimages/musha_skillbook.xml", "musha_skillbook.tex"))
-    self.quest_bg:SetSize(QBG_W, QBG_H)   -- Image 只有 SetSize（ForceImageSize 是 ImageButton 专属，:1055 曾因此构造失败）
-    self.quest_bg:SetPosition(QLIST_X, QLIST_Y)
-    self.quest_bg:SetTint(1, 1, 1, 0.6)
-    self.quest_bg_frame = self.content:AddChild(Widget("musha_qbg_frame"))
-    self.quest_bg_frame:SetPosition(QLIST_X, QLIST_Y)
-    FrameLines(self.quest_bg_frame, QBG_W, QBG_H, 0, 4, 0.10, 0.18, 0.35, 1)
+    -- ★ 09-27 用户二改（推翻当天早先的换底）："技能书做底框不太对，外面不应该加蓝框 → 都不要，任务区回原样"
+    --   技能书底图 + 深蓝外框一起撤（原设计=粉书0.6 + FrameLines 4px；实测框比书大一圈、还压出内纸下沿）
+    --   任务区回到透明底，只留任务行本身。QBG_W/QBG_H 与那两行建件全删（帧函数 FrameLines 别处还在用，保留）
 
     -- ★ 2026-09-27 用户："右边加一个小三角 三角形向左 点开向下"
     --   展开态：key → true；点任务行（含三角）在行下方插一条同高详情子行
@@ -1126,7 +1117,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         -- ★ 2026-09-27 用户："右边加一个小三角 三角形向左 点开向下"
         --   整行透明热区（点开/收起）+ 右端三角字形；静止◀、展开▼（UIFONT 中文集带这俩字形）
         w.clicker = w:AddChild(ImageButton("images/global.xml", "square.tex"))
-        w.clicker:SetSize(ROW_W, ROW_H)
+        w.clicker:ForceImageSize(ROW_W, ROW_H)   -- ImageButton 继承 Button 不继承 Image，没有 SetSize
         w.clicker:SetPosition(0, 0)
         w.clicker.scale_on_focus = false
         w.clicker:SetImageNormalColour(1, 1, 1, 0)
@@ -1530,7 +1521,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         self.home_divider,
         self.exp_bg, self.exp_fill, self.exp_text,
         self.quest_empty, self.quest_hint,
-        self.quest_bg, self.quest_bg_frame, self.list,
+        self.list,   -- 09-27 二改：quest_bg/quest_bg_frame 撤（任务区回原样），别再往这表里塞
     }
 
     local function NewPage()
@@ -2510,6 +2501,77 @@ function MushaPanelScreen:BuildQuestItems(md)
     return items
 end
 
+-- ============================================================
+-- ★ 09-27 用户拍板：「恢复技能」（硬编码）
+--   hermes / 其他 agent 很容易把标题栏文字和战士头像弄没（Hide、Kill、改坐标字号都算）。
+--   这是个**不依赖数据链路**的自愈入口：
+--     · Refresh() 一进来就调它 → 后面哪一步炸了，标题+头像也已经在位
+--     · 手动恢复直接调：self:RestoreTitleAndAvatar(md, has_job)
+--   坐标字号全部写死（= 构造处 :645-662），故意不引用构造期 local，防止被改坏后取不到
+-- ============================================================
+function MushaPanelScreen:RestoreTitleAndAvatar(md, has_job)
+    if not self.content then return false end
+
+    local HOME_TOP_Y, JOB_W, JOB_LX = 230, 300, 40   -- 40 = -110 + 300/2（=构造 :647）
+    local restored = false
+
+    -- 1) 标题栏文字：没了就重建，几何硬归位
+    if self.job_text == nil then
+        self.job_text = self.content:AddChild(Text(UIFONT, 64))
+        restored = true
+    end
+    self.job_text:SetColour(0.8, 0.6, 0.3, 1)
+    self.job_text:SetHAlign(ANCHOR_LEFT)
+    self.job_text:SetRegionSize(JOB_W, 70)
+    self.job_text:SetPosition(JOB_LX, HOME_TOP_Y)
+    if has_job and md then
+        local t = JobName(md.carrer_base)
+        if md.carrer_special ~= nil and md.carrer_special ~= "" then
+            t = JobName(md.carrer_special)   -- 二转只写进阶职业名（09-26 拍板）
+        end
+        self.job_text:SetString(t)
+    end
+
+    -- 2) 标题旁的星：没了就重建（Refresh 后面按标题宽度重摆）
+    if self.job_star == nil then
+        self.job_star = self.content:AddChild(Text(UIFONT, 30))
+        self.job_star:SetString("★")
+        self.job_star:SetColour(0.98, 0.78, 0.15, 1)
+        restored = true
+    end
+    self.job_star:SetPosition(47, 248)
+
+    -- 3) 战士头像：没了就重建（贴图/尺寸/位置硬编码）
+    if self.job_icon == nil then
+        self.job_icon = self.content:AddChild(Image("images/job_warrior.xml", "job_warrior.tex"))
+        restored = true
+    end
+    self.job_icon:SetSize(28.5, 28.5)
+    self.job_icon:SetPosition(-257, 207)
+
+    -- 4) 只在主页亮（切页由 SetActivePage 统一 Hide；没切过页 active_page=nil 按主页算）
+    local on_home = (self.active_page == nil or self.active_page == "home")
+    if on_home then
+        self.job_text:Show()
+        if has_job then self.job_icon:Show() else self.job_icon:Hide() end
+        if has_job then self.job_star:Show() else self.job_star:Hide() end
+    end
+
+    -- 5) 重建出来的件挂回主页清单，否则切页管不到它
+    if self.pages and type(self.pages.home) == "table" then
+        local home = self.pages.home
+        local function seen(w)
+            for _, v in ipairs(home) do if v == w then return true end end
+            return false
+        end
+        for _, w in ipairs({ self.job_text, self.job_icon, self.job_star }) do
+            if w and not seen(w) then table.insert(home, w) end
+        end
+    end
+
+    return restored
+end
+
 function MushaPanelScreen:Refresh()
     local md = self:GetUserData()
     -- ★ 修复：md 为 nil 时（服务端数据未推送）不直接 return，
@@ -2525,6 +2587,10 @@ function MushaPanelScreen:Refresh()
     end
 
 local has_job = md.carrer_base ~= nil and md.carrer_base ~= ""
+
+    -- ★ 09-27「恢复技能」：进 Refresh 第一件事先把标题栏+战士头像摆回去，
+    --   这样哪怕后面哪一步又炸了（其他 agent 改坏也一样），标题和头像已经在位
+    self:RestoreTitleAndAvatar(md, has_job)
 
     -- ★ 赞助入口（2026-09-24）："愿者上钩" → 荷包热区跟着闸门走；
     --   96x65 的赞助框太扎眼 → **始终不显示**（只在编辑模式里留着预览用）。
@@ -2628,9 +2694,10 @@ local has_job = md.carrer_base ~= nil and md.carrer_base ~= ""
     self.exp_fill:SetSize(363.9 * pct, 10)
     self.exp_fill:SetPosition(-17.9 + 181.9 * pct, 115)  -- 左缘 -37.9 + 半宽 181.9 × pct（×1.3）
     if has_job and pct <= 0.001 then
-        self.exp_bg:SetTint(1, 1, 1, 0.65)
-        self.exp_fill:SetTint(0.72, 0.72, 0.72, 0.55)
-        self.exp_text:SetColour(0.55, 0.55, 0.55, 0.8)
+        -- ★ 09-27 用户硬性要求："经验条加0.2alpha，太虚了"（0.65/0.55/0.8 → 0.85/0.75/1.0）
+        self.exp_bg:SetTint(1, 1, 1, 0.85)
+        self.exp_fill:SetTint(0.72, 0.72, 0.72, 0.75)
+        self.exp_text:SetColour(0.55, 0.55, 0.55, 1)
     end
 
     -- 组装任务列表（2026-09-27 抽成 BuildQuestItems：点三角展开走同一份逻辑）
