@@ -1845,9 +1845,14 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                 w = 596, h = 424,
                 on_select = function(e) self:ShowSkillDetail(e) end,
             }))
-            -- ★ 09-27 二改（用户「技能树按 hermes 原来的写法 + 要固定」）：
-            --   回到 hermes 收起态 (0,-26)，并且**永不再左右跳**（09-27 上一版 61,8 撤回）
-            self.skill_tree:SetPosition(0, -26)
+            -- ★ 09-28 用户定起算点："技能从【技能】和【主页】中间的范围起算，取中心点，
+            --   再右移 100 像素（80 像素内）作为起始"
+            --   · 导航列 nav_list 中心 x = -510、按钮宽 200 → 右移 100 = **-410 = 导航右缘**（正好贴齐）
+            --   · 纵向：主页按钮中心 y = -120+366 = 246、技能 = 246-91.6 = 154.4 → 中心点 = **200.2**
+            --   · 视口 596×424 → 起点(左上)=(-410, 200) → 中心 = (-112, -12)[content]
+            --     → 换算到页面 root(root 在 content 的 (0,-33)) = **(-112, 21)**
+            --   仍然**固定不跳**（点节点/收详情都回这个位）
+            self.skill_tree:SetPosition(-112, 21)
 
             -- ③ 版式切换按钮 —— ★ 2026-09-21 用户拍板「直接横排 不要竖排了」→ **不再创建这两颗按钮**
             --   竖排列表相关的 widget（skill_grid / skill_tabs / skill_foot / skill_empty）仍在，
@@ -2901,17 +2906,27 @@ function MushaPanelScreen:RefreshSkills(md)
     end
 
     if #list == 0 then
+        -- ★ 2026-09-28 用户："技能可以一直显示，不要显示'已全部学习'"
+        --   横排树模式（现在是唯一版式）下**永远不弹空状态字样**：
+        --   · 树喂的是全量 data.skills，跟「未学习/已学习」筛选无关 → 筛空 ≠ 没技能；
+        --   · 原来 RefreshSkills 末尾会重新 Show()，把 SetSkillMode 里刚 Hide 掉的字样又顶出来。
+        --   竖排列表（退路版式）保留原来的三档文案不变。
+        local tree_mode = (self.skill_mode == "tree")
         if self.skill_empty then
-            if not job then
-                self.skill_empty:SetString("还没有职业")
-            elseif tab == "learned" then
-                self.skill_empty:SetString("还没有学习任何技能")
+            if tree_mode then
+                self.skill_empty:Hide()
             else
-                self.skill_empty:SetString("该职业的技能已全部学习")
+                if not job then
+                    self.skill_empty:SetString("还没有职业")
+                elseif tab == "learned" then
+                    self.skill_empty:SetString("还没有学习任何技能")
+                else
+                    self.skill_empty:SetString("该职业的技能已全部学习")
+                end
+                self.skill_empty:Show()
             end
-            self.skill_empty:Show()
         end
-        self.skill_grid:SetItemsData({})
+        if self.skill_grid then self.skill_grid:SetItemsData({}) end
         return
     end
     if self.skill_empty then self.skill_empty:Hide() end
@@ -2973,14 +2988,14 @@ function MushaPanelScreen:ShowSkillDetail(e)
         self.skill_detail:Hide()
         -- ★ 09-25：详情收起 → 技能树回中
         -- ★ 09-27 二改（用户「要固定」）：树固定在 hermes 原位 (0,-26)，收起/展开都不动
-        if self.skill_tree then self.skill_tree:SetPosition(0, -26) end
+        if self.skill_tree then self.skill_tree:SetPosition(-112, 21) end
         return
     end
     self.skill_detail:Show()
     -- ★ 09-25：详情展开 → 技能树左移让位（原 0 → -124）
     -- ★ 09-27 二改（用户「树要固定，点了不要左右乱动」）：**不再左移**，树保持 (0,-26)；
     --   详情让到 414（左缘 298 = 树视口右缘）贴着树放，两者不重叠
-    if self.skill_tree then self.skill_tree:SetPosition(0, -26) end
+    if self.skill_tree then self.skill_tree:SetPosition(-112, 21) end
 
     -- 中文按字数折行（DST 的 Text 不会自动换行，手动插 \n；UTF-8 逐字取）
     local function Wrap(str, n)

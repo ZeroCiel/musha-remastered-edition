@@ -1441,13 +1441,40 @@ function Musha_Profession_Component:GetSkillView()
     local trees = {}
     local base = self.userdata.carrer_base
     local spec = self.userdata.carrer_special
-    if base and self[base] then
-        table.insert(trees, { key = base, kind = "base" })
+
+    -- ★ 2026-09-28 修（用户："技能面板只查看了没有学习，直接表示我学习完了"）：
+    --   原来这里只按 `self[base]` 认**原始键**，存档里的键跟已知技能树键对不上时
+    --   trees 为空 → return {} → 面板技能树整棵空白 + 空状态弹「该职业的技能已全部学习」。
+    --   三重解析：原键 → 语言名反查（"战士" → warrior，读 STRINGS.MUSHA_JOB_*）→ 前缀匹配；
+    --   还空就打一行诊断（client_log 一眼能看到 base/spec 到底是什么）。
+    local function ResolveTreeKey(k)
+        if not k or k == "" then return nil end
+        if self[k] and SKILL_ORDER[k] then return k end
+        for cand in pairs(SKILL_ORDER) do
+            local ok, nm = pcall(function()
+                return STRINGS["MUSHA_JOB_" .. string.upper(cand)]
+            end)
+            if ok and nm == k then return cand end
+        end
+        for cand in pairs(SKILL_ORDER) do
+            if k:sub(1, #cand) == cand then return cand end
+        end
+        return nil
     end
-    if spec and spec ~= "" and self[spec] and spec ~= base then
-        table.insert(trees, { key = spec, kind = "special" })
+
+    local bk = ResolveTreeKey(base)
+    local sk = ResolveTreeKey(spec)
+    if bk then
+        table.insert(trees, { key = bk, kind = "base" })
     end
-    if #trees == 0 then return {} end
+    if sk and sk ~= bk then
+        table.insert(trees, { key = sk, kind = "special" })
+    end
+    if #trees == 0 then
+        print(string.format("[Musha] GetSkillView 返回空（技能树整棵会空白）: base=%s spec=%s",
+            tostring(base), tostring(spec)))
+        return {}
+    end
 
     local function TreeNodeName(tree)
         local ok, s = pcall(function() return STRINGS["MUSHA_JOB_" .. string.upper(tree or "")] end)
