@@ -114,8 +114,11 @@ end
 local MUSHA_QUEST = Class(function(self, inst)
     self.inst = inst
 
-    -- 每日任务
+    -- 每日任务（= 已接取、进行中）
     self.daily_quests = {}    -- {quest_id, progress, target, type, name, done, day}
+    -- ★ 2026-09-28 酒馆委托板：**可接列表**（还没接的每日委托挂在酒馆里）
+    --   用户拍板："玩家每日获得的任务都移动过去，接取了才会出现任务去进行，不用每日轮询"
+    self.available_quests = {}
     -- 转职任务
     self.advance_quest = nil  -- 同上结构
     self.advance_round = 1    -- 1..3
@@ -243,6 +246,87 @@ local function MakeQuestEntry(quest_id)
 end
 
 -- ====================================
+-- ★ 2026-09-28 酒馆委托板（服务端逻辑）
+--   · available_quests = 酒馆板上挂着、还没接的委托
+--   · daily_quests     = 已接取、进行中（上限仍是 DAILY_MAX=10，玩法不变）
+--   · 换天**不再自动塞进行中**，只把可接列表补满；进不进行中由玩家点「接取」
+--   · 转职任务 advance_quest 完全不动（卷轴/仪式那套照旧）
+-- ====================================
+
+-- 品质：按任务经验分档 —— 普通(灰) / 白 / 银 / 金
+--   （用户："分普通（灰色）白色 银色 金色"；按 exp 分正好四档：
+--     灰 8~10：见龙蝇/存活/制造/回复/科学机器　白 12~15：锅/野猪/蜘蛛/燃料/海象
+--     银 18~20：火猎犬/格罗姆　金 ≥25：三色宝石）
+local function QualityOf(exp)
+    exp = exp or 0
+    if exp >= 25 then return 4 end   -- 金
+    if exp >= 18 then return 3 end   -- 银
+    if exp >= 12 then return 2 end   -- 白
+    return 1                          -- 普通（灰）
+end
+
+-- 把可接列表补满到 GetDailyCount() 条（已在进行中 / 已经挂着的不重复放）
+function MUSHA_QUEST:RefreshAvailableQuests()
+    if TheWorld and not TheWorld.ismastersim then return end
+    if self.available_quests == nil then self.available_quests = {} end
+
+    local skip = {}
+    for _, q in ipairs(self.daily_quests or {}) do skip[q.quest_id] = true end
+    for _, q in ipairs(self.available_quests) do skip[q.quest_id] = true end
+
+    local room = self:GetDailyCount() - #self.available_quests
+    if room <= 0 then return end
+
+    for _, qid in ipairs(PickQuestsFromAll(room, skip)) do
+        local q = MakeQuestEntry(qid)
+        if q then
+            q.quality = QualityOf(q.exp)
+            table.insert(self.available_quests, q)
+        end
+    end
+
+    if DEBUG_QUEST then
+        local ids = {}
+        for _, q in ipairs(self.available_quests) do
+            ids[#ids + 1] = tostring(q.quest_id) .. "(Q" .. tostring(q.quality or 1) .. ")"
+        end
+        print("[Musha Quest] 酒馆可接列表补满: " .. table.concat(ids, ", "))
+    end
+end
+
+-- 接取一条酒馆委托 → 移进"进行中"（面板/酒馆板的「接取」按钮走这条）
+function MUSHA_QUEST:AcceptQuest(quest_id)
+    if TheWorld and not TheWorld.ismastersim then return false, "server_only" end
+    quest_id = tonumber(quest_id)
+    if not quest_id then return false, "bad_id" end
+    if self.available_quests == nil then self.available_quests = {} end
+
+    for _, q in ipairs(self.daily_quests) do
+        if q.quest_id == quest_id then return false, "already" end
+    end
+    if #self.daily_quests >= DAILY_MAX then return false, "full" end
+
+    local idx
+    for i, q in ipairs(self.available_quests) do
+        if q.quest_id == quest_id then idx = i break end
+    end
+    if not idx then return false, "not_available" end
+
+    local q = table.remove(self.available_quests, idx)
+    q.progress = 0
+    q.done = false
+    q.day = (TheWorld and TheWorld.state and TheWorld.state.cycles) or 0
+    table.insert(self.daily_quests, q)
+
+    self:RefreshAvailableQuests()   -- 补一条进来，板子不会越接越空
+    self:SyncToPanel()
+    if DEBUG_QUEST then
+        print("[Musha Quest] 接取委托 " .. tostring(q.quest_id) .. " " .. tostring(q.name))
+    end
+    return true, q
+end
+
+-- ====================================
 -- 每日任务发放/过期
 -- ====================================
 
@@ -310,36 +394,14 @@ function MUSHA_QUEST:CheckNewDay()
     end
 end
 
--- 新的一天"新增"N 个（累积，上限 DAILY_MAX=10）
--- ★ 2026-09-12 修：旧实现是 FillDailyQuests()（补到 N 个）→ 手里还剩 N 个没做完时
---   to_add = want - active = 0 → **次日一个都不发**（用户报"到次日 不加任务"）。
---   现在改成"每天新增 GetDailyCount() 个"，做完的清掉、没做完的留着，总量封顶 10。
+-- 新的一天 → **只补满酒馆可接列表**（2026-09-28 用户拍板）
+-- ★ 历史：这里是"每天新增 GetDailyCount() 个直接塞进 daily_quests"（2026-09-12 修）。
+--   2026-09-28 用户："玩家每日获得的任务都移动过去，接取了玩家才会出现任务去进行，
+--   不用每日轮询" → 每日委托搬进酒馆板，**换天不再自动发进进行中**，
+--   进行中只能靠玩家点「接取」；已接的（survive 跨天推进 / discover 隔日作废）
+--   仍旧由 OnNewDay 处理，玩法不变。
 function MUSHA_QUEST:GrantNewDayQuests()
-    local want = self:GetDailyCount()
-    local room = math.max(0, DAILY_MAX - #self.daily_quests)
-    local to_add = math.min(want, room)
-    if to_add <= 0 then return end
-
-    local skip_ids = {}
-    for _, q in ipairs(self.daily_quests) do
-        skip_ids[q.quest_id] = true
-    end
-
-    local ids = PickQuestsFromAll(to_add, skip_ids)
-    for _, qid in ipairs(ids) do
-        local q = MakeQuestEntry(qid)
-        if q then
-            table.insert(self.daily_quests, q)
-        end
-    end
-
-    if DEBUG_QUEST then
-        local all = {}
-        for _, q in ipairs(self.daily_quests) do
-            table.insert(all, tostring(q.quest_id) .. "(" .. tostring(q.name) .. ")")
-        end
-        print("[Musha Quest] 换天新增任务，当前任务列表: " .. table.concat(all, ", "))
-    end
+    self:RefreshAvailableQuests()
 end
 
 -- 补发每日任务直到达标
@@ -850,6 +912,20 @@ function MUSHA_QUEST:SyncToPanel()
         })
     end
 
+    -- ★ 2026-09-28 酒馆委托板：把"还没接的"一起推给客户端（q = 品质 1灰/2白/3银/4金）
+    pc.userdata.available_quests = {}
+    for _, q in ipairs(self.available_quests or {}) do
+        table.insert(pc.userdata.available_quests, {
+            id = q.quest_id,
+            n = q.name,
+            t = q.target,
+            done = false,
+            ty = q.type,
+            exp = q.exp,
+            q = q.quality or QualityOf(q.exp),
+        })
+    end
+
     if self.advance_ceremony_pending then
         -- ★ 2026-09-17：第 3 轮任务已完成、等回祭坛做就职仪式 —— 这时 advance_quest 是 nil，
         --   面板上会"什么都没了"（用户报「做完没反应」）。塞一行**假任务**当提示，
@@ -929,6 +1005,7 @@ end
 function MUSHA_QUEST:OnSave()
     local data = {}
     data.daily_quests = self.daily_quests
+    data.available_quests = self.available_quests   -- ★ 09-28 酒馆可接列表
     data.advance_quest = self.advance_quest
     data.advance_round = self.advance_round
     data.advance_target = self.advance_target
@@ -939,17 +1016,19 @@ end
 function MUSHA_QUEST:OnLoad(data)
     if data then
         self.daily_quests = data.daily_quests or {}
+        self.available_quests = data.available_quests or {}   -- ★ 09-28 旧档 = 空，下面补满
         self.advance_quest = data.advance_quest or nil
         self.advance_round = data.advance_round or 1
         self.advance_target = data.advance_target or nil
         self.advance_ceremony_pending = data.advance_ceremony_pending or nil
+    else
+        self.available_quests = {}
     end
 
-    -- 空则补发（首日/旧档无任务数据时）
-    local has = #self.daily_quests > 0
-    if not has then
-        self:FillDailyQuests()
-    end
+    -- ★ 2026-09-28 改：不再 FillDailyQuests()（那会把每日任务**自动塞进行中**）。
+    --   每日委托现在挂酒馆板上，只有玩家点「接取」才进 daily_quests。
+    --   这里只补满**可接列表**（首日/旧档无数据时才有东西可接）。
+    self:RefreshAvailableQuests()
     self:SyncToPanel()
 end
 

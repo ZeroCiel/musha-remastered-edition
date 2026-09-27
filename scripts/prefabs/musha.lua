@@ -82,6 +82,17 @@ local common_postinit = function(inst)
         end
     end)
 
+    -- ★ 2026-09-28 酒馆委托板：服务端在"右键酒馆开容器"时把这个位拨 true，
+    --   客户端收到 dirty → PushEvent("musha_open_tavern_panel") → 推酒馆板 Screen。
+    --   玩法不变（容器照开），只是**多一块右侧板子**；关掉板子就能取转职卷轴。
+    --   复用 musha_panel_net 那套写法：单机/主机也吃 dirty，所以不加 ismastersim 过滤。
+    inst._musha_tavern_net = net_bool(inst.GUID, "musha_tavern_net", "mushataavernchanged")
+    inst:ListenForEvent("mushataavernchanged", function()
+        if inst._musha_tavern_net and inst._musha_tavern_net:value() then
+            inst:PushEvent("musha_open_tavern_panel")
+        end
+    end)
+
     -- 能量条数值：netvar 同步（服务端 set → 客户端 badge 直接读，不用 RPC）
     --   2026-09-13 照「遗迹守卫」那套官方写法
     inst.Musha_MP     = net_float(inst.GUID, "musha_mp", "musha_mp_dirty")

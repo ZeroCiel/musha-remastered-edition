@@ -263,6 +263,33 @@ GLOBAL.AddModRPCHandler(NS, "musha_request_settings", function(player)
 end)
 
 -- ====================================
+-- ★ 2026-09-28 酒馆委托板「接取」（客户端→服务端）
+--   客户端：SendModRPCToServer(GetModRPC(NS, "musha_accept_quest"), quest_id)
+--   服务端：qc:AcceptQuest(quest_id) 把委托从"可接列表"移进"进行中"，失败回一句原因
+--   校验全在服务端（不在可接列表里 / 已接重复 / 进行中满 10 条 都会被拒）
+-- ====================================
+GLOBAL.AddModRPCHandler(NS, "musha_accept_quest", function(player, quest_id)
+    if not player or not player:IsValid() then return end
+    if not GLOBAL.TheWorld.ismastersim then return end
+
+    local qc = player.components.musha_quest
+    if qc == nil or qc.AcceptQuest == nil then return end
+
+    local ok, res = qc:AcceptQuest(quest_id)
+    if not ok and player.components.talker then
+        local msg = "接取失败"
+        if res == "full" then
+            msg = "进行中的任务已满（上限 10）"
+        elseif res == "already" then
+            msg = "这个任务已经在进行了"
+        elseif res == "not_available" then
+            msg = "这个委托已经被接走了"
+        end
+        player.components.talker:Say(msg, 3)
+    end
+end)
+
+-- ====================================
 -- 信差包「发送」（客户端→服务端，2026-09-20 新增）
 --   用户按包 UI 上的「发送 / 关闭·发送」按钮时调它：
 --     客户端： SendModRPCToServer(GLOBAL.GetModRPC(NS, "musha_mailbag_send"), bag)

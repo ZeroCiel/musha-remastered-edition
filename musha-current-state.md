@@ -2230,3 +2230,40 @@ close_button_red / wechat_qr）。但 `images/ui_elements.tex` **从来没被转
 - 语法 **76 文件全过（04:33）**；76=75+新建 `musha_rabbitbackpack.lua`（另一路 agent 03:03-03:19 动过 modmain/mail/languages/containers 与本批不冲突）
 - **验收点**：底图放大糊不糊、◀▼字形（变方框→回退"<"/"v"）、猎犬大小/位置（scale 0.45 可调）、深蓝色值可调
 - 未动（后续批次）：抽奖页 UI、星星 prefab、蔬菜/专属种子、任务奖励物品字段（随星星一起）
+
+## § 2026-09-28 本轮（用户睡觉前：「刚刚的消息就是所有了，你做好就行」）
+
+### 1. 技能页三件（commit f2e7641）
+- 空状态：`musha_panel_screen.lua` RefreshSkills 空列表分支 → **树模式恒 Hide `skill_empty`**（原 `:2903` 会 Show，把 SetSkillMode 刚 Hide 的「该职业的技能已全部学习」顶出来）；竖排退路版式三档文案不动；同时把 `self.skill_grid:SetItemsData({})` 加空指针安全网。
+- 技能树起算点：三处 `SetPosition(0,-26)` → **`(-112, 21)`**（page root 局部。root 在 content 的 `(0,-33)`）。
+  口径「技能从【技能】和【主页】中间范围起算，中心点右移 100px（80 内）作为起始」 → nav 中心 x=-510 +100 = **-410 = 导航右缘**（按钮宽 200 的半宽）；纵向 主页 y=246 / 技能 y=154.4 → 中心 **200.2** = 视口上缘。视口 596×424 → 左上 (-410,200) → 中心 (-112,-12)[content] → root (-112,21)。树右缘 186 < 详情左缘 298 不再重叠（`:1806` 旧注释已过时）。
+- GetSkillView 空树兜底：`musha_profession_component.lua:1440` 原 `self[base]` 只认原始键，对不上就 `return {}` → 树整棵空白 + 弹「已全部学习」。改三重解析（原键 → `STRINGS.MUSHA_JOB_*` 语言名反查【战士→warrior】→ 前缀匹配），仍空则 `print("[Musha] GetSkillView 返回空...")` 打 base/spec 诊断。
+
+### 2. 进度条（本轮 **未改数值**，只出结论）
+- 变形量：源图 `图片/进度条.png` 2031×523 = **3.88:1**，现 `exp_bg 537×76` = **7.07:1** → 横向 **×1.82** 拉伸（295→413→537 是用户两次要求的拉长）。
+- 用户口径「高度最少 0.9、正常维持 1.0、要先做参考测试再判定」 → **数值先不动**，等参考测试拍板。
+- **进度条底下的金线 = `home_divider`**（`panel:1011-1014`：285×2 @`(242,82)`，金色 tint 0.88/0.74/0.38/0.55）——上区（职业/经验）与下区（任务列表）的分隔线，不是进度条的部分；y=82 贴在条下缘 77 之下 5px 所以看着像是条的一部分。
+
+### 3. 英/日语言进度（答复「还有多少要做」）
+- 加载：`modmain.lua:927-932` 只有两支（`Profile:GetLanguageID()` == 21/22/23 → chinese，else → english），**没有日语分支**。
+- `scripts/languages/` 仅 `english.lua`（136 行 / **98 键**）、`chinese.lua`（138 行 / **99 键**）→ 键差 1 个（`NAMES.musha` 英文缺）= **英文界面层基本完成**。
+- 还没进语言表的写死中文（脚本字符串字面量，排除台词）≈ **699 行 / 68 文件**，大头：`musha_panel_screen` 201、`musha_dex` 70、`musha_profession_component` 51、`musha_quest` 44、`musha_changelog` 36。
+- 台词已 5 语：`speech_musha_{zh,en,jp,ko,ru}.lua` = 1691 / 1693 / 1710 / 1910 / 1247 行 → **日语台词已就位**。
+- **日语界面 = 0**：缺 `scripts/languages/japanese.lua`（99 键）+ 缺 modmain 日语分支（约 2 行）→ 这就是「保留的日语翻译任务」的全部剩余量。
+
+### 4. 酒馆委托板（新增，待完全重启验收）
+- **美术**：`图片/木框花_350x590.png` → `art_update.py publish ... tavern_frame` → `images/tavern_frame.{png,tex,xml}`（元素名 `tavern_frame.tex`）。**tex 变更 → 必须完全重启 DST**。
+- **服务端 `musha_quest.lua`**：
+  - 构造器新增 `self.available_quests = {}（可接列表）；`QualityOf(exp)` 四档（≥25 金 / ≥18 银 / ≥12 白 / 其余灰）；`RefreshAvailableQuests()` 补满到 `GetDailyCount()`（默认 4）且跳过已在进行中/已挂着的；`AcceptQuest(quest_id)` 从可接移进进行中（上限仍 DAILY_MAX=10）并立刻补回一条 + SyncToPanel。
+  - `GrantNewDayQuests()` 体改为只调 `RefreshAvailableQuests()` → **换天不再自动塞进进行中**。
+  - `OnLoad` 不再 `FillDailyQuests()`，改补满可接列表；`OnSave` 存 `available_quests`。
+  - `SyncToPanel` 多推 `pc.userdata.available_quests`（id/n/t/ty/exp + **q=品质**）。
+  - 已接的照旧（discover 隔日作废、survive 跨天 +1）；**转职任务/卷轴/仪式/等级门槛 完全没动**（选项3 保留）。
+- **RPC**：`musha_rpcs.lua` 新增 `musha_accept_quest`（服务端校验 重复/满10/不在列表，失败 talker 回话）。
+- **打开链**：`musha.lua` common_postinit 加 `inst._musha_tavern_net`（net_bool / `mushataavernchanged`）→ PushEvent("musha_open_tavern_panel")；`musha_advance_altar.lua` SetFn 开容器时 `set(true)` + 0.2s `set(false)`；`musha_panel_registered.lua` 新增 `OpenMushaTavernPanel` + 监听。
+- **UI**：新文件 `scripts/screens/musha_tavern_screen.lua` —— Screen，root 锚 MIDDLE，全屏透明热区点外面关，木框 350×590 @ **x=+400**（右缘 575 < 616 任何分辨率都不切）；可接委托 4 行（行底片按品质上色 + 品质色块 + 名称 + `普通 · 经验 +N` + **「接取」礼包同款按钮**），进行中只读 3 行 + 「…还有N个」，`×` / 点空白 / ESC 关闭；`gamedata_dirty` → Rebuild；开板先 `musha_request_settings`。
+- **玩法不变**：右键酒馆仍开容器（卷轴照取），板只是叠在上面，关掉就能操作容器。
+- 校验：WSL `lua-syntax-check` **77 文件全过**（76 + 新屏幕）。
+
+### 5. 本轮 git
+- commit **f2e7641**（技能页三件）；酒馆这批 + SSOT 同一次提交。

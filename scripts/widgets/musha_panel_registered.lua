@@ -68,6 +68,40 @@ local function OpenMushaPanel(owner, from)
     print("[Musha Panel] 面板已推入屏幕栈")
 end
 
+-- ★ 2026-09-28 酒馆委托板入口（右键酒馆 → 客户端 musha_open_tavern_panel 事件）
+--   和 OpenMushaPanel 同一套 pcall 兜底：require/构造/推栈 每步都可能炸，
+--   炸了只打日志不崩游戏。
+local function OpenMushaTavernPanel(owner)
+    if not owner or not owner:IsValid() then
+        print("[Musha Tavern] 中止: owner 无效")
+        return
+    end
+    if not TheFrontEnd then
+        print("[Musha Tavern] 中止: TheFrontEnd 不存在")
+        return
+    end
+    if owner._musha_tavern_screen_open then
+        print("[Musha Tavern] 中止: 酒馆板已在屏幕上")
+        return
+    end
+
+    local ok, mod = pcall(require, "screens/musha_tavern_screen")
+    if not ok or not mod then
+        print("[Musha Tavern] require 失败: " .. tostring(mod))
+        return
+    end
+
+    local ok2, inst = pcall(mod, owner)
+    if not ok2 or not inst then
+        print("[Musha Tavern] 构造失败: " .. tostring(inst))
+        owner._musha_tavern_screen_open = nil
+        return
+    end
+
+    TheFrontEnd:PushScreen(inst)
+    print("[Musha Tavern] 酒馆委托板已推入屏幕栈")
+end
+
 AddClassPostConstruct("widgets/controls", function(self)
     if not self.owner or not self.owner:HasTag("musha") then
         return
@@ -77,6 +111,11 @@ AddClassPostConstruct("widgets/controls", function(self)
     --   （技能书/职业书右键走这条，保留）
     self.owner:ListenForEvent("musha_open_skill_panel", function()
         OpenMushaPanel(self.owner, "event")
+    end)
+
+    -- ★ 2026-09-28 酒馆委托板：服务端 net_bool → 客户端 PushEvent → 推板子
+    self.owner:ListenForEvent("musha_open_tavern_panel", function()
+        OpenMushaTavernPanel(self.owner)
     end)
 
     -- ★ 2026-09-24 用户拍板：**B 键不再开面板**（选项 A：B 不要出）

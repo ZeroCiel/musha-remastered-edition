@@ -139,6 +139,19 @@ local function fn()
             c:Close(doer)
         else
             c:Open(doer)
+
+            -- ★ 2026-09-28 酒馆委托板：开容器的同时，把客户端的酒馆板也弹出来。
+            --   玩法不变（容器照开，关掉板子就能取卷轴），只是多一块右侧任务板。
+            --   写法跟技能书开面板一样：net_bool 拨 true → 客户端 dirty → PushEvent；
+            --   0.2 秒后拨回 false，下次右键才能再触发。非 musha 角色没有这个 net，跳过。
+            if doer._musha_tavern_net ~= nil then
+                doer._musha_tavern_net:set(true)
+                doer:DoTaskInTime(0.2, function()
+                    if doer:IsValid() and doer._musha_tavern_net ~= nil then
+                        doer._musha_tavern_net:set(false)
+                    end
+                end)
+            end
         end
     end)
     inst.components.musha_action:SetCanUseCheck(function(_, doer)
