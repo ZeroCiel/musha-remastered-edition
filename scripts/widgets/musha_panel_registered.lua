@@ -15,6 +15,8 @@
 -- 现在开面板只剩两条：技能书/职业书右键（musha_open_skill_panel 事件）、控制台命令。
 -- 想恢复 B 键：见文件末尾注释块（原实现在 git 历史里也有）。
 
+local Widget = require "widgets/widget"   -- 酒馆板(HUD 挂件)的锚点根节点要用
+
 -- 面板是否已在屏幕栈顶
 -- 注意：DST 的 Screen 没有 name 字段，所以用面板自己打的标记 self.musha_panel
 local function PanelIsOnTop()
@@ -69,21 +71,32 @@ local function OpenMushaPanel(owner, from)
 end
 
 -- ★ 2026-09-28 酒馆委托板入口（右键酒馆 → 客户端 musha_open_tavern_panel 事件）
---   和 OpenMushaPanel 同一套 pcall 兜底：require/构造/推栈 每步都可能炸，
---   炸了只打日志不崩游戏。
-local function OpenMushaTavernPanel(owner)
+--   ★ 同日用户拍板：板子**不进屏幕栈**（不抢输入、不盖酒馆容器），
+--     改成挂在 controls 右缘的 HUD 挂件，再右键一次 = 开/关切换。
+--     挂法照原版 containerroot（controls.lua:94-97 / 520-524）：
+--     锚点节点 SCALEMODE_PROPORTIONAL + ANCHOR_RIGHT/MIDDLE + MAX_HUD_SCALE。
+--     controls 由 AddClassPostConstruct 回调传进来（TheFrontEnd 没有 GetHUD()）。
+local function OpenMushaTavernPanel(owner, controls)
     if not owner or not owner:IsValid() then
         print("[Musha Tavern] 中止: owner 无效")
         return
     end
-    if not TheFrontEnd then
-        print("[Musha Tavern] 中止: TheFrontEnd 不存在")
+    if controls == nil or controls.parent == nil then
+        print("[Musha Tavern] 中止: controls(HUD) 不在")
         return
     end
-    if owner._musha_tavern_screen_open then
-        print("[Musha Tavern] 中止: 酒馆板已在屏幕上")
+
+    -- 已经挂上 → toggle（关着就开，开着就关）
+    -- 两个 parent 都要查：世界切换/controls 重建后 root 会变成孤儿
+    local old = owner._musha_tavern_board
+    local oldroot = owner._musha_tavern_root
+    if old ~= nil and old.parent ~= nil and oldroot ~= nil and oldroot.parent ~= nil then
+        old:SetBoardVisible(not old:IsVisible())
+        print("[Musha Tavern] 切换显示: " .. tostring(old:IsVisible()))
         return
     end
+    owner._musha_tavern_screen_open = nil   -- 清掉旧 Screen 时代残留的标志
+    if old ~= nil then old:Detach() end     -- 孤儿板：解掉它的 gamedata_dirty 监听
 
     local ok, mod = pcall(require, "screens/musha_tavern_screen")
     if not ok or not mod then
@@ -94,12 +107,24 @@ local function OpenMushaTavernPanel(owner)
     local ok2, inst = pcall(mod, owner)
     if not ok2 or not inst then
         print("[Musha Tavern] 构造失败: " .. tostring(inst))
-        owner._musha_tavern_screen_open = nil
         return
     end
 
-    TheFrontEnd:PushScreen(inst)
-    print("[Musha Tavern] 酒馆委托板已推入屏幕栈")
+    -- HUD 锚点根节点（一次性建好，之后开关只动 Show/Hide）
+    local root = owner._musha_tavern_root
+    if root == nil or root.parent == nil then
+        root = controls:AddChild(Widget("musha_tavern_root"))
+        root:SetScaleMode(SCALEMODE_PROPORTIONAL)
+        root:SetHAnchor(ANCHOR_RIGHT)
+        root:SetVAnchor(ANCHOR_MIDDLE)
+        root:SetMaxPropUpscale(MAX_HUD_SCALE)
+        owner._musha_tavern_root = root
+    end
+
+    root:AddChild(inst)
+    owner._musha_tavern_board = inst
+    inst:SetBoardVisible(true)
+    print("[Musha Tavern] 酒馆委托板已挂到 HUD 右缘（不进屏幕栈）")
 end
 
 AddClassPostConstruct("widgets/controls", function(self)
@@ -113,9 +138,10 @@ AddClassPostConstruct("widgets/controls", function(self)
         OpenMushaPanel(self.owner, "event")
     end)
 
-    -- ★ 2026-09-28 酒馆委托板：服务端 net_bool → 客户端 PushEvent → 推板子
+    -- ★ 2026-09-28 酒馆委托板：服务端 net_bool → 客户端 PushEvent → 挂 HUD 右缘
+    --   controls（self）就是挂点，传进去；不 PushScreen（不盖酒馆容器）
     self.owner:ListenForEvent("musha_open_tavern_panel", function()
-        OpenMushaTavernPanel(self.owner)
+        OpenMushaTavernPanel(self.owner, self)
     end)
 
     -- ★ 2026-09-24 用户拍板：**B 键不再开面板**（选项 A：B 不要出）

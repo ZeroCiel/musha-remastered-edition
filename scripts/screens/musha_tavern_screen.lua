@@ -1,10 +1,10 @@
 -- ================================================================
--- musha_tavern_screen.lua —— 酒馆委托板（2026-09-28 新增）
+-- musha_tavern_screen.lua —— 酒馆委托板（2026-09-28 新增，同日改 HUD 挂件）
 --
 -- 用户拍板（2026-09-27 三轮问答）：
 --   ① 右键酒馆 → 屏幕**右侧**弹出任务列表（看起来绑定在酒馆上，
 --      实际上是这个玩家自己的面板，人人都有）
---   ② 玩法不改：转职卷轴照旧（容器同时照开，板子关掉就能取卷）；
+--   ② 玩法不改：转职卷轴照旧（容器照开，板子不挡它）；
 --      **每日获得的任务全部搬到这块板子上**，点「接取」才进"进行中"，
 --      不再每日轮询自动发
 --   ③ 接取按钮 = 礼包页「领取」（MakeGiftButton 那套 square.tex 立体按钮）
@@ -12,19 +12,24 @@
 --      的 QualityOf），这里只按 q 字段上色，不抄数值
 --   ⑤ 美术：图片/木框花_350x590.png → images/tavern_frame（publish 已转 tex）
 --
--- 坐标：跟主面板同一套 Screen 空间（root 锚点 MIDDLE，内容 ±616 内），
---      板子 350x590 摆在 x=+400（右缘 575 < 616，任何分辨率都不会被切）。
+-- ★ 2026-09-28 用户拍板（体验点）：**不盖住酒馆容器**。
+--   板子从「全屏 Screen（PushScreen 抢输入）」改成 **HUD 挂件**：
+--     · 不进屏幕栈（screenstack 之外），ESC/点空白不再由板子接管
+--     · 挂在 controls 的右缘（ANCHOR_RIGHT/MIDDLE + SCALEMODE_PROPORTIONAL），
+--       和原版容器 containerroot（中央锚点）分属两块，互不遮挡
+--     · 非交互部件全部 SetClickable(false)，点击穿透到世界/容器
+--     · 关闭方式：× 按钮，或再右键酒馆（toggle）
+--   技能面板（Screen）与板子不同层，按用户口径"不会同时打开"，不做互斥检查。
 -- ⚠️ tex/xml 变更后必须**完全重启 DST** 才看得到。
 -- ================================================================
-local Screen     = require "screen"
 local Widget     = require "widgets/widget"
 local Image      = require "widgets/image"
 local Text       = require "widgets/text"
 local ImageButton = require "widgets/imagebutton"
 
 local BOARD_W, BOARD_H = 350, 590
-local BOARD_X          = 400      -- 屏幕右侧
-local ROW_W            = 310      -- 行底片宽
+local BOARD_OFFSET     = -191    -- 右缘锚点下的中心 x：-(350/2 + 16)，留 16px 边距
+local ROW_W            = 310     -- 行底片宽
 local ROW_H            = 56
 local AVAIL_Y0, AVAIL_DY = 150, 62 -- 可接委托 4 行
 local AVAIL_MAX        = 4
@@ -115,36 +120,26 @@ local function SendAcceptQuest(quest_id)
     pcall(function() SendModRPCToServer(rpc, quest_id) end)
 end
 
-local MushaTavernScreen = Class(Screen, function(self, owner)
-    Screen._ctor(self, "MushaTavernScreen")
-    self.musha_tavern = true        -- 屏幕栈上认自己（DST Screen 没有 name 字段）
+local MushaTavernBoard = Class(Widget, function(self, owner)
+    Widget._ctor(self, "MushaTavernBoard")
+    self.musha_tavern = true         -- 打开入口用来认自己（防重入标记）
     self.owner = owner
-    if owner then owner._musha_tavern_screen_open = true end
 
-    self.root = self:AddChild(Widget("tavern_root"))
-    self.root:SetHAnchor(ANCHOR_MIDDLE)
-    self.root:SetVAnchor(ANCHOR_MIDDLE)
-    self.root:SetPosition(0, 0)
-
-    -- 全屏透明热区：点板子外面 = 关闭（不压黑幕，酒馆/世界要看得见）
-    local back = self.root:AddChild(ImageButton("images/global.xml", "square.tex"))
-    back:SetScale(50, 50)
-    back.image:SetTint(0, 0, 0, 0)
-    back:SetOnClick(function() TheFrontEnd:PopScreen() end)
-    back:MoveToBack()
-    self.back = back
+    -- 位置由挂在根节点（ANCHOR_RIGHT/MIDDLE + SCALEMODE_PROPORTIONAL，
+    -- 照原版 containerroot 的挂法）决定，这里只写相对右缘的偏移：
+    -- 中心 x = -(350/2 + 16) → 板子右缘离屏幕右边 16px。
+    -- 坐标按 1280x720 虚拟分辨率等比缩放，随玩家 HUD 大小设置一起走。
+    self:SetPosition(BOARD_OFFSET, 0)
 
     -- 木框花 350x590（原尺寸，不拉伸 → 不变形）
-    self.board = self.root:AddChild(Widget("tavern_board"))
-    self.board:SetPosition(BOARD_X, 0)
-
-    local frame = self.board:AddChild(Image("images/tavern_frame.xml", "tavern_frame.tex"))
+    local frame = self:AddChild(Image("images/tavern_frame.xml", "tavern_frame.tex"))
     frame:SetSize(BOARD_W, BOARD_H)
     frame:SetTint(1, 1, 1, 1)
+    frame:SetClickable(false)        -- 框不吃点击 → 不挡世界/容器
     self.frame = frame
 
     -- 关闭按钮（右上角）
-    local xb = self.board:AddChild(ImageButton("images/global.xml", "square.tex"))
+    local xb = self:AddChild(ImageButton("images/global.xml", "square.tex"))
     xb:ForceImageSize(30, 30)
     xb:SetPosition(BOARD_W / 2 - 26, BOARD_H / 2 - 24)
     xb:SetImageNormalColour(0.32, 0.20, 0.14, 0.90)
@@ -153,52 +148,72 @@ local MushaTavernScreen = Class(Screen, function(self, owner)
     local xt = xb:AddChild(Text(UIFONT, 26))
     xt:SetString("×")
     xt:SetColour(1, 0.94, 0.86, 1)
-    xb:SetOnClick(function() TheFrontEnd:PopScreen() end)
+    xb:SetOnClick(function() self:SetBoardVisible(false) end)
 
     -- 标题
-    self.title = self.board:AddChild(Text(UIFONT, 30))
+    self.title = self:AddChild(Text(UIFONT, 30))
     self.title:SetString("酒馆委托")
     self.title:SetColour(0.30, 0.22, 0.13, 1)
     self.title:SetPosition(0, BOARD_H / 2 - 56)
+    self.title:SetClickable(false)
 
-    self.sub = self.board:AddChild(Text(UIFONT, 16))
+    self.sub = self:AddChild(Text(UIFONT, 16))
     self.sub:SetString("点「接取」才开始计进度")
     self.sub:SetColour(0.46, 0.40, 0.32, 1)
     self.sub:SetPosition(0, BOARD_H / 2 - 84)
+    self.sub:SetClickable(false)
 
     -- 分区标题
-    self.head_avail = self.board:AddChild(Text(UIFONT, 20))
+    self.head_avail = self:AddChild(Text(UIFONT, 20))
     self.head_avail:SetString("可接委托")
     self.head_avail:SetColour(0.60, 0.42, 0.08, 1)
     self.head_avail:SetPosition(0, AVAIL_Y0 + 36)
+    self.head_avail:SetClickable(false)
 
-    self.head_act = self.board:AddChild(Text(UIFONT, 20))
+    self.head_act = self:AddChild(Text(UIFONT, 20))
     self.head_act:SetString("进行中")
     self.head_act:SetColour(0.60, 0.42, 0.08, 1)
     self.head_act:SetPosition(0, ACT_Y0 + 30)
+    self.head_act:SetClickable(false)
 
     -- 行容器（每次刷新清空重建）
-    self.rows = self.board:AddChild(Widget("tavern_rows"))
+    self.rows = self:AddChild(Widget("tavern_rows"))
     self.rows:SetPosition(0, 0)
 
-    self.foot = self.board:AddChild(Text(UIFONT, 14))
-    self.foot:SetString("点空白处 / × / ESC 关闭")
+    self.foot = self:AddChild(Text(UIFONT, 14))
+    self.foot:SetString("再右键酒馆或点 × 关闭")
     self.foot:SetColour(0.50, 0.45, 0.38, 1)
     self.foot:SetPosition(0, -BOARD_H / 2 + 26)
+    self.foot:SetClickable(false)
 
     -- 数据变更 → 重画（接取成功后服务端会 SyncToPanel → gamedata_dirty）
     self._on_dirty = function() self:Rebuild() end
     if owner then owner:ListenForEvent("gamedata_dirty", self._on_dirty) end
 
-    RequestSettings()      -- 开板先拉一次最新数据
-    self:Rebuild()
+    self:Hide()                      -- 构造完先藏着，由打开入口决定是否显示
 end)
+
+-- ================================================================
+-- 开 / 关（toggle 由 musha_panel_registered.lua 调）
+-- ================================================================
+function MushaTavernBoard:SetBoardVisible(vis)
+    if vis then
+        self:Show()
+        if self.owner then self.owner._musha_tavern_screen_open = true end
+        RequestSettings()            -- 开板先拉一次最新数据
+        self:Rebuild()
+    else
+        self:Hide()
+        if self.owner then self.owner._musha_tavern_screen_open = nil end
+    end
+end
 
 -- ================================================================
 -- 画板子：可接委托（带品质色 + 接取按钮）/ 进行中（只读）
 -- ================================================================
-function MushaTavernScreen:Rebuild()
-    if not self.rows then return end
+function MushaTavernBoard:Rebuild()
+    if not self.rows or not self.parent then return end   -- 已从 HUD 摘下就不画
+    if not self:IsVisible() then return end              -- 隐藏时跳过，省一次重建
     self.rows:KillAllChildren()
 
     local md = GetUserData(self.owner) or {}
@@ -210,6 +225,7 @@ function MushaTavernScreen:Rebuild()
         t:SetString("今天的委托都接完了")
         t:SetColour(0.52, 0.46, 0.38, 1)
         t:SetPosition(0, AVAIL_Y0 - 10)
+        t:SetClickable(false)
     end
 
     for i = 1, math.min(#avail, AVAIL_MAX) do
@@ -222,22 +238,26 @@ function MushaTavernScreen:Rebuild()
         bg:SetSize(ROW_W, ROW_H)
         bg:SetPosition(0, y)
         bg:SetTint(unpack(tr.row))
+        bg:SetClickable(false)
 
         -- 品质色块（深色描边 + 中间色块）
         local edge = self.rows:AddChild(Image("images/global.xml", "square.tex"))
         edge:SetSize(20, 20)
         edge:SetPosition(-145, y)
         edge:SetTint(0.25, 0.22, 0.18, 1)
+        edge:SetClickable(false)
         local chip = self.rows:AddChild(Image("images/global.xml", "square.tex"))
         chip:SetSize(14, 14)
         chip:SetPosition(-145, y)
         chip:SetTint(unpack(tr.chip))
+        chip:SetClickable(false)
 
         -- 名称（深墨字，白色档也能看清）
         local name = self.rows:AddChild(Text(UIFONT, 16))
         name:SetString(TrimCN(q.n or ("任务" .. tostring(q.id)), 10))
         name:SetColour(0.24, 0.19, 0.13, 1)
         name:SetPosition(-45, y + 9)
+        name:SetClickable(false)
 
         -- 奖励预览（"现在发不起奖励" → 只写职业经验，数值走服务端 q.exp，不改）
         local rw = self.rows:AddChild(Text(UIFONT, 13))
@@ -245,6 +265,7 @@ function MushaTavernScreen:Rebuild()
         rw:SetString(string.format("%s · 经验 +%d", tr.label, expn))
         rw:SetColour(0.55, 0.42, 0.14, 1)
         rw:SetPosition(-45, y - 13)
+        rw:SetClickable(false)
 
         -- 接取（礼包页「领取」同款）
         local qid = q.id
@@ -260,6 +281,7 @@ function MushaTavernScreen:Rebuild()
         t:SetString("还没有接取的委托")
         t:SetColour(0.52, 0.46, 0.38, 1)
         t:SetPosition(0, ACT_Y0)
+        t:SetClickable(false)
     else
         for i = 1, math.min(#active, ACT_MAX) do
             local q = active[i]
@@ -268,6 +290,7 @@ function MushaTavernScreen:Rebuild()
             bg:SetSize(ROW_W - 20, 32)
             bg:SetPosition(0, y)
             bg:SetTint(1, 1, 1, 0.55)
+            bg:SetClickable(false)
 
             local t = self.rows:AddChild(Text(UIFONT, 15))
             local flag = q.done and "✓ " or ""
@@ -276,40 +299,32 @@ function MushaTavernScreen:Rebuild()
             t:SetColour(q.done and 0.30 or 0.26, q.done and 0.55 or 0.21,
                         q.done and 0.30 or 0.15, 1)
             t:SetPosition(0, y)
+            t:SetClickable(false)
         end
         if #active > ACT_MAX then
             local t = self.rows:AddChild(Text(UIFONT, 14))
             t:SetString(string.format("…还有 %d 个", #active - ACT_MAX))
             t:SetColour(0.50, 0.45, 0.38, 1)
             t:SetPosition(0, ACT_Y0 - ACT_MAX * ACT_DY + 6)
+            t:SetClickable(false)
         end
     end
 end
 
 -- ================================================================
--- 控制 / 清理
+-- 关闭时解监听（板子是 HUD 挂件，正常只 Hide 不销毁；
+-- 只有 controls 整体重建/世界切换才需要显式调 Detach ——
+-- Widget 没有 OnDestroy，Screen 的那套生命周期在挂件上不会触发）
 -- ================================================================
-function MushaTavernScreen:OnControl(control, down)
-    if MushaTavernScreen._base.OnControl(self, control, down) then
-        return true
-    end
-    if not down then return false end
-    if control == CONTROL_CANCEL then
-        TheFrontEnd:PopScreen()
-        return true
-    end
-    return false
-end
-
-function MushaTavernScreen:OnDestroy()
+function MushaTavernBoard:Detach()
     if self.owner and self.owner._musha_tavern_screen_open then
         self.owner._musha_tavern_screen_open = nil
     end
     if self.owner and self._on_dirty then
         self.owner:RemoveEventCallback("gamedata_dirty", self._on_dirty)
     end
-    Screen.OnDestroy(self)
+    self._on_dirty = nil
 end
 
-print("[Musha] 返回 MushaTavernScreen")
-return MushaTavernScreen
+print("[Musha] 返回 MushaTavernBoard(HUD 挂件)")
+return MushaTavernBoard
