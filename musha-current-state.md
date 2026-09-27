@@ -2267,3 +2267,14 @@ close_button_red / wechat_qr）。但 `images/ui_elements.tex` **从来没被转
 
 ### 5. 本轮 git
 - commit **f2e7641**（技能页三件）；酒馆这批 + SSOT 同一次提交。
+
+
+### 酒馆板改 HUD 右缘挂件（不盖容器）09-28
+- 用户拍板：板子“显示在屏幕列表以外”，不抢输入；技能面板不会同时打开→不做互斥检查。
+- `scripts/screens/musha_tavern_screen.lua`：`Class(Screen)` → `Class(Widget)`；去掉全屏透明热区/PushScreen/OnControl(ESC)；非交互部件全部 `SetClickable(false)`；新增 `SetBoardVisible(vis)` / `Detach()`（Widget 无 OnDestroy）。
+- `scripts/widgets/musha_panel_registered.lua`：`OpenMushaTavernPanel(owner, controls)` 改挂 `controls:AddChild(Widget)` 锚点根（`SCALEMODE_PROPORTIONAL` + `ANCHOR_RIGHT/MIDDLE` + `MAX_HUD_SCALE`，照原版 containerroot）；再右键一次 = toggle；孤儿板 `Detach()` 后重建。
+- 位置：中心 x = -191（右缘留 16px），1280x720 虚拟坐标随 HUD 大小设置缩放。
+- 关闭方式：× 按钮 / 再右键酒馆；底部提示文案已改。
+- 板子文件路径仍在 `screens/`（文件名未改，避免动 require 链）；备份 `*.bak_20260928` 被 `.gitignore` 忽略。
+- 语法检查 77 全过；commit `cba1ed9`（未推）。
+- 待验收：板子出现在右侧、容器可直接点、两者互不遮挡；`client_log.txt` 看 `[Musha Tavern] 酒馆委托板已挂到 HUD 右缘`。
