@@ -423,7 +423,10 @@ end)
 -- 注册 Prefab
 -- =====================
 TRACE("[Musha TRACE] 8 - PrefabFiles 前")
-PrefabFiles = {"musha_rabbitbackpack", "musha_jobbook_warrior", "musha_skillbook", "musha_skillbook_saber", "musha_skill_scroll", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point", "musha_crest_saber", "musha_crest_guardian", "musha_mailbox", "musha_mailbox_shadow", "musha_mailbag", "musha_mailkit_1", "musha_mailkit_2", "musha_mailkit_3", "musha_mailkit_4", "musha_recall_stone"}
+PrefabFiles = {"musha_rabbitbackpack", "musha_jobbook_warrior", "musha_skillbook", "musha_skillbook_saber", "musha_skill_scroll", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point", "musha_crest_saber", "musha_crest_guardian", "musha_mailbox", "musha_mailbox_shadow", "musha_mailbag", "musha_mailkit_1", "musha_mailkit_2", "musha_mailkit_3", "musha_mailkit_4", "musha_recall_stone", "musha_fairy"}
+-- ★ 2026-09-27 新增：musha_fairy「小灵」——粒子汇聚出场的胆怯精灵伙伴
+--   实现：scripts/prefabs/musha_fairy.lua（本体+本地粒子+说话）+ scripts/musha_fairy_silhouette.lua（剪影落点表）
+--   召唤：InitMushaPlayer 里玩家实体激活（登场/重生/下洞回来）时生成（见 MUSHA_FAIRY_ENABLED）
 -- ★ 2026-09-19 新增：信箱 + 信差包（邮包系统）
 --   实现：scripts/musha_mail.lua（共用）+ prefabs/musha_mailbox*.lua + prefabs/musha_mailbag.lua
 --        + components/musha_mail.lua（挂玩家身上）；容器参数在 scripts/musha_containers.lua
@@ -463,6 +466,12 @@ local function IsAlicePlanModEnabled()
     end
     return false
 end
+
+-- ★ 2026-09-27 小灵（精灵伙伴）总开关：false = 一键关闭，玩家登场不再召唤精灵
+--   （本体在 scripts/prefabs/musha_fairy.lua，剪影在 scripts/musha_fairy_silhouette.lua）
+local MUSHA_FAIRY_ENABLED = true
+-- 出场冷却：防止 playeractivated 短时间重复触发导致精灵反复重新出场（秒）
+local MUSHA_FAIRY_COOLDOWN = 60
 
 local function InitMushaPlayer(inst)
         if not GLOBAL.TheWorld or not GLOBAL.TheWorld.ismastersim then
@@ -534,6 +543,50 @@ local function InitMushaPlayer(inst)
                     end
                 end, TheWorld)
             end
+        end
+        -- ★ 2026-09-27 小灵（精灵伙伴）：登场 / 重生 / 下洞穴回来 / 死亡复活 → 自动出场
+        --   20 格内随机出生 → 光点汇聚拼形（客户端本地粒子）→ 飘向玩家害羞跟随
+        --   新手期（职业 ≤1 级）见面会冒字打招呼 + 引导职业（台词在 prefab 的 FAIRY_LINES）
+        --   冷却 / 开关见上面 MUSHA_FAIRY_*；同一玩家永远只有一只（先清旧的再召新的）
+        if MUSHA_FAIRY_ENABLED then
+            -- 清掉旧精灵（重生 / 死亡时用；精灵不进存档，本来就是「每场一换」）
+            local function RemoveFairy(ply)
+                if ply._musha_fairy ~= nil then
+                    if ply._musha_fairy:IsValid() then
+                        ply._musha_fairy:Remove()
+                    end
+                    ply._musha_fairy = nil
+                end
+            end
+            -- 召唤：20 格内随机出生 → 绑主人（prefab 里走 musha_fairy_bind 事件接手）
+            local function SummonFairy(ply)
+                if not ply:IsValid() then return end
+                local now = GLOBAL.GetTime()
+                -- 冷却：防 playeractivated 短时间重复触发；死亡重生走直通（清冷却）
+                if ply._musha_fairy_last ~= nil and now - ply._musha_fairy_last < MUSHA_FAIRY_COOLDOWN then
+                    return
+                end
+                ply._musha_fairy_last = now
+                RemoveFairy(ply)
+                local x, y, z = ply.Transform:GetWorldPosition()
+                local ang = math.random() * 2 * math.pi
+                local r = 10 + math.random() * 8   -- 20 格内随机出生（含 10~18 格）
+                local fairy = SpawnPrefab("musha_fairy")
+                if fairy ~= nil then
+                    fairy.Transform:SetPosition(x + math.cos(ang) * r, 0.7, z + math.sin(ang) * r)
+                    fairy:PushEvent("musha_fairy_bind", { leader = ply })
+                    ply._musha_fairy = fairy
+                    TRACE("[Musha] 小灵已出场（距玩家 " .. string.format("%.1f", r) .. " 格）")
+                end
+            end
+            inst:ListenForEvent("playeractivated", SummonFairy)          -- 登场 / 读档 / 下洞回来
+            inst:ListenForEvent("respawnfromghost", function(ply)        -- 死亡复活：精灵重新出场
+                if ply ~= nil then ply._musha_fairy_last = nil end
+                SummonFairy(ply)
+            end)
+            inst:ListenForEvent("death", function(ply)                   -- 死亡：小灵受惊消散
+                RemoveFairy(ply)
+            end)
         end
         print("[Musha] 玩家组件已添加: " .. tostring(inst) .. " (first=" .. tostring(first_time) .. ")")
     end

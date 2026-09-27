@@ -2278,3 +2278,30 @@ close_button_red / wechat_qr）。但 `images/ui_elements.tex` **从来没被转
 - 板子文件路径仍在 `screens/`（文件名未改，避免动 require 链）；备份 `*.bak_20260928` 被 `.gitignore` 忽略。
 - 语法检查 77 全过；commit `cba1ed9`（未推）。
 - 待验收：板子出现在右侧、容器可直接点、两者互不遮挡；`client_log.txt` 看 `[Musha Tavern] 酒馆委托板已挂到 HUD 右缘`。
+
+## ㉗ 精灵伙伴「小灵」——粒子汇聚出场 + 新手职业引导（09-27，参考奥日气质、原创形象）
+
+### 1. 设定（用户拍板）
+- **全新精灵伙伴**（不绑职业，所有武者登场都有）：参考「奥日那种白色光灵、但不一样」→ 原创青白月光色光灵（与剑气月牙同色系）
+- **出场**：玩家登场 / 重生 / 下洞穴回来（`playeractivated`）→ 在玩家周围 **20 格内随机出生（10~18 格）** → 光点从四周汇聚拼出精灵 → **飘向玩家**
+- **性格**：胆怯、害羞——停在 2~3 格外不贴脸；玩家冲近（<1.6 格）会往后缩
+- **职业导师**：新手期（`musha_profession_component.userdata.level <= 1`）见面冒字打招呼 + 引导职业；平时随机问候（90~150s 一次、玩家 4 格内才说）；说话走原版 `talker` 组件（冒字）
+
+### 2. 实现（联网结构：粒子零网络开销，照剑气斩消散粒子先例）
+- 本体 `musha_fairy` = 联网实体（所有玩家可见）：无 AnimState 渲染（形态全靠粒子）、有 `Light`（青白光，radius 2.2）、`NOCLICK`、`persists=false`（每次登场重新出场）
+- 光点粒子 = **各客户端本地实体**（`CreateEntity` 不 AddNetwork + `SetCanSleep(false)` + `SetParent(本体)`）：36 颗、用 `anim/slash_fx.zip`（单帧 anim，缩小 0.055 + 染青白 + `SetLightOverride(1)`）；单状态机一个 task 走完 汇聚(1.4s easeOut 弧线) → 定形(0.3s 亮度脉冲) → 常驻漂浮(降频 1/12s 游走+呼吸)；本体没了粒子自毁（三重保险）
+- 服务端：每帧缓动跟随（`FRAMES` 周期）；**出场后先原地等 1.7s 拼形，再开始飘向玩家**；玩家跑动时精灵稍跟远
+- 服务端↔本体握手：modmain 召唤后 `PushEvent("musha_fairy_bind", {leader=玩家})`（不往全局环境挂函数）
+
+### 3. 文件清单
+- **新增** `scripts/prefabs/musha_fairy.lua`（本体+本地粒子+说话；CONFIG/FAIRY_LINES 都在文件头，改手感/台词直接改表）
+- **新增** `scripts/musha_fairy_silhouette.lua`（36 光点落点表，纯数据；由工具生成）
+- **新增** `exported/fairy_tool/make_fairy_silhouette.py`（剪影生成器：改 `SHAPES` 形状参数重跑即出新表 + 预览图 `preview_fairy.png`；纯标准库、固定种子可复现）
+- **修改** `modmain.lua:426` PrefabFiles 表尾加 `"musha_fairy"`；`modmain.lua` InitMushaPlayer 尾部（print 前）加召唤块 + 文件头常量 `MUSHA_FAIRY_ENABLED=true` / `MUSHA_FAIRY_COOLDOWN=60`（改 false 一键关闭）
+- **修改** `scripts/musha_changelog.lua` 0.8.0 条目加两行
+- **未动**：任何 anim/ 图集、images/、角色模型、现有 lua 的既有逻辑（全部是新增块）
+
+### 4. 校验与验收
+- luac5.1：modmain.lua + musha_fairy.lua + musha_fairy_silhouette.lua 全过；语法套件口径 75→**78**（+fairy 本体 +剪影表）
+- **验收点**（完全重启 DST，非重进世界）：①登场/重生后 1~2 秒出现光点汇聚、拼出「圆头+薄翼+光尾」小精灵 ②精灵飘到身边 2~3 格停住、夜里发光 ③新手期冒字打招呼（青白色小字）④冲近它它会后缩 ⑤老档老玩家只问候不打引导词 ⑥改 `MUSHA_FAIRY_ENABLED=false` 重启后不再出场
+- 未定稿美术零打包：本次**未动 anim/、images/**；后续想把精灵换成实体卡通形象（自绘动画）再走定稿打包流程
