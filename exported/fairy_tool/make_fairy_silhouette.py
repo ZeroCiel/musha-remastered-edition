@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-小灵（精灵伙伴）剪影光点表生成器 —— 纯标准库，不需要任何第三方库。
+元素精灵（精灵伙伴）剪影光点表生成器 —— 纯标准库，不需要任何第三方库。
 
 干什么用：
   「粒子汇聚成精灵」的出场动画里，每颗光点要飞到一个固定落点，
@@ -188,7 +188,7 @@ def main():
 
     lines = []
     lines.append("-- ============================================================")
-    lines.append("-- 小灵（精灵伙伴）剪影光点落点表 —— 由 exported/fairy_tool/make_fairy_silhouette.py 生成")
+    lines.append("-- 元素精灵（精灵伙伴）剪影光点落点表 —— 由 exported/fairy_tool/make_fairy_silhouette.py 生成")
     lines.append("--")
     lines.append("--   「粒子汇聚成精灵」的出场动画：每颗光点从四周飞到本表中的一个落点，")
     lines.append("--   全部到位后拼出精灵剪影（圆头 + 薄翼 + 光尾）并常驻漂浮。")

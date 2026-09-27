@@ -1,5 +1,5 @@
 -- ============================================================
--- 小灵（精灵伙伴）—— 粒子汇聚出场的胆怯小精灵（2026-09-27 v1）
+-- 元素精灵（精灵伙伴）—— 粒子汇聚出场的胆怯小精灵（2026-09-27 v1）
 --
 -- ★ 它是什么
 --   一只由 36 颗光点组成的光灵精灵：
@@ -38,7 +38,7 @@ do
     if ok and mod and mod.points then
         SIL = mod
     else
-        print("[Musha] 小灵剪影表加载失败（musha_fairy_silhouette），精灵退化成单点光球")
+        print("[Musha] 元素精灵剪影表加载失败（musha_fairy_silhouette），精灵退化成单点光球")
         SIL = { points = { { x = 0, y = 0.6, s = 1.2 } }, total = 1 }
     end
 end
@@ -68,7 +68,7 @@ CONFIG.FORM_TIME = CONFIG.FLY_TIME + CONFIG.SETTLE_TIME
 -- ===== 台词（胆怯害羞风；想改语气直接改这里） =====
 local FAIRY_LINES = {
     greet_new = {   -- 新手期第一次见面（两句连续说）
-        "那、那个……你好……我是小灵……",
+        "那、那个……你好……我是元素精灵……",
         "你的职业……想看看吗……就在上面的面板里……",
     },
     guide = {       -- 新手期引导（跟在打招呼后面）
@@ -313,11 +313,12 @@ local function fn()
     inst.entity:AddNetwork()
 
     -- 发光（两端同参数，Light 随实体走；夜里照亮一小圈）
+    -- ★ 09-28 修：原 `Light:SetFlicker(0.03)` 报 "attempt to call method 'SetFlicker' (a nil value)"
+    --   —— DST 的 Light 是 C++ 绑定组件，没有 SetFlicker（那是旧写法），闪烁交给粒子的呼吸明暗做，已删
     inst.entity:AddLight()
     inst.Light:SetRadius(CONFIG.LIGHT_RADIUS)
     inst.Light:SetIntensity(CONFIG.LIGHT_INTENSITY)
     inst.Light:SetColour(CONFIG.COLOUR[1], CONFIG.COLOUR[2], CONFIG.COLOUR[3])
-    inst.Light:SetFlicker(0.03)
     inst.Light:Enable(true)
 
     inst:AddTag("FX")

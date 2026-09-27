@@ -424,7 +424,7 @@ end)
 -- =====================
 TRACE("[Musha TRACE] 8 - PrefabFiles 前")
 PrefabFiles = {"musha_rabbitbackpack", "musha_jobbook_warrior", "musha_skillbook", "musha_skillbook_saber", "musha_skill_scroll", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point", "musha_crest_saber", "musha_crest_guardian", "musha_mailbox", "musha_mailbox_shadow", "musha_mailbag", "musha_mailkit_1", "musha_mailkit_2", "musha_mailkit_3", "musha_mailkit_4", "musha_recall_stone", "musha_fairy"}
--- ★ 2026-09-27 新增：musha_fairy「小灵」——粒子汇聚出场的胆怯精灵伙伴
+-- ★ 2026-09-27 新增：musha_fairy「元素精灵」——粒子汇聚出场的胆怯精灵伙伴
 --   实现：scripts/prefabs/musha_fairy.lua（本体+本地粒子+说话）+ scripts/musha_fairy_silhouette.lua（剪影落点表）
 --   召唤：InitMushaPlayer 里玩家实体激活（登场/重生/下洞回来）时生成（见 MUSHA_FAIRY_ENABLED）
 -- ★ 2026-09-19 新增：信箱 + 信差包（邮包系统）
@@ -467,7 +467,7 @@ local function IsAlicePlanModEnabled()
     return false
 end
 
--- ★ 2026-09-27 小灵（精灵伙伴）总开关：false = 一键关闭，玩家登场不再召唤精灵
+-- ★ 2026-09-27 元素精灵（精灵伙伴）总开关：false = 一键关闭，玩家登场不再召唤精灵
 --   （本体在 scripts/prefabs/musha_fairy.lua，剪影在 scripts/musha_fairy_silhouette.lua）
 local MUSHA_FAIRY_ENABLED = true
 -- 出场冷却：防止 playeractivated 短时间重复触发导致精灵反复重新出场（秒）
@@ -544,7 +544,7 @@ local function InitMushaPlayer(inst)
                 end, TheWorld)
             end
         end
-        -- ★ 2026-09-27 小灵（精灵伙伴）：登场 / 重生 / 下洞穴回来 / 死亡复活 → 自动出场
+        -- ★ 2026-09-27 元素精灵（精灵伙伴）：登场 / 重生 / 下洞穴回来 / 死亡复活 → 自动出场
         --   20 格内随机出生 → 光点汇聚拼形（客户端本地粒子）→ 飘向玩家害羞跟随
         --   新手期（职业 ≤1 级）见面会冒字打招呼 + 引导职业（台词在 prefab 的 FAIRY_LINES）
         --   冷却 / 开关见上面 MUSHA_FAIRY_*；同一玩家永远只有一只（先清旧的再召新的）
@@ -576,7 +576,7 @@ local function InitMushaPlayer(inst)
                     fairy.Transform:SetPosition(x + math.cos(ang) * r, 0.7, z + math.sin(ang) * r)
                     fairy:PushEvent("musha_fairy_bind", { leader = ply })
                     ply._musha_fairy = fairy
-                    TRACE("[Musha] 小灵已出场（距玩家 " .. string.format("%.1f", r) .. " 格）")
+                    TRACE("[Musha] 元素精灵已出场（距玩家 " .. string.format("%.1f", r) .. " 格）")
                 end
             end
             inst:ListenForEvent("playeractivated", SummonFairy)          -- 登场 / 读档 / 下洞回来
@@ -584,7 +584,7 @@ local function InitMushaPlayer(inst)
                 if ply ~= nil then ply._musha_fairy_last = nil end
                 SummonFairy(ply)
             end)
-            inst:ListenForEvent("death", function(ply)                   -- 死亡：小灵受惊消散
+            inst:ListenForEvent("death", function(ply)                   -- 死亡：元素精灵受惊消散
                 RemoveFairy(ply)
             end)
         end
