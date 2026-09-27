@@ -1,4 +1,4 @@
-name = "Musha 0.7.9 职业系统重制版"
+name = "Musha 0.7.11 职业系统重制版"
 description = "Musha 职业系统重制版 — 雪儿 (Ciel)"
 author = "Ciel (雪儿)"
 version = "0.7.11"
