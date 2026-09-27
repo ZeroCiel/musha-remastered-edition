@@ -2863,6 +2863,23 @@ function MushaPanelScreen:RefreshSkills(md)
     end
     local data = self.skill_md
 
+    -- ★ 2026-09-28：技能数据为空时**打一行诊断 + 补拉一次**（用户报"直接表示我学习完了"）
+    --   树喂的就是 data.skills；这里空 = 树整棵空白。打清楚是哪一层空的（下次重启看
+    --   client_log 一眼定位），并只补拉一次 request_settings（不会循环刷）。
+    if self.skill_tree and (data == nil or data.skills == nil or #data.skills == 0) then
+        print(string.format("[Musha Panel] 技能数据为空: data=%s skills=%s carrer=%s spec=%s lv=%s sp=%s",
+            tostring(data ~= nil),
+            tostring(data and data.skills and #data.skills),
+            tostring(data and data.carrer_base),
+            tostring(data and data.carrer_special),
+            tostring(data and data.level),
+            tostring(data and data.skill_points)))
+        if not self._skill_req_tried then
+            self._skill_req_tried = true
+            RequestSettings()
+        end
+    end
+
     -- 重建：现在由 ScrollingGrid 管（SetItemsData 会重排/复用 item，不用手动 KillAllChildren）
     self:RefreshSkillTabs()
 
