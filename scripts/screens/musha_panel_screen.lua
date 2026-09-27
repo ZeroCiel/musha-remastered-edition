@@ -397,6 +397,52 @@ local function MakeGiftButton(parent, w, h, str, onclick)
     return b
 end
 
+-- ★ 2026-09-28 用户：技能详情的「加点」改成**粉红色正方形**，做法参考「领取」（MakeGiftButton）
+--   照抄它那四层：外框(立体底，比面大 6px) + 面 + 上左高光 + 下右阴影，悬停整块弹 1.06；
+--   只换两处 —— 配色换成加点那套粉（与 MakePlusButton 同色），外形 size×size 正方。
+--   长文案「用技能书解锁」在 ShowSkillDetail 里改两行 + 缩字号（DST Text 支持 \n）
+local function MakePinkSquareButton(parent, size, str, onclick)
+    local b = parent:AddChild(ImageButton("images/global.xml", "square.tex"))
+    b:ForceImageSize(size + 6, size + 6)
+    b:SetImageNormalColour(0.60, 0.22, 0.34, 0.95)      -- 外框（深粉红）= 立体底
+    b:SetImageFocusColour(0.72, 0.30, 0.44, 1)
+    b.scale_on_focus = false
+
+    local face = b:AddChild(Image("images/global.xml", "square.tex"))
+    face:SetSize(size, size)
+    face:SetTint(0.98, 0.72, 0.80, 0.99)                 -- 粉色主色（同 MakePlusButton）
+    b._face = face
+
+    -- 高光（上 + 左）
+    for _, ln in ipairs({ { 0, size / 2 - 2, size, 3 }, { -(size / 2 - 2), 0, 3, size } }) do
+        local i = b:AddChild(Image("images/global.xml", "square.tex"))
+        i:SetSize(ln[3], ln[4])
+        i:SetPosition(ln[1], ln[2])
+        i:SetTint(1.00, 0.88, 0.93, 0.98)
+    end
+    -- 阴影（下 + 右）
+    for _, ln in ipairs({ { 0, -(size / 2 - 2), size, 3 }, { (size / 2 - 2), 0, 3, size } }) do
+        local i = b:AddChild(Image("images/global.xml", "square.tex"))
+        i:SetSize(ln[3], ln[4])
+        i:SetPosition(ln[1], ln[2])
+        i:SetTint(0.74, 0.28, 0.44, 0.95)
+    end
+
+    local t = b:AddChild(Text(UIFONT, 28))
+    t:SetString(str)
+    t:SetColour(1.00, 1.00, 1.00, 1)
+    t:SetHAlign(ANCHOR_MIDDLE)
+    t:SetVAlign(ANCHOR_MIDDLE)
+    t:SetRegionSize(size, size)      -- 区域 = 整颗方块 → 两行字也居中
+    b._label = t
+
+    b:SetOnGainFocus(function() b:SetScale(1.06, 1.06, 1) end)
+    b:SetOnLoseFocus(function() b:SetScale(1, 1, 1) end)
+
+    if onclick then b:SetOnClick(onclick) end
+    return b
+end
+
 -- ★ 2026-09-17 技能书锁（用户）：技能书解锁技在 0 级时不显示加号，改显示这把小锁；
 --   鼠标悬停 → 提示"需要 N 本技能书才能解锁"（给新手建立认知）。贴图用**官方技能树的挂锁**，不新增素材。
 --   ★ 2026-09-18 加 onclick：锁本身也能点（点它 = 用背包里的技能书解锁）
@@ -1037,6 +1083,9 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     self.quest_hint:SetString("完成转职条件后开启任务")
     self.quest_hint:SetColour(0.45, 0.45, 0.45, 0.5)
     self.quest_hint:SetPosition(-20, -160)
+    -- ★ 09-28 用户拍板「只隐藏空状态两行字」：构造即藏（否则 Refresh 之前会先露一下）
+    self.quest_empty:Hide()
+    self.quest_hint:Hide()
 
     -- ================================================================
     -- 任务列表：ScrollingGrid（照搬明生架构）
@@ -1518,7 +1567,10 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         self.job_text, self.job_star, self.level_text,
         self.home_divider,
         self.exp_bg, self.exp_fill, self.exp_text,
-        self.quest_empty, self.quest_hint,
+        -- ★ 09-28 用户拍板「只隐藏空状态两行字」（任务列表本身保留）：
+        --   quest_empty / quest_hint 从主页组里**摘掉** —— 表里有的话 SetActivePage(:3465)
+        --   切回主页会整组 Show，光在 Refresh 里 Hide 会被顶回来。
+        --   要恢复：把这两件加回这个表 + 把 Refresh 末尾的两行 Hide 改回 Show。
         self.list,   -- 09-27 二改：quest_bg/quest_bg_frame 撤（任务区回原样），别再往这表里塞
     }
 
@@ -1828,7 +1880,9 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             end
 
             -- 加点 / 用技能书解锁（同一颗按钮，按数据决定干啥；满级直接隐藏）
-            self.skill_detail_btn = MakeTextButton(self.skill_detail, 132, 34, "加点", function()
+            -- ★ 09-28 用户：「加点改成粉红色按钮 正方形 参考领取那个怎么做的」
+            --   → 132×34 棕色 MakeTextButton 换成 MakePinkSquareButton 84×84（照领取的四层做法）
+            self.skill_detail_btn = MakePinkSquareButton(self.skill_detail, 84, "加点", function()
                 local e = self.skill_sel
                 if not e then return end
                 if (e.book_lock or 0) > 0 then
@@ -1837,7 +1891,9 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                     SendSkillUpgrade(e.id)
                 end
             end)
-            self.skill_detail_btn:SetPosition(0, -DH / 2 + 34)
+            -- 09-28：粉方块 84+6=90 高，原位 (-DH/2+34) 下沿会戳出详情框 → 上移到 +46
+            --   下沿 = -144-45 = -189（框内 -190）；上沿 -99，不压 L5(-58)
+            self.skill_detail_btn:SetPosition(0, -DH / 2 + 46)
             self.skill_detail:Hide()
 
             -- ② 横排树
@@ -2722,12 +2778,14 @@ local has_job = md.carrer_base ~= nil and md.carrer_base ~= ""
     self:RefreshSkills(md)
 
     -- 空状态
+    -- ★ 09-28 用户拍板「只隐藏空状态两行字」：任务列表照常，这两行字不再显示
+    --   （每日任务已全搬到酒馆板，主页这句提示没有落点了）。两支都 Hide。
     if #items > 0 then
         self.quest_empty:Hide()
         self.quest_hint:Hide()
     else
-        self.quest_empty:Show()
-        self.quest_hint:Show()
+        self.quest_empty:Hide()
+        self.quest_hint:Hide()
         if has_job then
             self.quest_empty:SetString("暂无任务")
             self.quest_hint:SetString("每日任务明日自动发放 · 转职任务去酒馆接取")
@@ -3078,14 +3136,28 @@ function MushaPanelScreen:ShowSkillDetail(e)
     else
         self.skill_detail_btn:Show()
         if self.skill_detail_btn._label then
-            self.skill_detail_btn._label:SetString(unlock and "用技能书解锁" or "加点")
+            local lb = self.skill_detail_btn._label
+            if unlock then
+                -- 84 宽放不下 6 个字一行 → 两行 + 缩字号（区域已设成 84×84 居中）
+                lb:SetString("用技能书\n解锁")
+                lb:SetSize(22)
+            else
+                lb:SetString("加点")
+                lb:SetSize(28)
+            end
         end
         if usable then
-            self.skill_detail_btn:SetImageNormalColour(0.62, 0.34, 0.14, 1)
-            self.skill_detail_btn:SetImageFocusColour(0.72, 0.42, 0.18, 1)
+            self.skill_detail_btn:SetImageNormalColour(0.60, 0.22, 0.34, 0.95)  -- 粉框
+            self.skill_detail_btn:SetImageFocusColour(0.72, 0.30, 0.44, 1)
+            if self.skill_detail_btn._face then
+                self.skill_detail_btn._face:SetTint(0.98, 0.72, 0.80, 0.99)     -- 粉面
+            end
         else
-            self.skill_detail_btn:SetImageNormalColour(0.72, 0.69, 0.65, 1)
-            self.skill_detail_btn:SetImageFocusColour(0.72, 0.69, 0.65, 1)
+            self.skill_detail_btn:SetImageNormalColour(0.66, 0.63, 0.60, 0.95)  -- 灰框
+            self.skill_detail_btn:SetImageFocusColour(0.66, 0.63, 0.60, 0.95)
+            if self.skill_detail_btn._face then
+                self.skill_detail_btn._face:SetTint(0.84, 0.83, 0.81, 0.97)     -- 灰面
+            end
         end
         self.skill_detail_btn:SetClickable(usable)
     end

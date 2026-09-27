@@ -46,6 +46,14 @@ local MushaRecall = Class(function(self, inst)
     self.bound_y     = nil
     self.bound_z     = nil
     self.bound_shard = nil     -- 绑定时所在分片（地面/洞穴）
+
+    -- ★ 2026-09-28 加：绑定目标的两个「不变量」，用来防止读档后 GUID 串号
+    --   · bound_userid —— 玩家重进游戏后 **GUID 必变**（玩家是 user session 另存的，
+    --     不走普通实体存档），但 userid 永远不变 → 绑玩家必须靠它找回
+    --   · bound_prefab —— GUID 在新会话里会被**别的实体**占掉（GUID 是每次启动
+    --     从 1 重新发的），按旧 GUID 查可能查到一棵毫不相干的树 → 传送错地方
+    self.bound_userid = nil
+    self.bound_prefab = nil
     self.uses_left   = MAX_USES
     self.cooldown_end = 0
 
@@ -72,6 +80,17 @@ local function FindEntityByGUID(guid)
     return nil
 end
 
+-- 按 userid 找玩家实体（玩家重进后 GUID 会换，userid 不会）
+local function FindEntityByUserID(userid)
+    if userid == nil or userid == "" then return nil end
+    local ents = Ents
+    if ents == nil then return nil end
+    for _, e in pairs(ents) do
+        if e.userid == userid and e:IsValid() then return e end
+    end
+    return nil
+end
+
 local function ShardID()
     local s = TheShard
     if s == nil or s.GetShardId == nil then return nil end
@@ -90,14 +109,39 @@ function MushaRecall:GetCooldownLeft()
     return left > 0 and left or 0
 end
 
+-- 目标身份校验：GUID 会重发，prefab/userid 不会 → 查回来的东西必须对得上号
+local function IdentityMatches(self, e)
+    if e == nil then return false end
+    if self.bound_userid ~= nil and self.bound_userid ~= "" then
+        return e.userid == self.bound_userid
+    end
+    if self.bound_prefab ~= nil then
+        return e.prefab == self.bound_prefab
+    end
+    return true      -- 老档没存这俩字段 → 不拦（维持旧行为）
+end
+
 -- 绑定的那个东西现在还找得到吗？找得到就返回实体，找不到返回 nil
 function MushaRecall:GetTarget()
+    -- ① 玩家绑定：userid 是唯一可靠键（GUID 每次进游戏都会换）
+    if self.bound_userid ~= nil and self.bound_userid ~= "" then
+        local p = FindEntityByUserID(self.bound_userid)
+        if p ~= nil and not p:IsInLimbo() then
+            self.bound_inst = p
+            return p
+        end
+    end
+
+    -- ② 普通实体：LoadPostPass 解回来的引用优先（那条路最准）
     local t = self.bound_inst
-    if t ~= nil and t:IsValid() and not t:IsInLimbo() then
+    if t ~= nil and t:IsValid() and not t:IsInLimbo() and IdentityMatches(self, t) then
         return t
     end
+
+    -- ③ 兜底按 GUID 查，但必须验身份 —— 否则新会话里同号 GUID 会指到别的东西，
+    --    传送点就错了（用户问的「实体可能是实体 但不是 userid」正是这个洞）
     t = FindEntityByGUID(self.bound_guid)
-    if t ~= nil and not t:IsInLimbo() then
+    if t ~= nil and not t:IsInLimbo() and IdentityMatches(self, t) then
         self.bound_inst = t
         return t
     end
@@ -133,10 +177,15 @@ function MushaRecall:Bind(doer, target)
     self.bound_name  = name
     self.bound_x, self.bound_y, self.bound_z = x, y, z
     self.bound_shard = ShardID()
+    -- 身份不变量（2026-09-28）：玩家存 userid，其它存 prefab，读档后靠它们验明正身
+    self.bound_userid = (target.userid ~= nil and target.userid ~= "") and target.userid or nil
+    self.bound_prefab = target.prefab
 
     Say(doer, "（记住了 —— 家就在「" .. name .. "」那儿。之后右键这块石头就能回去）")
     print("[Musha] 回城石绑定：" .. tostring(name) .. " (" .. tostring(target.prefab)
-        .. " / GUID=" .. tostring(target.GUID) .. ")")
+        .. " / GUID=" .. tostring(target.GUID)
+        .. (self.bound_userid ~= nil and (" / userid=" .. tostring(self.bound_userid)) or "")
+        .. ")")
     return true
 end
 
@@ -216,16 +265,38 @@ function MushaRecall:OnSave()
         and (self.cooldown_end or 0) <= GetTime() then
         return nil
     end
-    return {
+
+    -- ★ 2026-09-28 核心修复：把绑定目标作为**第二返回值（引用表）**报给引擎。
+    --   原版机制（mainfunctions.lua:1089-1097 + 1181-1187）：
+    --     OnSave 第二返回值里的 GUID 会被登记进 references → 存档时给那条记录打 id →
+    --     读档 SpawnSaveRecord 把 id 回填进 newents → 我们的 LoadPostPass 才解得回实体。
+    --   旧版只返回 data 不返回引用 → newents 里永远查不到 → bound_inst 恒 nil →
+    --     只能靠 GUID 兜底，而 GUID 换会话就重发 → 可能查到别的东西。
+    --   （原版同款写法见 spell.lua:84 / furnituredecortaker.lua:130）
+    local data = {
         bound_guid  = self.bound_guid,
         bound_name  = self.bound_name,
         bound_x     = self.bound_x,
         bound_y     = self.bound_y,
         bound_z     = self.bound_z,
         bound_shard = self.bound_shard,
+        bound_userid = self.bound_userid,
+        bound_prefab = self.bound_prefab,
         uses_left   = self.uses_left,
         cooldown_end = self.cooldown_end,
     }
+
+    -- 引用只报「现在确实存在且会被存档」的目标，否则引擎会刷 "Missing reference"
+    -- （先 GetTarget() 刷新一遍 bound_inst —— 目标中途被移除时别再报引用）
+    -- ⚠️ 玩家不报引用：玩家走 user session 另存，GUID 这条路本来就不可靠，
+    --    读档一律靠 bound_userid 找（上面 LoadPostPass 的第一段）
+    local t = self:GetTarget()
+    if self.bound_guid ~= nil and self.bound_userid == nil
+        and t ~= nil and t:IsValid() and t.Transform ~= nil
+        and t.persists and t.prefab ~= nil and t.entity:GetParent() == nil then
+        return data, { self.bound_guid }
+    end
+    return data
 end
 
 function MushaRecall:OnLoad(data)
@@ -236,6 +307,9 @@ function MushaRecall:OnLoad(data)
     self.bound_y     = data.bound_y
     self.bound_z     = data.bound_z
     self.bound_shard = data.bound_shard
+    -- 老档没存这俩 → nil（IdentityMatches 会放行，维持旧行为）
+    self.bound_userid = data.bound_userid
+    self.bound_prefab = data.bound_prefab
     self.uses_left   = data.uses_left or MAX_USES
     self.cooldown_end = data.cooldown_end or 0
 
@@ -252,9 +326,19 @@ end
 
 -- 读档后所有实体都在了 → 把绑定的 GUID 换回实体
 function MushaRecall:LoadPostPass(newents, data)
-    if data == nil or data.bound_guid == nil or newents == nil then return end
-    local rec = newents[data.bound_guid]
-    self.bound_inst = rec ~= nil and rec.entity or nil
+    if data == nil or data.bound_guid == nil then return end
+    if data.bound_userid ~= nil and data.bound_userid ~= "" then
+        self.bound_inst = FindEntityByUserID(data.bound_userid)   -- 玩家走 userid
+        if self.bound_inst ~= nil then return end
+    end
+    if newents == nil then return end
+    local rec = newents[data.bound_guid]      -- OnSave 报了引用，引擎才填得进这个表
+    local e = rec ~= nil and rec.entity or nil
+    -- 验身份：引用没对上（老档/目标没被存档）时宁可留 nil，也不认一个同号异物
+    if e ~= nil and (data.bound_prefab == nil or e.prefab == data.bound_prefab)
+        and (data.bound_userid == nil or e.userid == data.bound_userid) then
+        self.bound_inst = e
+    end
 end
 
 function MushaRecall:GetDebugString()

@@ -180,12 +180,15 @@ function MushaSkillTree:SetScrollX(x)
     local minx = self:MinScrollX()
     x = math.max(minx, math.min(0, x or 0))
     self.scroll_x = x
-    -- ★ 09-25 居中偏移：内容不满一屏时往正中挪；够一屏时两项恒 0（与旧行为逐像素一致）
-    local hoff = math.max(0, (self.view_w - (self.raw_w or self.view_w)) / 2)
-    local voff = math.min(0, ((self.raw_h or self.view_h) - self.view_h) / 2)
-    self.canvas:SetPosition(-self.view_w / 2 + x + hoff, self.view_h / 2 + voff)
+    -- ★ 2026-09-28 用户：「技能靠左上去放，不放在屏幕中间」→ 撤掉 09-25 的"不满一屏就挪正中"，
+    --   hoff/voff 恒 0：内容一律贴视口**左上角**（画布原点本来就是视口左上）。
+    --   滚动范围 / 拖动 / 滚轮行为与从前逐像素一致（MinScrollX 仍看 content_w）。
+    self.canvas:SetPosition(-self.view_w / 2 + x, self.view_h / 2)
     if self.arrow_l then
         local on = x < -0.5
+        -- ★ 2026-09-28 用户：「不主动显示左边的按钮 <」→ 往左没得滚时整颗藏起来
+        --   （原来是 0.20 半透明还挂在那儿）；只有真能往左滚才露出来
+        if on then self.arrow_l:Show() else self.arrow_l:Hide() end
         self.arrow_l:SetImageNormalColour(0.93, 0.90, 0.84, on and 0.92 or 0.20)
         self.arrow_l:SetClickable(on)
     end
@@ -255,8 +258,9 @@ function MushaSkillTree:SetSkills(list)
     local total_cols = cursor - GAP_COL
     self.content_w = math.max(self.view_w, PAD * 2 + (total_cols - 1) * COL_DX + NODE)
     self.content_h = math.max(self.view_h, PAD * 2 + maxrow * ROW_DY + NODE)
-    -- ★ 09-25「技能栏变动方位」：记原始内容尺寸 —— 不满一屏时把画布挪到视口正中；
-    --   够一屏时 hoff/voff 恒为 0，滚动范围/箭头/拖动行为与从前完全一致。
+    -- ★ 09-25「技能栏变动方位」：原始内容尺寸。
+    --   ⚠️ 09-28 用户「靠左上放，不放在屏幕中间」→ hoff/voff 居中偏移已撤，
+    --     这两个值现在只用来算 content_w/content_h 之外的备份，SetScrollX 不再读它们。
     self.raw_w = PAD * 2 + (total_cols - 1) * COL_DX + NODE
     self.raw_h = PAD * 2 + maxrow * ROW_DY + NODE
 
