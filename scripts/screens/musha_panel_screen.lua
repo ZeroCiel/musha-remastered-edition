@@ -175,6 +175,9 @@ if type(MUSHA_CHANGELOG) ~= "table" then
             "★ 技能书新皮：「Don't Stare」封面 + 补上掉落时的地面动画（之前掉在地上看不见）。",
             "★ 面板换新底图（主页 + 技能页通用，自带内纸边）：移除旧的代码金框，不再双重框。",
             "面板微调：天使荷包角度调整、经验条拉长 30%、右上角叉号右移 25 像素。",
+            "★ 酒馆新增「委托板」：右键酒馆打开，挂在屏幕右侧（不盖住你的容器）；每日委托点「接取」后才进「进行中」，品质分 普通 / 白 / 银 / 金 四档。",
+            "★ 回城石绑定加固：绑定信息随存档保存，读档时校验目标身份，对不上宁可判定「不在了」，不再传错位置。",
+            "技能页微调：横排技能树定位到页面左上、点节点不再左右跳动；「加点」换成粉红方块按钮；空状态提示字按需隐藏（任务列表保留）。",
             "修复：近卫职业书名字缺失、musha 恢复原版皮肤（v2 误打包回退）、背包补齐传送 / 重生姿势贴图。",
         },
     },
@@ -1610,7 +1613,8 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         self.skill_head = root:AddChild(Text(UIFONT, 32))
         self.skill_head:SetColour(0.28, 0.22, 0.15, 1)
         self.skill_head:SetString("技能")
-        self.skill_head:SetPosition(61, PAGE_H / 2 - 46)
+        -- ★ 09-28 用户「技能 上方的面板 上移动 4 像素」→ y -46 → -42（上移 = +4）
+        self.skill_head:SetPosition(61, PAGE_H / 2 - 42)
 
         -- ③b 上方文字项目：未学习 / 已学习（点它切换同一页的两个子页，2026-09-12）
         --   书页风：选中的是白底 + 深墨字 + 一道深橙下划线，未选中的是浅灰底 + 灰字
@@ -1860,7 +1864,8 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             --     （09-27 上一版 detail 298→330 / 树 61,8 / 展开 -88,8，全部撤回）
             local DW, DH = 232, 380
             self.skill_detail = root:AddChild(Widget("skill_detail"))
-            self.skill_detail:SetPosition(414, -14)
+            -- ★ 09-28 用户「技能介绍上移 5 像素」→ y -14 → -9
+            self.skill_detail:SetPosition(414, -9)
             local dbg = self.skill_detail:AddChild(Image("images/global.xml", "square.tex"))
             dbg:SetSize(DW, DH)
             dbg:SetTint(0.995, 0.99, 0.975, 0.99)
@@ -1908,7 +1913,8 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             --   · 视口 596×424 → 起点(左上)=(-410, 200) → 中心 = (-112, -12)[content]
             --     → 换算到页面 root(root 在 content 的 (0,-33)) = **(-112, 21)**
             --   仍然**固定不跳**（点节点/收详情都回这个位）
-            self.skill_tree:SetPosition(-112, 21)
+            --   ★ 09-28 用户「技能部分 上移 8 像素」→ y 21 → 29（下面 ShowSkillDetail 两处同改）
+            self.skill_tree:SetPosition(-112, 29)
 
             -- ③ 版式切换按钮 —— ★ 2026-09-21 用户拍板「直接横排 不要竖排了」→ **不再创建这两颗按钮**
             --   竖排列表相关的 widget（skill_grid / skill_tabs / skill_foot / skill_empty）仍在，
@@ -3063,14 +3069,14 @@ function MushaPanelScreen:ShowSkillDetail(e)
         self.skill_detail:Hide()
         -- ★ 09-25：详情收起 → 技能树回中
         -- ★ 09-27 二改（用户「要固定」）：树固定在 hermes 原位 (0,-26)，收起/展开都不动
-        if self.skill_tree then self.skill_tree:SetPosition(-112, 21) end
+        if self.skill_tree then self.skill_tree:SetPosition(-112, 29) end
         return
     end
     self.skill_detail:Show()
     -- ★ 09-25：详情展开 → 技能树左移让位（原 0 → -124）
     -- ★ 09-27 二改（用户「树要固定，点了不要左右乱动」）：**不再左移**，树保持 (0,-26)；
     --   详情让到 414（左缘 298 = 树视口右缘）贴着树放，两者不重叠
-    if self.skill_tree then self.skill_tree:SetPosition(-112, 21) end
+    if self.skill_tree then self.skill_tree:SetPosition(-112, 29) end
 
     -- 中文按字数折行（DST 的 Text 不会自动换行，手动插 \n；UTF-8 逐字取）
     local function Wrap(str, n)

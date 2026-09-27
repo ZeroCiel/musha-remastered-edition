@@ -28,7 +28,7 @@ local Text       = require "widgets/text"
 local ImageButton = require "widgets/imagebutton"
 
 local BOARD_W, BOARD_H = 350, 590
-local BOARD_OFFSET     = -191    -- 右缘锚点下的中心 x：-(350/2 + 16)，留 16px 边距
+local BOARD_OFFSET     = -361    -- 右缘锚点下的中心 x；★ 09-28 用户「右边的左移 170」：-191-170=-361（原 16px 边距 → 186px）
 local ROW_W            = 310     -- 行底片宽
 local ROW_H            = 56
 local AVAIL_Y0, AVAIL_DY = 150, 62 -- 可接委托 4 行
@@ -127,9 +127,10 @@ local MushaTavernBoard = Class(Widget, function(self, owner)
 
     -- 位置由挂在根节点（ANCHOR_RIGHT/MIDDLE + SCALEMODE_PROPORTIONAL，
     -- 照原版 containerroot 的挂法）决定，这里只写相对右缘的偏移：
-    -- 中心 x = -(350/2 + 16) → 板子右缘离屏幕右边 16px。
+    -- 中心 x = -(350/2 + 16) → 板子右缘离屏幕右边 16px（09-28 起左移 170 → 边距 186px）。
     -- 坐标按 1280x720 虚拟分辨率等比缩放，随玩家 HUD 大小设置一起走。
-    self:SetPosition(BOARD_OFFSET, 0)
+    -- ★ 09-28 用户「上移动 7 像素」：y 0 → +7。
+    self:SetPosition(BOARD_OFFSET, 7)
 
     -- 木框花 350x590（原尺寸，不拉伸 → 不变形）
     local frame = self:AddChild(Image("images/tavern_frame.xml", "tavern_frame.tex"))
