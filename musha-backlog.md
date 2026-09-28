@@ -1,5 +1,23 @@
 # Musha backlog（2026-09-10 深夜更新）
 
+## 🗓 2026-10-02 开工：英文第二批（全部翻完）+ 文案迁 STRINGS（用户 09-28 拍板）
+- 范围（"英文下批全部翻了"）：**面板剩余中文全翻** —— 主页任务空状态提示、任务名 / 每日委托文案（服务端下发）、
+  设置页、礼包页、图鉴页、信箱兜底日志**保持中文不动**（`musha_panel_screen.lua:169-183`）
+- **机制：搬进 STRINGS，不写在面板控件里**（用户："可以先写 STRING. 然后日记稍后加载吧？"）
+  - 项目已有的语言机制：`modmain.lua:984-989` 按 `Profile:GetLanguageID()`（21/22/23=中文）`modimport`
+    `scripts/languages/chinese.lua` / `english.lua`（`GLOBAL.STRINGS`）；两个文件**现在只放物品名和描述**，
+    没有面板 UI 文案 → 新文案进这里（`STRINGS.MUSHA_PANEL_*` / `MUSHA_SKILL_*` / `MUSHA_CHANGELOG_*`）
+  - modmain 两端各自跑 → **每个客户端按自己的语言加载**，语言跟人走（这是 STRINGS 比字段版强的地方）
+  - ⚠️ 关键坑（10-02 必改）：`GetSkillView` 在**服务端**执行，读的是服务端的 `TUNING.MUSHA_UI_LANG`；
+    专用服务器上 `Profile` 为 nil → `loc=nil` → `english.lua` → 中文玩家会看到英文技能
+    → 正解：**服务端只发 key + 数值**（`entry.lvl_val = level_effects[cur]`），**客户端本地**
+    `string.format(STRINGS..., v)` 格式化
+  - 更新日志：已是数据源 `musha_changelog.lua` + 面板 `pcall(require, "musha_changelog")` 懒加载（不在控件里 ✓）；
+    10-02 二选一：**保留 `lines_en` 字段**（省事、行数可控）或迁 `STRINGS.MUSHA_CHANGELOG_*`（统一机制）——
+    开工时看迁移量定，我倾向保留数据文件（它是内容数据不是 UI 标签）
+- 09-28 已完成的字段版（`lines_en` / `*_en`）先用着；10-02 若决定迁 STRINGS，**同一批一起搬**，别改两遍
+- 之后接：日文（`*_jp`，和 tavern_frame 同批，见下一节）
+
 ## 🎯 2026-09-28 用户拍板：这两件归入 0.8.0（0.7.12 这批先不动）
 - [ ] **tavern_frame（木框花 350×590）下个版本用上**
   - 现状：`images/tavern_frame.{png,tex,xml}` 已 publish（09-27），但 `modmain.lua` 里**没注册**这个 atlas
