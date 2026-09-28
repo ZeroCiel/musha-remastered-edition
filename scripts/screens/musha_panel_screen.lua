@@ -401,31 +401,33 @@ local function MakeGiftButton(parent, w, h, str, onclick)
     return b
 end
 
--- ★ 2026-09-28 用户：技能详情的「加点」改成**粉红色正方形**，做法参考「领取」（MakeGiftButton）
+-- ★ 2026-09-28 用户：技能详情的「加点」改成**粉红色**按钮，做法参考「领取」（MakeGiftButton）
 --   照抄它那四层：外框(立体底，比面大 6px) + 面 + 上左高光 + 下右阴影，悬停整块弹 1.06；
---   只换两处 —— 配色换成加点那套粉（与 MakePlusButton 同色），外形 size×size 正方。
+--   配色换成加点那套粉（与 MakePlusButton 同色）。
+--   ★ 同日用户「加点按钮 改120x70」→ 由单参 size（正方）改成 **w/h 两参（长方）**：
+--     详情框 DW=232 → 126 宽居中两侧各余 53；DH=380 → 76 高落进 L5底-68 ~ 框底-190 的带子（余量 46）
 --   长文案「用技能书解锁」在 ShowSkillDetail 里改两行 + 缩字号（DST Text 支持 \n）
-local function MakePinkSquareButton(parent, size, str, onclick)
+local function MakePinkSquareButton(parent, w, h, str, onclick)
     local b = parent:AddChild(ImageButton("images/global.xml", "square.tex"))
-    b:ForceImageSize(size + 6, size + 6)
+    b:ForceImageSize(w + 6, h + 6)
     b:SetImageNormalColour(0.60, 0.22, 0.34, 0.95)      -- 外框（深粉红）= 立体底
     b:SetImageFocusColour(0.72, 0.30, 0.44, 1)
     b.scale_on_focus = false
 
     local face = b:AddChild(Image("images/global.xml", "square.tex"))
-    face:SetSize(size, size)
+    face:SetSize(w, h)
     face:SetTint(0.98, 0.72, 0.80, 0.99)                 -- 粉色主色（同 MakePlusButton）
     b._face = face
 
-    -- 高光（上 + 左）
-    for _, ln in ipairs({ { 0, size / 2 - 2, size, 3 }, { -(size / 2 - 2), 0, 3, size } }) do
+    -- 高光（上 + 左）：横线长 w 贴 h/2，竖线高 h 贴 w/2
+    for _, ln in ipairs({ { 0, h / 2 - 2, w, 3 }, { -(w / 2 - 2), 0, 3, h } }) do
         local i = b:AddChild(Image("images/global.xml", "square.tex"))
         i:SetSize(ln[3], ln[4])
         i:SetPosition(ln[1], ln[2])
         i:SetTint(1.00, 0.88, 0.93, 0.98)
     end
     -- 阴影（下 + 右）
-    for _, ln in ipairs({ { 0, -(size / 2 - 2), size, 3 }, { (size / 2 - 2), 0, 3, size } }) do
+    for _, ln in ipairs({ { 0, -(h / 2 - 2), w, 3 }, { (w / 2 - 2), 0, 3, h } }) do
         local i = b:AddChild(Image("images/global.xml", "square.tex"))
         i:SetSize(ln[3], ln[4])
         i:SetPosition(ln[1], ln[2])
@@ -437,7 +439,7 @@ local function MakePinkSquareButton(parent, size, str, onclick)
     t:SetColour(1.00, 1.00, 1.00, 1)
     t:SetHAlign(ANCHOR_MIDDLE)
     t:SetVAlign(ANCHOR_MIDDLE)
-    t:SetRegionSize(size, size)      -- 区域 = 整颗方块 → 两行字也居中
+    t:SetRegionSize(w, h)        -- 区域 = 整颗块面 → 两行字也居中
     b._label = t
 
     b:SetOnGainFocus(function() b:SetScale(1.06, 1.06, 1) end)
@@ -1886,9 +1888,9 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             end
 
             -- 加点 / 用技能书解锁（同一颗按钮，按数据决定干啥；满级直接隐藏）
-            -- ★ 09-28 用户：「加点改成粉红色按钮 正方形 参考领取那个怎么做的」
-            --   → 132×34 棕色 MakeTextButton 换成 MakePinkSquareButton 84×84（照领取的四层做法）
-            self.skill_detail_btn = MakePinkSquareButton(self.skill_detail, 84, "加点", function()
+            -- ★ 09-28 用户：「加点改成粉红色按钮 参考领取那个怎么做的」→ MakePinkSquareButton（四层做法）
+            --   同日用户「改120x70」→ 84×84 正方 → **120×70 长方**（DW=232 放得下，见定义处算账）
+            self.skill_detail_btn = MakePinkSquareButton(self.skill_detail, 120, 70, "加点", function()
                 local e = self.skill_sel
                 if not e then return end
                 if (e.book_lock or 0) > 0 then
@@ -1897,9 +1899,10 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                     SendSkillUpgrade(e.id)
                 end
             end)
-            -- 09-28：粉方块 84+6=90 高，原位 (-DH/2+34) 下沿会戳出详情框 → 上移到 +46
-            --   下沿 = -144-45 = -189（框内 -190）；上沿 -99，不压 L5(-58)
-            self.skill_detail_btn:SetPosition(0, -DH / 2 + 46)
+            -- 09-28 二改（120×70 后）：外框高 76、半高 38 → 位置 -DH/2+61 = -129
+            --   占 -91 ~ -167：上沿 -91 让开 L5(-58，字底≈-68) 23px、下沿 -167 距框内底 -190 余 23px（上下均分）
+            --   （旧值 +46/-144 是 84 方块的账：半高 45 → -99~-189）
+            self.skill_detail_btn:SetPosition(0, -DH / 2 + 61)
             self.skill_detail:Hide()
 
             -- ② 横排树
@@ -3145,7 +3148,7 @@ function MushaPanelScreen:ShowSkillDetail(e)
         if self.skill_detail_btn._label then
             local lb = self.skill_detail_btn._label
             if unlock then
-                -- 84 宽放不下 6 个字一行 → 两行 + 缩字号（区域已设成 84×84 居中）
+                -- 120 宽放不下 6 个字一行（6×22=132>120）→ 两行 + 缩字号（区域已设成 120×70 居中）
                 lb:SetString("用技能书\n解锁")
                 lb:SetSize(22)
             else
