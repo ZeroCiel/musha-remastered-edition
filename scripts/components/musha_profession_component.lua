@@ -1093,11 +1093,17 @@ SKILL_UI = {
             icon = "combat_recovery",
             fmt  = function(v) return string.format("脱离战斗后每秒回复 %.2f 点生命", v) end,
             tip  = "常驻生效；交手中暂停（脱战 3 秒后继续）",
+            -- ★ 2026-09-28 英文（GetSkillView 按界面语言挑 *_en）
+            name_en = "Combat Recovery",
+            fmt_en  = function(v) return string.format("Restores %.2f health per second while out of combat", v) end,
+            tip_en  = "Always on; pauses during combat (resumes 3 s after leaving it)",
         },
         weapon_proficiency = {
             name = "武器精通",
             icon = "weapon_proficiency",
             fmt  = function(v) return string.format("武器伤害 +%.0f%%", v * 100) end,
+            name_en = "Weapon Mastery",
+            fmt_en  = function(v) return string.format("Weapon damage +%.0f%%", v * 100) end,
         },
     },
     saber = {
@@ -1110,6 +1116,9 @@ SKILL_UI = {
             icon = "slash_qi",
             fmt  = function(v) return string.format("挥出月牙剑气，命中造成 100%% / 130%% / 160%% 武器伤害 · 每次消耗 %d 点能量", v) end,
             tip  = "解锁：二转赠送 Lv1（=技能书解锁，不花技能点）· Lv2/Lv3 在 7 / 12 级加点（伤害 100→130→160%，耗能量 18→16→14）· 装剑后右键释放",
+            name_en = "Slash Qi",
+            fmt_en  = function(v) return string.format("Sweeps a crescent blade wave for 100%% / 130%% / 160%% weapon damage · costs %d energy per cast", v) end,
+            tip_en  = "Unlock: free Lv1 on second change (= skillbook unlock, no points) · Lv2/Lv3 at level 7 / 12 (damage 100→130→160%, energy 18→16→14) · right-click with a sword equipped",
         },
         -- ★ 2026-09-12 新增（用户）：剑士专属，血量 ≤50% 被动自动回满 / 冷却 80 秒 / 7 级 / 3 技能点
         last_stand    = {
@@ -1117,16 +1126,26 @@ SKILL_UI = {
             icon = "last_stand",
             fmt  = function(v) return string.format("血量低于 50%% 时被动回满生命（冷却 %d 秒）", LAST_STAND_COOLDOWN) end,
             tip  = "7 级可学 · 消耗 3 技能点 · 无需按键，自动触发",
+            name_en = "I, Alive",
+            fmt_en  = function(v) return string.format("Passively heals to full below 50%% health (cooldown %d s)", LAST_STAND_COOLDOWN) end,
+            tip_en  = "Learnable at Lv7 · costs 3 skill points · no key needed, triggers automatically",
         },
     },
     guardian = {
         iron_will  = { name = "钢铁意志", icon = "iron_will",
-            fmt = function(v) return string.format("额外减伤 %.0f%%", v * 100) end },
+            fmt = function(v) return string.format("额外减伤 %.0f%%", v * 100) end,
+            name_en = "Iron Will",
+            fmt_en  = function(v) return string.format("Extra damage reduction %.0f%%", v * 100) end },
         life_leech = { name = "生命偷取", icon = "life_leech",
-            fmt = function(v) return string.format("伤害转化治疗 %.0f%%", v * 100) end },
+            fmt = function(v) return string.format("伤害转化治疗 %.0f%%", v * 100) end,
+            name_en = "Life Leech",
+            fmt_en  = function(v) return string.format("Converts %.0f%% of damage dealt into healing", v * 100) end },
     },
     rogue = {
-        backstab = { name = "背刺", fmt = function(v) return string.format("背刺造成 %.0f 倍伤害", v) end },
+        backstab = { name = "背刺",
+            fmt = function(v) return string.format("背刺造成 %.0f 倍伤害", v) end,
+            name_en = "Backstab",
+            fmt_en  = function(v) return string.format("Backstabs deal %.0f× damage", v) end },
     },
 }
 
@@ -1441,6 +1460,9 @@ function Musha_Profession_Component:GetSkillView()
     local trees = {}
     local base = self.userdata.carrer_base
     local spec = self.userdata.carrer_special
+    -- ★ 2026-09-28「英文全做」：非中文界面 → 技能名/说明/效果文案取 SKILL_UI 的 *_en 字段
+    --   （TUNING 在 modmain 里按界面语言算；单机/房主 = 本人语言 ✓。没配 _en 的条目自动退回中文）
+    local UI_EN = (TUNING and TUNING.MUSHA_UI_LANG and TUNING.MUSHA_UI_LANG ~= "zh")
 
     -- ★ 2026-09-28 修（用户："技能面板只查看了没有学习，直接表示我学习完了"）：
     --   原来这里只按 `self[base]` 认**原始键**，存档里的键跟已知技能树键对不上时
@@ -1496,6 +1518,8 @@ function Musha_Profession_Component:GetSkillView()
                     local nxt = cur + 1
                     local d = defs and defs[key] or nil
                     local maxlv = skill.max_level or 0
+                    -- 英文文案：有 *_en 就用，没有退回中文（fmt 是函数 → effect/nextfx 都走这一条）
+                    local fmt = d and ((UI_EN and d.fmt_en) or d.fmt) or nil
 
                     local cost = 1
                     if skill.skill_point_cost and skill.skill_point_cost[nxt] then
@@ -1512,8 +1536,8 @@ function Musha_Profession_Component:GetSkillView()
                         kind   = t.kind,                        -- base / special
                         tree_name = TreeNodeName(tree),         -- 显示用（战士 / 剑士 …）
                         key    = key,
-                        name   = (d and d.name) or key,
-                        tip    = d and d.tip or nil,
+                        name   = (UI_EN and d and d.name_en) or (d and d.name) or key,
+                        tip    = (UI_EN and d and d.tip_en) or (d and d.tip) or nil,
                         cur    = cur,
                         max    = maxlv,
                         maxed  = cur >= maxlv,
@@ -1521,8 +1545,8 @@ function Musha_Profession_Component:GetSkillView()
                         cost   = cost,
                         points = self.userdata.skill_points or 0,
                         lv     = self.userdata.level or 0,
-                        effect = (d and d.fmt) and d.fmt(skill.level_effects and skill.level_effects[cur] or 0) or "",
-                        nextfx = (d and d.fmt) and d.fmt(skill.level_effects and skill.level_effects[nxt] or 0) or "",
+                        effect = fmt and fmt(skill.level_effects and skill.level_effects[cur] or 0) or "",
+                        nextfx = fmt and fmt(skill.level_effects and skill.level_effects[nxt] or 0) or "",
                         book_lock = book_need,     -- >0 = 需要这么多本技能书才能解锁（客户端画锁 + 提示）
                     }
                     -- ★ 2026-09-20 技能树：格坐标 + 前置状态（客户端画连线、判灰亮都读这两样）
@@ -1539,7 +1563,7 @@ function Musha_Profession_Component:GetSkillView()
                                 local pdef = defs and defs[pkey]
                                 table.insert(entry.pre, {
                                     key  = pkey,
-                                    name = (pdef and pdef.name) or pkey,
+                                    name = (UI_EN and pdef and pdef.name_en) or (pdef and pdef.name) or pkey,
                                     need = need,
                                     cur  = pcur,
                                 })

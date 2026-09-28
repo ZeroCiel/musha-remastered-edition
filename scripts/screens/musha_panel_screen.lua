@@ -2430,6 +2430,9 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     -- 语言：modmain.lua 语言块算出 suffix 后挂到 TUNING.MUSHA_UI_LANG（zh/en/ko/ru/jp）
     --   ⚠️ 面板可能取不到该值 → 当英文处理（不报错）
     local UI_LANG = (TUNING and TUNING.MUSHA_UI_LANG) or "en"
+    -- ★ 2026-09-28「英文全做」：存成 self.ui_lang，给方法（信箱渲染 / 技能详情）用——
+    --   这个 local 只在构造函数作用域里，ShowSkillDetail 等方法拿不到
+    self.ui_lang = UI_LANG
 
     -- 导航图清单（从 musha_nav_icons.lua 读，和 modmain 注册资产用同一份）
     --   atlas/elem = 本次语言要画的那张；fb_* = 中文版（加载失败时的第二选择）
@@ -3105,42 +3108,47 @@ function MushaPanelScreen:ShowSkillDetail(e)
         return table.concat(out, "\n")
     end
 
-    self.skill_detail_title:SetString(Wrap(e.name or e.key or "?", 6))
+    -- ★ 2026-09-28「英文全做」：非中文界面 → 标签/条件词走英文；
+    --   Wrap 是按字符数折行，英文从单词中间断很难看 → 折行宽度放宽（6/12/13 → 16/26/28）
+    local EN = (self.ui_lang or "zh") ~= "zh"
+    local function T(zh, en) return EN and en or zh end
+
+    self.skill_detail_title:SetString(Wrap(e.name or e.key or "?", EN and 16 or 6))
 
     local L = self.skill_detail_lines
     -- ★ 2026-09-21 用户两条口径：技能页**不显示职业名**（"战士/剑士"这种字都不要）
     --   → 详情框等级行、竖排行首的 [战士] 标签，全部去掉，只留等级数字
-    L[1]:SetString(string.format("等级 %d / %d", e.cur or 0, e.max or 0))
+    L[1]:SetString(string.format(T("等级 %d / %d", "Lv %d / %d"), e.cur or 0, e.max or 0))
 
     if (e.cur or 0) > 0 then
-        L[2]:SetString(Wrap("当前：" .. ((e.effect or "") ~= "" and e.effect or "—"), 12))
+        L[2]:SetString(Wrap(T("当前：", "Current: ") .. ((e.effect or "") ~= "" and e.effect or "—"), EN and 26 or 12))
     else
-        L[2]:SetString(Wrap("当前：未学习", 12))
+        L[2]:SetString(Wrap(T("当前：未学习", "Current: not learned"), EN and 26 or 12))
     end
 
     if e.maxed then
-        L[3]:SetString("已满级")
+        L[3]:SetString(T("已满级", "Maxed"))
     else
-        L[3]:SetString(Wrap("下一级：" .. ((e.nextfx or "") ~= "" and e.nextfx or "—"), 12))
+        L[3]:SetString(Wrap(T("下一级：", "Next: ") .. ((e.nextfx or "") ~= "" and e.nextfx or "—"), EN and 26 or 12))
     end
 
     -- 条件（角色等级 / 技能点 / 技能书 / 前置）
     local need = {}
-    if (e.req or 0) > 0 then table.insert(need, string.format("角色等级 %d", e.req)) end
+    if (e.req or 0) > 0 then table.insert(need, string.format(T("角色等级 %d", "level %d"), e.req)) end
     if (e.book_lock or 0) > 0 then
-        table.insert(need, string.format("%d 本技能书", e.book_lock))
+        table.insert(need, string.format(T("%d 本技能书", "%d skillbook(s)"), e.book_lock))
     elseif not e.maxed then
-        table.insert(need, string.format("%d 技能点", e.cost or 1))
+        table.insert(need, string.format(T("%d 技能点", "%d skill point(s)"), e.cost or 1))
     end
     if e.pre and #e.pre > 0 then
         local ps = {}
         for _, p in ipairs(e.pre) do
             table.insert(ps, string.format("%s %d/%d", p.name, p.cur or 0, p.need or 1))
         end
-        table.insert(need, "前置：" .. table.concat(ps, "、"))
+        table.insert(need, T("前置：", "prereq: ") .. table.concat(ps, T("、", ", ")))
     end
-    L[4]:SetString(Wrap("条件：" .. table.concat(need, " · "), 12))
-    L[5]:SetString(Wrap((e.tip or "") ~= "" and e.tip or "", 13))
+    L[4]:SetString(Wrap(T("条件：", "Requires: ") .. table.concat(need, T(" · ", " · ")), EN and 26 or 12))
+    L[5]:SetString(Wrap((e.tip or "") ~= "" and e.tip or "", EN and 28 or 13))
 
     -- 按钮：满级直接隐藏（用户口径：满级不留按钮）；不可用的灰掉 + 不可点
     local unlock = ((e.book_lock or 0) > 0)
@@ -3153,10 +3161,11 @@ function MushaPanelScreen:ShowSkillDetail(e)
             local lb = self.skill_detail_btn._label
             if unlock then
                 -- 120 宽放不下 6 个字一行（6×22=132>120）→ 两行 + 缩字号（区域已设成 120×70 居中）
-                lb:SetString("用技能书\n解锁")
+                -- ★ 2026-09-28 英文：两行同样居中；"Unlock with / skillbook" 最长行 9 字符 ×22 ≈ 99 < 120 ✓
+                lb:SetString((self.ui_lang or "zh") ~= "zh" and "Unlock with\nskillbook" or "用技能书\n解锁")
                 lb:SetSize(22)
             else
-                lb:SetString("加点")
+                lb:SetString((self.ui_lang or "zh") ~= "zh" and "Upgrade" or "加点")
                 lb:SetSize(28)
             end
         end
@@ -3711,7 +3720,13 @@ function MushaPanelScreen:RefreshMail()
                 head:SetPosition(TX, y)
                 y = y - 36
 
-                for _, line in ipairs(e.lines or {}) do
+                -- ★ 2026-09-28「英文全做」：非中文界面且该条有 lines_en → 读英文正文（否则退回中文）
+                --   ko/ru/jp 也走英文（和导航挑图 :2442 同口径）；行数中英一致，溢出逻辑不变
+                local mail_lines = e.lines
+                if self.ui_lang and self.ui_lang ~= "zh" and e.lines_en then
+                    mail_lines = e.lines_en
+                end
+                for _, line in ipairs(mail_lines or {}) do
                     if not fits(y, 14) then
                         -- 正文行压到界限 → 超出的文字自动隐藏（本行起都不再画）
                         overflow = true

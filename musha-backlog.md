@@ -1,5 +1,16 @@
 # Musha backlog（2026-09-10 深夜更新）
 
+## 🎯 2026-09-28 用户拍板：这两件归入 0.8.0（0.7.12 这批先不动）
+- [ ] **tavern_frame（木框花 350×590）下个版本用上**
+  - 现状：`images/tavern_frame.{png,tex,xml}` 已 publish（09-27），但 `modmain.lua` 里**没注册**这个 atlas
+    → `musha_tavern_screen.lua:136` 开酒馆时 client_log 实测报（09-28 00:02:30）：
+    `Invalid resource handle for atlas '../mods/musha/images/tavern_frame.xml'`
+  - 0.8.0 要做：modmain 补 Asset 注册 → 再决定怎么接进酒馆屏（现版先留着报 warning，不炸）
+- [ ] **日文（jp）翻译**：和 tavern_frame 同批做
+  - 英文机制 0.7.12 已落地（更新日志 `lines_en`、技能 `*_en`、详情标签/按钮按 `UI_LANG` 分支）；
+    日文照同一套路再开一份字段，ko/ru/jp 目前和导航横幅一样借英文（`musha_panel_screen.lua:2442` 同口径）
+- 备注（0.7.12 已完成、只作留痕）：英文 = 更新日志 8 条 + 技能 7 条（name/tip/fmt）+ 详情页标签 + 「加点 / 用技能书解锁」按钮词
+
 ## ⏸ 2026-09-12 待确认设计：祭坛「卷轴 → 获取任务」两步流程
 - 🛑 **2026-09-12 晚最新**：用户"祭坛回家弄"，并说
   "原来设定没错 但是**右键直接查看**和**任务栏里使用**是另一回事 让我想想"
