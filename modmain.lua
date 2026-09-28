@@ -469,7 +469,7 @@ end
 
 -- ★ 2026-09-27 元素精灵（精灵伙伴）总开关：false = 一键关闭，玩家登场不再召唤精灵
 --   （本体在 scripts/prefabs/musha_fairy.lua，剪影在 scripts/musha_fairy_silhouette.lua）
-local MUSHA_FAIRY_ENABLED = true
+local MUSHA_FAIRY_ENABLED = false  -- ★ 09-28 用户：元素精灵本版先放下（0.7.12 不放出场，代码全留），下版改回 true
 -- 出场冷却：防止 playeractivated 短时间重复触发导致精灵反复重新出场（秒）
 local MUSHA_FAIRY_COOLDOWN = 60
 

@@ -168,8 +168,8 @@ if type(MUSHA_CHANGELOG) ~= "table" then
     -- 兜底（内容和 scripts/musha_changelog.lua 保持一致，改内容请改那个文件）
     MUSHA_CHANGELOG = {
     {
-        ver = "0.7.11",          -- ★ 09-27 用户：0.8.0 → 0.7.11（0.7.12 之后才准叫 0.8.0）
-        date = "2026-09-27",
+        ver = "0.7.12",          -- ★ 09-28 用户：0.7.11 → 0.7.12，与 scripts/musha_changelog.lua 顶条对齐
+        date = "2026-09-28",
         lines = {
             "★ 酒馆（转职祭坛）换新装：全新酒馆外观落地可见，修复建筑巨型 / 隐形问题，制作栏图标同步更新。",
             "★ 技能书新皮：「Don't Stare」封面 + 补上掉落时的地面动画（之前掉在地上看不见）。",
