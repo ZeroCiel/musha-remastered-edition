@@ -1114,9 +1114,13 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         -- 底框（背景板）
         -- ★ 2026-09-24 用户：还原最原来的版本 —— **不要颜色底板**，只留描边 + 分隔线
         --   原来 0.85,0.68,0.25,0.28 的金色底板整块去掉（alpha=0），元素留着方便以后要回来
-        w.bg = w:AddChild(Image("images/global.xml", "square.tex"))
+        -- ★ 2026-09-28 用户：「任务框淡白色透明底框 椭圆形」→ 预览 A椭圆/B胶囊 两版后**选 B 胶囊**
+        --   出处：图片/任务行底_预览B_胶囊.png → art_update.py publish → images/quest_row_bg（png 763B / tex 699KB）
+        --   纯白身，透明度走 SetTint alpha 起手 0.7（SSOT musha-current-state.md:1957：不改图、代码可调 0.55~0.85）
+        --   胶囊中段平直到 ±301（任务名 -250、0/7 +228、分隔线 ±300 全在平直段内 → 不削字）
+        w.bg = w:AddChild(Image("images/quest_row_bg.xml", "quest_row_bg.tex"))
         w.bg:SetSize(ROW_W, ROW_H)
-        w.bg:SetTint(0, 0, 0, 0)
+        w.bg:SetTint(1, 1, 1, 0.7)
 
         -- 行框体：4 条描边（外扩 4，线宽 4）—— 半高统一由 ROW_H 推，改行高只动一处
         w.frame = {}
@@ -1274,11 +1278,11 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         end
 
         if data.adv then
-            w.bg:SetTint(0, 0, 0, 0)   -- ★ 2026-09-24：不着色底板（原 0.42,0.40,0.38,0.55）
+            w.bg:SetTint(1, 1, 1, 0.7)   -- ★ 09-28 胶囊底框显示（2026-09-24 曾不着色底板 alpha=0）
             w.bar:Show()
             w.barw:Hide()
         else
-            w.bg:SetTint(0, 0, 0, 0)   -- ★ 2026-09-24：不着色底板（原 0.85,0.68,0.25,0.28）
+            w.bg:SetTint(1, 1, 1, 0.7)   -- ★ 09-28 胶囊底框显示（2026-09-24 曾不着色底板 alpha=0）
             w.bar:Hide()
             w.barw:Show()
         end
@@ -1289,7 +1293,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             w.stat:SetString("✓ 完成")
             w.label:SetColour(0.4, 0.8, 0.4, 1)
             w.stat:SetColour(0.3, 0.8, 0.3, 1)
-            w.bg:SetTint(0, 0, 0, 0)   -- ★ 2026-09-24：完成态也不上色底板（原 0.25,0.5,0.28,0.32）
+            w.bg:SetTint(1, 1, 1, 0.7)   -- ★ 09-28 完成态也显示胶囊底（2026-09-24 曾不着色底板 alpha=0）
         else
             w.stat:SetString((data.p or 0) .. "/" .. (data.t or 1))
             if data.adv then

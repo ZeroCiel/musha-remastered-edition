@@ -117,6 +117,10 @@ table.insert(Assets, Asset("ATLAS", "images/exp_frame.xml"))
 table.insert(Assets, Asset("IMAGE", "images/exp_frame.tex"))
 table.insert(Assets, Asset("ATLAS", "images/button_decor.xml"))
 table.insert(Assets, Asset("IMAGE", "images/button_decor.tex"))
+-- ★ 2026-09-28 主页任务行的淡白半透明底框（用户选 B 胶囊，预览图 图片/任务行底_预览_对照.png）
+--   由 exported/_tools/art_update.py publish 生成；行里走 SetTint alpha 0.7（SSOT:1957 口径）
+table.insert(Assets, Asset("ATLAS", "images/quest_row_bg.xml"))
+table.insert(Assets, Asset("IMAGE", "images/quest_row_bg.tex"))
 -- ★ UI 装饰元素（2026-09-21 修正）
 --   这些是**互相独立的单元素图集**（每个 xml 只有一张全图 tex），不是一个合并图集。
 --   之前误注册了不存在的合并图集 images/ui_elements.tex → 进世界时 assert 崩（client_log:
