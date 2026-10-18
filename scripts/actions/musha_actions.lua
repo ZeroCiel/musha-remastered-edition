@@ -117,10 +117,18 @@ AddAction("MUSHA_PUT_MAILBOX", STRINGS.ACTIONS.MUSHA_PUT_MAILBOX, function(act)
             -- 检查物品能不能放进信箱
             local container = act.target.components.container
             if container and container:IsOpenedBy(act.doer) then
-                -- 尝试把物品放进信箱
-                local slot = container:GetOpenSlotForItem(act.invobject)
-                if slot and container:GiveItem(act.invobject, slot) then
-                    return true
+                -- 尝试把物品放进信箱：找第一个已解锁的空格（2026-10-18 收尾批）
+                --   原 GetOpenSlotForItem 原版不存在（nil 调用报错）；与 musha_mail.lua
+                --   PutItemToMailbox 同一修法：逐格 1..unlocked 找空格，GiveItem 显式带槽
+                --   （itemtestfn 锁格照常；首个空格都放不进 = 这物品哪格都进不去）。
+                local unlocked = math.min((act.target.unlocked or 3), container:GetNumSlots())
+                for i = 1, unlocked do
+                    if container:GetItemInSlot(i) == nil then
+                        if container:GiveItem(act.invobject, i) then
+                            return true
+                        end
+                        return false
+                    end
                 end
             end
         end
@@ -219,6 +227,17 @@ ACTIONS.MUSHA_BIND_STONE.mount_valid = true      -- 骑着牛也能绑
 ACTIONS.MUSHA_BIND_STONE.priority = 2            -- 手里拿着石头时，优先"绑定"而不是目标自带的动作
 print("[Musha Actions] + AddAction MUSHA_BIND_STONE")
 
+-- 动作13：职业重置石（INVENTORY 右键 — 背包里右键 = 重置职业，从 0 级重来）
+--   ★ 2026-09-29 新增（用户："出一个物品 重置职业用的，不开放任何制作条件"）
+--   权限在 prefab 里判（作者 SteamID / 测试安全员 / 本地房主），改包绕不过
+AddAction("MUSHA_RESET_JOB", STRINGS.ACTIONS.MUSHA_RESET_JOB, function(act)
+    if act.invobject and act.invobject.components.musha_action then
+        act.invobject.components.musha_action:UseItem(act.doer)
+    end
+    return true
+end)
+print("[Musha Actions] + AddAction MUSHA_RESET_JOB")
+
 print("[Musha Actions] 动作注册完成，开始注册 ComponentAction...")
 
 -- =============================================
@@ -257,8 +276,12 @@ AddComponentAction("INVENTORY", "musha_action", function(inst, doer, actions, ri
     if inst:HasTag("musha_recall_stone") then
         table.insert(actions, ACTIONS.MUSHA_RECALL_HOME)
     end
+    -- ★ 2026-09-29：职业重置石（背包右键 = 重置职业，测试道具）
+    if inst:HasTag("musha_reset_job") then
+        table.insert(actions, ACTIONS.MUSHA_RESET_JOB)
+    end
 end)
-print("[Musha Actions] + ComponentAction INVENTORY musha_action (整合: musha_jobbook/musha_learnable/musha_rest_skill/musha_note/musha_panel/musha_scroll/musha_crest/musha_mailbag)")
+print("[Musha Actions] + ComponentAction INVENTORY musha_action (整合: musha_jobbook/musha_learnable/musha_rest_skill/musha_note/musha_panel/musha_scroll/musha_crest/musha_mailbag/musha_recall_stone/musha_reset_job)")
 
 -- SCENE 动作
 AddComponentAction("SCENE", "musha_action", function(inst, doer, actions, right)
@@ -350,5 +373,10 @@ print("[Musha Actions] + Stategraph MUSHA_RECALL_HOME")
 AddStategraphActionHandler("wilson", ActionHandler(ACTIONS.MUSHA_BIND_STONE, "doshortaction"))
 AddStategraphActionHandler("wilson_client", ActionHandler(ACTIONS.MUSHA_BIND_STONE, "doshortaction"))
 print("[Musha Actions] + Stategraph MUSHA_BIND_STONE")
+
+-- 职业重置石 INVENTORY 右键（★ 2026-09-29 新增）
+AddStategraphActionHandler("wilson", ActionHandler(ACTIONS.MUSHA_RESET_JOB, "doshortaction"))
+AddStategraphActionHandler("wilson_client", ActionHandler(ACTIONS.MUSHA_RESET_JOB, "doshortaction"))
+print("[Musha Actions] + Stategraph MUSHA_RESET_JOB")
 
 print("[Musha Actions] ✅ 全部动作注册完成")

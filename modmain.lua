@@ -121,6 +121,20 @@ table.insert(Assets, Asset("IMAGE", "images/button_decor.tex"))
 --   由 exported/_tools/art_update.py publish 生成；行里走 SetTint alpha 0.7（SSOT:1957 口径）
 table.insert(Assets, Asset("ATLAS", "images/quest_row_bg.xml"))
 table.insert(Assets, Asset("IMAGE", "images/quest_row_bg.tex"))
+-- ★ 2026-09-28 主页上下两框（白底+圆角框线；生成 exported/_tools/gen_home_frames.py）
+table.insert(Assets, Asset("ATLAS", "images/home_frame_top.xml"))
+table.insert(Assets, Asset("IMAGE", "images/home_frame_top.tex"))
+table.insert(Assets, Asset("ATLAS", "images/home_frame_bottom.xml"))
+table.insert(Assets, Asset("IMAGE", "images/home_frame_bottom.tex"))
+-- ★ 2026-09-28（0.7.13 批）：酒馆委托板底图 = 木框花（09-27 已 publish 但一直没注册
+--   → 开板报 "Invalid resource handle for atlas .../tavern_frame.xml"，本轮补上）
+table.insert(Assets, Asset("ATLAS", "images/tavern_frame.xml"))
+table.insert(Assets, Asset("IMAGE", "images/tavern_frame.tex"))
+-- ★ 2026-10-18 信箱未解锁格叉号底图补注册（「待点头」清单落地）
+--   slotbg（musha_containers.lua:127）引用 images/musha_mail_x，原先只靠 mailbox_shadow
+--   prefab 的 FileOK 条件注册兜着 → 照 tavern_frame 先例补进全局 Assets（文件三件本就在仓）。
+table.insert(Assets, Asset("ATLAS", "images/musha_mail_x.xml"))
+table.insert(Assets, Asset("IMAGE", "images/musha_mail_x.tex"))
 -- ★ UI 装饰元素（2026-09-21 修正）
 --   这些是**互相独立的单元素图集**（每个 xml 只有一张全图 tex），不是一个合并图集。
 --   之前误注册了不存在的合并图集 images/ui_elements.tex → 进世界时 assert 崩（client_log:
@@ -427,7 +441,7 @@ end)
 -- 注册 Prefab
 -- =====================
 TRACE("[Musha TRACE] 8 - PrefabFiles 前")
-PrefabFiles = {"musha_rabbitbackpack", "musha_jobbook_warrior", "musha_skillbook", "musha_skillbook_saber", "musha_skill_scroll", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point", "musha_crest_saber", "musha_crest_guardian", "musha_mailbox", "musha_mailbox_shadow", "musha_mailbag", "musha_mailkit_1", "musha_mailkit_2", "musha_mailkit_3", "musha_mailkit_4", "musha_recall_stone", "musha_fairy"}
+PrefabFiles = {"musha_rabbitbackpack", "musha_jobbook_warrior", "musha_skillbook", "musha_skillbook_saber", "musha_skill_scroll", "musha_sword", "musha_lifebranch", "musha_note", "musha", "musha_advance_altar", "musha_advance_scroll", "musha_slash_qi_fx", "musha_skill_point", "musha_crest_saber", "musha_crest_guardian", "musha_mailbox", "musha_mailbox_shadow", "musha_mailbag", "musha_mailkit_1", "musha_mailkit_2", "musha_mailkit_3", "musha_mailkit_4", "musha_recall_stone", "musha_fairy", "musha_job_reset"}
 -- ★ 2026-09-27 新增：musha_fairy「元素精灵」——粒子汇聚出场的胆怯精灵伙伴
 --   实现：scripts/prefabs/musha_fairy.lua（本体+本地粒子+说话）+ scripts/musha_fairy_silhouette.lua（剪影落点表）
 --   召唤：InitMushaPlayer 里玩家实体激活（登场/重生/下洞回来）时生成（见 MUSHA_FAIRY_ENABLED）
@@ -457,15 +471,34 @@ Safe("玩家初始化", function()
 --   口径 = 用户："只有兔子背包存在爱丽丝计划这个名字的mod时，我才能启用它"
 --   检测时机 = 玩家出生发放时（运行时查 KnownModIndex，所有 mod 都已就位，不受加载顺序影响）
 local function IsAlicePlanModEnabled()
-    -- ★ 2026-09-27 修崩溃：KnownModIndex:GetMods 在 mod 环境不存在（实测 attempt to call nil）
-    --   → 直接扫 KnownModIndex.mods 表（每项 = { modname=..., modinfo=... }）
-    local mods = (KnownModIndex ~= nil and KnownModIndex.mods) or nil
-    if type(mods) ~= "table" then return false end
-    for _, mod in pairs(mods) do
-        local mi = (type(mod) == "table" and mod.modinfo) or nil
-        local nm = (mi ~= nil and mi.name) or nil
-        if type(nm) == "string" and string.find(nm, "爱丽丝计划", 1, true) ~= nil then
-            return true
+    -- ★ 2026-10-02 修（实测）：旧写法读 KnownModIndex.mods —— 那张表根本不存在：
+    --   ModIndex 构造器（data/databundles/scripts/modindex.lua:40-58）只有
+    --   savedata / cached_data / forceddirs / mod_dependencies，没有 self.mods，
+    --   全 data/databundles 也无人给 KnownModIndex.mods 赋值
+    --   → 恒 nil → 恒 false → 兔子背包永远发不出来（装没装「爱丽丝计划」都一样）。
+    --   09-27 那次只修了「KnownModIndex:GetMods 调用 nil 崩溃」，没验证过走通。
+    --   正确路径（同文件）：
+    --     GetModNames()   :136  = 本机装了的 mod 目录名
+    --     IsModEnabledAny :903  = 启用/强启/临时启用 且未被临时禁用 = 真的会被加载
+    --     GetModInfo      :317  = modinfo 表，取 .name 显示名找「爱丽丝计划」
+    if KnownModIndex == nil or KnownModIndex.GetModNames == nil then return false end
+    local checker = KnownModIndex.IsModEnabledAny or KnownModIndex.IsModEnabled
+    if checker == nil then return false end
+
+    local ok, names = pcall(KnownModIndex.GetModNames, KnownModIndex)
+    if not ok or type(names) ~= "table" then return false end
+
+    for _, folder in pairs(names) do
+        if type(folder) == "string" then
+            local live = false
+            pcall(function() live = checker(KnownModIndex, folder) end)
+            if live then
+                local ok2, mi = pcall(KnownModIndex.GetModInfo, KnownModIndex, folder)
+                local nm = (ok2 and type(mi) == "table") and mi.name or nil
+                if type(nm) == "string" and string.find(nm, "爱丽丝计划", 1, true) ~= nil then
+                    return true
+                end
+            end
         end
     end
     return false
@@ -473,7 +506,7 @@ end
 
 -- ★ 2026-09-27 元素精灵（精灵伙伴）总开关：false = 一键关闭，玩家登场不再召唤精灵
 --   （本体在 scripts/prefabs/musha_fairy.lua，剪影在 scripts/musha_fairy_silhouette.lua）
-local MUSHA_FAIRY_ENABLED = false  -- ★ 09-28 用户：元素精灵本版先放下（0.7.12 不放出场，代码全留），下版改回 true
+local MUSHA_FAIRY_ENABLED = false  -- ★ 10-12 用户「关闭元素精灵 我去测试」：改 false 一键关闭（10-04 曾改回 true 放出场）；要恢复改回 true
 -- 出场冷却：防止 playeractivated 短时间重复触发导致精灵反复重新出场（秒）
 local MUSHA_FAIRY_COOLDOWN = 60
 
@@ -982,12 +1015,16 @@ end)
 TRACE("[Musha TRACE] 18 - 语言加载前")
 Safe("语言加载", function()
     local loc = Profile and Profile:GetLanguageID()
+    -- 语言 id 见 data/databundles/scripts/constants.lua:2584 LANGUAGE 表
+    --   20=JAPANESE 21=CHINESE_T 22=CHINESE_S 23=CHINESE_S_RAIL（16=RUSSIAN 19=KOREAN 无界面文件 → 落英文）
     if loc == 21 or loc == 22 or loc == 23 then
         modimport "scripts/languages/chinese.lua"
+    elseif loc == 20 then
+        modimport "scripts/languages/japanese.lua"
     else
         modimport "scripts/languages/english.lua"
     end
-    print("[Musha] 语言文件已加载")
+    print("[Musha] 语言文件已加载 (language id=" .. tostring(loc) .. ")")
 
     -- 🐛 2026-09-13 修复：角色台词文件此前**从未被加载**
     --   AddModCharacter 不会自动加载台词（DST 只对原版角色 require speech_xxx），
@@ -1409,4 +1446,73 @@ if ok_bridge and type(crash_bridge) == "table" then
     pcall(crash_bridge.install_hooks)
 else
     print("[musha-crash-bridge] require failed: " .. tostring(crash_bridge))
+end
+
+-- ============================================================
+-- ★ 2026-09-29 作者调试开关（**只认 SteamID**，用户拍板）
+--   命中 → 进游戏给【全制造】（= c_freecrafting 那套 freebuildmode）。
+--   另一半在 components/musha_profession_component.lua：DevOn() 放开技能等级门槛，
+--   配合控制台 c_musha_job 可以 0 级直接切职业测内容。
+--   识别逻辑 / 两个坑（Klei ID、double 精度）全在 scripts/musha_dev_mode.lua。
+-- ============================================================
+do
+    local ok_dev, MUSHA_DEV = pcall(require, "musha_dev_mode")
+    if ok_dev and type(MUSHA_DEV) == "table" and is_server then
+        local enabled = false
+        pcall(function() enabled = MUSHA_DEV.Enabled() == true end)
+        if enabled then
+            AddPlayerPostInit(function(inst)
+                -- 等 builder 组件就位；只给一次（GiveAllRecipes 是 toggle，给两次会关掉）
+                inst:DoTaskInTime(1, function()
+                    if not (inst ~= nil and inst:IsValid()) then return end
+                    local b = inst.components.builder
+                    if b ~= nil and not b.freebuildmode then
+                        b:GiveAllRecipes()
+                        if inst.components.talker then
+                            inst.components.talker:Say("调试模式：全制造已开", 4)
+                        end
+                        print("[Musha] 调试模式：已开全制造（freebuildmode）")
+                    end
+                end)
+            end)
+            print("[Musha] 调试开关已启用（作者 SteamID）：全制造 + 等级门槛放开")
+
+            -- ★ 2026-09-29 控制台命令：0 级直接切职业测内容（调试开关开着才生效）
+            --   用法：c_musha_job warrior          —— 只换基础职业
+            --         c_musha_job warrior saber    —— 基础 + 一转职业（会走赠礼/技能书锁）
+            --   ⚠️ 必须写进 GLOBAL：写在 modmain 沙盒里控制台看不到
+            GLOBAL.c_musha_job = function(base, special)
+                if not enabled then
+                    print("[Musha] c_musha_job：调试开关未启用（只认作者 SteamID）")
+                    return
+                end
+                local player = nil
+                if type(GLOBAL.ConsoleCommandPlayer) == "function" then
+                    player = GLOBAL.ConsoleCommandPlayer()
+                end
+                if player == nil then
+                    print("[Musha] c_musha_job：找不到玩家")
+                    return
+                end
+                local pc = player.components.musha_profession_component
+                if pc == nil then
+                    print("[Musha] c_musha_job：该玩家没有职业组件")
+                    return
+                end
+                base = base ~= nil and tostring(base):lower() or ""
+                if base == "" then
+                    print("用法：c_musha_job <warrior|mage|ranger|rogue> [saber|guardian|...]")
+                    return
+                end
+                special = special ~= nil and tostring(special):lower() or nil
+                pc:SetCarrerBase(base)
+                if special ~= nil and special ~= "" then
+                    pc:SetCarrerSpecial(special)
+                end
+                print(string.format("[Musha] c_musha_job → base=%s special=%s",
+                    base, tostring(special or "无")))
+            end
+            print("[Musha] 控制台命令 c_musha_job 已注册（调试模式）")
+        end
+    end
 end

@@ -159,10 +159,16 @@ function MushaMail:PutItemToMailbox(mailbox, doer, item)
         return false  -- 容器没打开或不是我的
     end
     
-    -- 尝试把物品放进信箱
-    local slot = c:GetOpenSlotForItem(item)
-    if slot and slot <= (shadow.unlocked or 3) then
-        return c:GiveItem(item, slot) == true
+    -- 尝试把物品放进信箱：找第一个已解锁的空格（2026-10-18 收尾批）
+    --   ⚠️ 原 GetOpenSlotForItem **原版不存在**（databundles 全树 0 命中，调到即 nil 报错）。
+    --   待点头项原拟换 GetSpecificSlotForItem —— 实测本容器 usespecificslotsforitems=false
+    --   （container.lua:299 有 flag 门）→ 它恒返回 nil，换了 = 静默失效，故按等价语义手写：
+    --   逐格 1..unlocked 找空格；GiveItem 显式带槽 → itemtestfn 锁格照常生效、不落未解锁格。
+    local unlocked = math.min(shadow.unlocked or 3, c:GetNumSlots())
+    for i = 1, unlocked do
+        if c:GetItemInSlot(i) == nil then
+            return c:GiveItem(item, i) == true
+        end
     end
     
     return false

@@ -284,8 +284,41 @@ GLOBAL.AddModRPCHandler(NS, "musha_accept_quest", function(player, quest_id)
             msg = "这个任务已经在进行了"
         elseif res == "not_available" then
             msg = "这个委托已经被接走了"
+        elseif res == "takers_full" then
+            msg = "该委托已被 3 人同时接取"
         end
         player.components.talker:Say(msg, 3)
+    end
+end)
+
+-- ====================================
+-- ★ 2026-09-29 面板任务行「放弃」（客户端→服务端）
+--   客户端：SendModRPCToServer(GetModRPC(NS, "musha_abandon_quest"), quest_id)
+--   服务端：qc:AbandonQuest(quest_id) 把任务从"进行中"删掉 + 放回酒馆可接列表（进度清零）
+--   校验全在服务端（不在进行中 / 已完成的 / id 不合法 都会被拒）
+--   ⚠️ 只动该玩家自己的 daily_quests（组件本来就是每人一份），不碰别人的进度
+-- ====================================
+GLOBAL.AddModRPCHandler(NS, "musha_abandon_quest", function(player, quest_id)
+    if not player or not player:IsValid() then return end
+    if not GLOBAL.TheWorld.ismastersim then return end
+
+    local qc = player.components.musha_quest
+    if qc == nil or qc.AbandonQuest == nil then return end
+
+    local ok, res = qc:AbandonQuest(quest_id)
+    if player.components.talker then
+        if ok then
+            local name = (type(res) == "table" and res.name) and res.name or ""
+            player.components.talker:Say("已放弃任务：" .. tostring(name) .. "（进度清零，可去酒馆重接）", 4)
+        else
+            local msg = "放弃失败"
+            if res == "done" then
+                msg = "这个任务已经完成了"
+            elseif res == "not_active" then
+                msg = "这个任务已经不在进行了"
+            end
+            player.components.talker:Say(msg, 3)
+        end
     end
 end)
 

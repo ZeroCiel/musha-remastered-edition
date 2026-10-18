@@ -6,7 +6,7 @@ local EditMode = {}
 
 -- 默认值（与 musha_panel_screen.lua 当前值同步；Hermes 重写代码后同步更新）
 EditMode.ELEMENTS = {
-  { name="close_btn",       label="关闭按钮",     cat="主页",   x=573.0, y=371.0, sx=1,   sy=1,   w=81.8, h=85.4, visible=true,  desc="右上角红叉按钮热区（close_x 贴图=唯一X，底图烤叉已擦除，悬停1.24缩放）；09-27b 右移到最右上顶角(573,371)；09-26 B案：盘心=星bbox中心(1412,85)→content 圆心(538.8,370.0)；★ 09-27 修双X：09-26晚 +25(563.8) 只挪控件没重烤底图→两叉错开，归位 538.8" },
+  { name="close_btn",       label="关闭按钮",     cat="主页",   x=585.0, y=371.0, sx=1,   sy=1,   w=81.8, h=85.4, visible=true,  desc="右上角红叉按钮热区（close_x 贴图=唯一X，底图烤叉已擦除，悬停1.24缩放）；09-27b 右移到最右上顶角(573,371)；09-26 B案：盘心=星bbox中心(1412,85)→content 圆心(538.8,370.0)；★ 09-27 修双X：09-26晚 +25(563.8) 只挪控件没重烤底图→两叉错开，归位 538.8" },
   { name="job_text",        label="职业名文字",   cat="主页",   x=40,   y=230,  sx=300, sy=70,  w=300,  h=70,   visible=true,  desc="职业名，LEFT对齐" },
   { name="job_icon",        label="职业头像",     cat="主页",   x=-257, y=207,  sx=30.4,sy=30.4,w=30.4, h=30.4, visible=true,  desc="三职业图标(战士/剑士/近卫)，初始隐藏；2026-09-24 用户定：当前比例再×0.8(38→30.4)" },
   { name="level_text",      label="等级文字",     cat="主页",   x=22,   y=170,  sx=34,  sy=34,  w=34,   h=34,   visible=true,  desc="Lv.1；2026-09-24 用户定：左移18px(40→22)" },

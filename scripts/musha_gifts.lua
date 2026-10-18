@@ -28,20 +28,20 @@ return {
     ---------------------------------------------------------------
     {
         id = "day_01", kind = "cycle", day = 1,
-        name = "开荒礼",
-        desc = "游戏内第 1 天",
+        name = "开荒礼",       name_en = "Starter Gift",
+        desc = "游戏内第 1 天", desc_en = "In-game day 1",
         items = { { prefab = "redgem", count = 2 } },
     },
     {
         id = "day_03", kind = "cycle", day = 3,
-        name = "生命护符",
-        desc = "游戏内第 3 天",
+        name = "生命护符",     name_en = "Life Amulet",
+        desc = "游戏内第 3 天", desc_en = "In-game day 3",
         items = { { prefab = "amulet", count = 1 } },
     },
     {
         id = "day_10", kind = "cycle", day = 10,
-        name = "生命树枝",
-        desc = "游戏内第 10 天",
+        name = "生命树枝",      name_en = "Life Branch",
+        desc = "游戏内第 10 天", desc_en = "In-game day 10",
         items = { { prefab = "musha_lifebranch", count = 1 } },
     },
     -- 还没做（物品的贴图/机制缺，先挂着；做好把注释去掉即可）
@@ -57,8 +57,8 @@ return {
     {
         id = "national_day_2026", kind = "festival",
         from = "2026-10-01", to = "2026-10-07",
-        name = "国庆礼包",
-        desc = "10 月 1 日 — 10 月 7 日限定",
+        name = "国庆礼包",                name_en = "National Day Gift",
+        desc = "10 月 1 日 — 10 月 7 日限定", desc_en = "Oct 1 — Oct 7 only",
         items = {
             { prefab = "redgem", count = 3 },   -- ⚠️ 内容待你定，先占位
         },

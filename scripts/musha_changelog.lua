@@ -13,6 +13,25 @@
 
 return {
     {
+        ver = "0.7.13",
+        date = "2026-09-28",
+        lines = {
+            "★ 酒馆委托板换上底图：木框花边框，接任务的界面有底了。",
+            "★ 每日委托改规则：同一任务最多 3 人同时接取，各自记各自进度，互不共享。",
+            "★ 主页改版：分上下两框（职业经验 / 任务区），没有任务时提示去酒馆接取；任务列表的滚动条竖轨不再显示（滚轮照常滚）。",
+            "英文酒馆名统一改为直译 Hotel（建筑名 / 右键动作 / 描述 / 英文更新日志）；任务调试日志已关闭。",
+            "★ 元素精灵登场：青白色光灵由光点汇聚成形，飘在你身边、夜里发光；新手期会冒字打招呼并引导职业。",
+        },
+        lines_en = {
+            "★ The hotel commission board now has a background: the wooden flower frame on the accept-quest UI.",
+            "★ New commission rule: the same quest can be accepted by up to 3 players at once — each tracks their own progress, never shared.",
+            "★ Home page revamp: split into two frames (class EXP / quest area), an empty quest list now points you to the hotel; the quest list's scrollbar track is hidden (wheel scrolling unchanged).",
+            "The English hotel name is now the literal \"Hotel\" (name / right-click action / description / EN changelog); quest debug logging is off.",
+            "★ The Element Fairy arrives: a moonlit blue-white wisp gathers from sparks, floats at your side and glows at night; in your first steps it greets you with speech bubbles and guides you toward a class.",
+        },
+    },
+
+    {
         ver = "0.7.12",          -- ★ 09-28 用户：本条 0.7.11 → **0.7.12**（合并远端精灵条目；0.7.12 之后才准叫 0.8.0）
         date = "2026-09-28",
         lines = {
@@ -27,11 +46,11 @@ return {
             "经费不足，延误出场。",
         },
         lines_en = {
-            "★ The tavern (class-change altar) got a new look: the new exterior is visible now; fixed the giant / invisible building; crafting icon updated.",
+            "★ The hotel (class-change altar) got a new look: the new exterior is visible now; fixed the giant / invisible building; crafting icon updated.",
             "★ Skillbook reskin: the \"Don't Stare\" cover, plus the ground animation it was missing when dropped (it used to be invisible on the ground).",
             "★ New panel background (Home + Skills share it, inner paper edge built in): the old code-drawn gold frame is gone — no more double frames.",
             "Panel tweaks: angel purse angle adjusted, EXP bar 30% longer, close button moved 25 px right.",
-            "★ New tavern \"Commission Board\": right-click the tavern to open it, docked on the right edge (never covers your containers); a daily commission only moves to \"In Progress\" once accepted — four tiers: Common / White / Silver / Gold.",
+            "★ New hotel \"Commission Board\": right-click the hotel to open it, docked on the right edge (never covers your containers); a daily commission only moves to \"In Progress\" once accepted — four tiers: Common / White / Silver / Gold.",
             "★ Hardened Return Stone binding: the binding is saved with the world and re-checked on load; if the target no longer matches it counts as \"gone\" instead of sending you to the wrong place.",
             "Skills page tweaks: the horizontal skill tree is anchored to the top-left and no longer jumps when you click a node; the point button is now a pink square; empty-state hints hide as needed (the quest list keeps its own).",
             "Fixes: missing Guardian class-book name, Musha back on the original skin (reverted a wrong v2 package), inventory art for teleport / respawn poses completed.",
@@ -82,7 +101,7 @@ return {
             "修复：就职仪式发赠礼崩溃、第 3 轮完成没面板提示、酒馆空坛不解释；移除空转的「生命恢复」设置。",
         },
         lines_en = {
-            "Tavern rework: take the \"Class Scroll\" out of the jar → unroll it to accept the class quest; finish 3 rounds of trials and come back for the investiture.",
+            "Hotel rework: take the \"Class Scroll\" out of the jar → unroll it to accept the class quest; finish 3 rounds of trials and come back for the investiture.",
             "The second-change gift is now your class \"skillbook\" (the Swordsman book contains Slash Qi); added a generic \"Skill Scroll\" (craftable / droppable).",
             "New art: Warrior class book, Swordsman skillbook, class scroll.",
             "Fixed Life Branch in-hand rendering (it merged into one bundle on ground / in hand) and resized it.",

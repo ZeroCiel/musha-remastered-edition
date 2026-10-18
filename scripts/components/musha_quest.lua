@@ -12,7 +12,7 @@
 --   true  → 每次建造都打一行日志：[Musha Quest] builditem: recipe=xxx prefab=yyy
 --           并把每天新发的任务 id 打出来
 --   查完改回 false（或删掉这几行 + 对应 print）
-local DEBUG_QUEST = true
+local DEBUG_QUEST = false  -- ★ 2026-09-28 用户拍板关闭（release blocker 清单）
 
 MUSHA_QUEST_TYPES = {
     { id = 1,  name = "见到龙蝇",           type = "discover",    target = 1,  exp = 10 },
@@ -265,6 +265,26 @@ local function QualityOf(exp)
     return 1                          -- 普通（灰）
 end
 
+-- ★ 2026-09-28 用户（0.7.13 批）：同一委托最多 3 人同时接取
+--   进度各自独立（daily_quests 本来就是每人一份组件数据 → 天然不共享，无需额外改）
+--   「金色任务共享」后续版本再尝试，现在暂停
+local QUEST_MAX_TAKERS = 3
+local function CountQuestTakers(quest_id, exclude)
+    local n = 0
+    for _, p in ipairs(AllPlayers) do
+        local q = p.components and p.components.musha_quest
+        if q and q ~= exclude then
+            for _, dq in ipairs(q.daily_quests or {}) do
+                if dq.quest_id == quest_id then
+                    n = n + 1
+                    break
+                end
+            end
+        end
+    end
+    return n
+end
+
 -- 把可接列表补满到 GetDailyCount() 条（已在进行中 / 已经挂着的不重复放）
 function MUSHA_QUEST:RefreshAvailableQuests()
     if TheWorld and not TheWorld.ismastersim then return end
@@ -312,6 +332,11 @@ function MUSHA_QUEST:AcceptQuest(quest_id)
     end
     if not idx then return false, "not_available" end
 
+    -- ★ 0.7.13 批：同一委托最多 3 人同时接（各人进度独立、不共享）
+    if CountQuestTakers(quest_id, self) >= QUEST_MAX_TAKERS then
+        return false, "takers_full"
+    end
+
     local q = table.remove(self.available_quests, idx)
     q.progress = 0
     q.done = false
@@ -322,6 +347,47 @@ function MUSHA_QUEST:AcceptQuest(quest_id)
     self:SyncToPanel()
     if DEBUG_QUEST then
         print("[Musha Quest] 接取委托 " .. tostring(q.quest_id) .. " " .. tostring(q.name))
+    end
+    return true, q
+end
+
+-- ★ 2026-09-29 用户「任务面板的任务加上放弃」：把进行中的每日委托丢掉（面板详情子行的「放弃」按钮走这条）
+--   · 进度清零：进度存在任务条目里，条目删了进度自然没了（不另外清字段）
+--   · 放回酒馆可接列表**最前面** → 板上一眼看得到，能立刻重接、从 0 开始
+--   · 不发奖励、不动每日配额（配额只在换天/手动补发时算，这里不算账）
+--   · 已完成（q.done）的不让丢；转职任务不走这条（它有自己的 AbortAdvanceQuest）
+--   · 放弃后别人接这同一委托的坑位也空出来（CountQuestTakers 数的是各人 daily_quests）
+function MUSHA_QUEST:AbandonQuest(quest_id)
+    if TheWorld and not TheWorld.ismastersim then return false, "server_only" end
+    quest_id = tonumber(quest_id)
+    if not quest_id then return false, "bad_id" end
+
+    local idx, q
+    for i, e in ipairs(self.daily_quests or {}) do
+        if e.quest_id == quest_id then idx, q = i, e break end
+    end
+    if not idx then return false, "not_active" end
+    if q.done then return false, "done" end
+
+    table.remove(self.daily_quests, idx)
+
+    -- 插回可接列表（列表已满就不插，避免酒馆板第 5 行被 AVAIL_MAX 挤掉）
+    if self.available_quests == nil then self.available_quests = {} end
+    local seen = false
+    for _, e in ipairs(self.available_quests) do
+        if e.quest_id == quest_id then seen = true break end
+    end
+    if not seen and #self.available_quests < self:GetDailyCount() then
+        local back = MakeQuestEntry(quest_id)
+        if back then
+            back.quality = QualityOf(back.exp)
+            table.insert(self.available_quests, 1, back)
+        end
+    end
+    self:RefreshAvailableQuests()   -- 兜底补满（放弃只占一个坑时这里会另补一条别的委托）
+    self:SyncToPanel()
+    if DEBUG_QUEST then
+        print("[Musha Quest] 放弃委托 " .. tostring(quest_id) .. " " .. tostring(q.name))
     end
     return true, q
 end
@@ -923,6 +989,7 @@ function MUSHA_QUEST:SyncToPanel()
             ty = q.type,
             exp = q.exp,
             q = q.quality or QualityOf(q.exp),
+            tk = CountQuestTakers(q.quest_id, nil),   -- ★ 0.7.13：已接人数（板上显示 n/3）
         })
     end
 
@@ -931,7 +998,11 @@ function MUSHA_QUEST:SyncToPanel()
         --   面板上会"什么都没了"（用户报「做完没反应」）。塞一行**假任务**当提示，
         --   让玩家一眼看到"回酒馆完成就职仪式"（画 ✓，不是可推进的任务）。
         -- ★★ 2026-09-18：仪式做完后 pending 仍会留着（等玩家用徽记选方向）→ 分两句提示
+        -- ★ 2026-09-29 英文第二批：服务端**只发 key + 职业 key 列表**（n 兜底保留中文），
+        --   客户端按自己的语言用 STRINGS.MUSHA_PANEL 拼句（专用服务器上 Profile=nil，
+        --   服务端读不到玩家语言 → 服务端拼句必然错人）。
         local hint = "就职仪式：回酒馆右键完成"
+        local nkey, ck = "CEREMONY_HINT", nil
         if pc.userdata.advance_choice_pending == true then
             local names = {}
             local choices = (pc.GetAdvanceChoices ~= nil) and pc:GetAdvanceChoices() or {}
@@ -939,10 +1010,13 @@ function MUSHA_QUEST:SyncToPanel()
                 names[#names + 1] = STRINGS["MUSHA_JOB_" .. string.upper(tostring(c))] or tostring(c)
             end
             hint = "选定方向：用掉手里的徽记（" .. table.concat(names, " / ") .. "）"
+            nkey, ck = "CEREMONY_CHOICE", choices
         end
         pc.userdata.advance_quest = {
             id = "ceremony",
             n = hint,
+            nkey = nkey,   -- ★ 09-29：STRINGS.MUSHA_PANEL 的 key
+            ck = ck,       -- ★ 09-29：职业 key 列表（客户端本地查 STRINGS.MUSHA_JOB_* 拼名）
             p = 1,
             t = 1,
             done = true,

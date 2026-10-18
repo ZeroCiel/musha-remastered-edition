@@ -19,12 +19,37 @@ local Text        = require "widgets/text"
 local ImageButton = require "widgets/imagebutton"
 
 local NODE    = 76          -- 图标格边长
-local COL_DX  = 168         -- 列距
-local ROW_DY = 132          -- 行距
+local COL_DX  = 132         -- 列距；★ 2026-09-29 用户「（节点之间的）长线太长」：168 → 132
+                            --   同行横线长 = COL_DX - NODE：92 → **56**（= 跨行竖线 ROW_DY-NODE 的 56，两向等长）
+                            --   想再短就继续减这个数（120 → 44），不用动行距
+local ROW_DY = 132          -- 行距（跨行竖线长 = 56）
 local PAD    = 44           -- 内容四周留白
 local GAP_COL = 1           -- 两棵树之间空几列
 local LINE_W = 3            -- 连线粗细
 local MARGIN = 16           -- 选中时把节点滚进视野留的边距
+
+-- ★ 2026-09-29 英文第二批：本机语言 + STRINGS.MUSHA_PANEL（modmain 按 Profile 语言加载）
+local function UIIsEN()
+    local ok, v = pcall(function() return TUNING.MUSHA_UI_LANG end)
+    return ok and v ~= nil and v ~= "zh"
+end
+
+local function GetGlobalSTRINGS()
+    local ok, s = pcall(function() return rawget(_G, "STRINGS") end)
+    if ok and s then return s end
+    return STRINGS
+end
+
+local function MP(key)
+    local S = GetGlobalSTRINGS()
+    local t = S and S.MUSHA_PANEL
+    if type(t) == "table" then return t[key] end
+    return nil
+end
+
+local function MPS(key, fallback)
+    return MP(key) or fallback
+end
 
 -- 配色（书页风）
 local C_LINE_ON  = { 0.86, 0.64, 0.20, 0.98 }   -- 前置已达标（金）
@@ -148,7 +173,7 @@ local MushaSkillTree = Class(Widget, function(self, opts)
     self.arrow_r = MakeArrow( self.view_w / 2 - 16,  1)
 
     -- ⑤ 底部提示
-    self.hint = MakeText(self, 20, "按住空白处左右拖动 · 滚动条两侧小箭头也行",
+    self.hint = MakeText(self, 20, MPS("TREE_HINT", "按住空白处左右拖动 · 滚动条两侧小箭头也行"),
         { 0.52, 0.47, 0.40, 1 }, 0, -self.view_h / 2 + 14)
 
     self:SetScrollX(0)
@@ -349,12 +374,14 @@ function MushaSkillTree:SetSkills(list)
             end
 
             -- 状态角标：书=技能书锁 / 锁=前置没到 / 满=满级
+            --   ★ 09-29：英文角标更宽（拉丁字母）→ 缩字号 + 短词，保证不出节点左缘
+            --     （节点 76 宽、角标中心 x=-25 → 半宽必须 ≤13；18 号 "Max"≈30px 会越界）
             if (e.book_lock or 0) > 0 then
-                MakeText(node, 18, "书", C_LOCK, -NODE / 2 + 13, NODE / 2 - 10)
+                MakeText(node, UIIsEN() and 14 or 18, MPS("BADGE_BOOK", "书"), C_LOCK, -NODE / 2 + 13, NODE / 2 - 10)
             elseif e.pre_ok == false then
-                MakeText(node, 18, "锁", C_TXT_DIM, -NODE / 2 + 13, NODE / 2 - 10)
+                MakeText(node, UIIsEN() and 14 or 18, MPS("BADGE_LOCK", "锁"), C_TXT_DIM, -NODE / 2 + 13, NODE / 2 - 10)
             elseif e.maxed then
-                MakeText(node, 18, "满", C_GOLD_TXT, -NODE / 2 + 13, NODE / 2 - 10)
+                MakeText(node, UIIsEN() and 14 or 18, MPS("BADGE_MAX", "满"), C_GOLD_TXT, -NODE / 2 + 13, NODE / 2 - 10)
             end
 
             -- ★ 2026-09-21 用户口径：**鼠标移到图标上 → 用原版 SetHoverText 出信息**
@@ -362,35 +389,38 @@ function MushaSkillTree:SetSkills(list)
             --   内容跟右栏详情同一套：名字/树·等级、当前、下一级、条件、（tip）
             local hl = {}
             -- 第一行：技能名（当前/上限）—— 按用户 2026-09-21 口径：**不显示职业名**
-            table.insert(hl, string.format("%s（%d/%d）",
+            table.insert(hl, string.format(MPS("HL_NAME_FMT", "%s（%d/%d）"),
                 tostring(e.name or e.key or "?"), e.cur or 0, e.max or 0))
             if (e.cur or 0) > 0 then
-                table.insert(hl, "当前：" .. (((e.effect or "") ~= "") and e.effect or "—"))
+                table.insert(hl, MPS("LBL_CURRENT", "当前：") .. (((e.effect or "") ~= "") and e.effect or "—"))
             else
-                table.insert(hl, "当前：未学习")
+                table.insert(hl, MPS("LBL_CURRENT_UNLEARNED", "当前：未学习"))
             end
             if e.maxed then
-                table.insert(hl, "已满级")
+                table.insert(hl, MPS("LBL_MAXED", "已满级"))
             else
-                table.insert(hl, "下一级：" .. (((e.nextfx or "") ~= "") and e.nextfx or "—"))
+                table.insert(hl, MPS("LBL_NEXT", "下一级：") .. (((e.nextfx or "") ~= "") and e.nextfx or "—"))
             end
             local need = {}
-            if (e.req or 0) > 0 then table.insert(need, string.format("角色等级 %d", e.req)) end
+            if (e.req or 0) > 0 then
+                table.insert(need, string.format(MPS("REQ_LEVEL_FMT", "角色等级 %d"), e.req))
+            end
             if (e.book_lock or 0) > 0 then
-                table.insert(need, string.format("%d 本技能书", e.book_lock))
+                table.insert(need, string.format(MPS("REQ_BOOK_FMT", "%d 本技能书"), e.book_lock))
             elseif not e.maxed then
-                table.insert(need, string.format("%d 技能点", e.cost or 1))
+                table.insert(need, string.format(MPS("REQ_SP_FMT", "%d 技能点"), e.cost or 1))
             end
             if e.pre and #e.pre > 0 then
                 local ps = {}
                 for _, p in ipairs(e.pre) do
                     table.insert(ps, string.format("%s %d/%d", p.name, p.cur or 0, p.need or 1))
                 end
-                table.insert(need, "前置：" .. table.concat(ps, "、"))
+                table.insert(need, MPS("LBL_PREREQ", "前置：") .. table.concat(ps, MPS("LBL_PREREQ_SEP", "、")))
             end
-            if #need > 0 then table.insert(hl, "条件：" .. table.concat(need, " · ")) end
+            if #need > 0 then table.insert(hl, MPS("LBL_COND", "条件：") .. table.concat(need, " · ")) end
             if (e.tip or "") ~= "" then table.insert(hl, e.tip) end
-            local hover_txt = WrapText(table.concat(hl, "\n"), 13)
+            -- ★ 09-29：折行宽度按语言 —— 拉丁字母约半宽，同样像素要放约两倍字符
+            local hover_txt = WrapText(table.concat(hl, "\n"), UIIsEN() and 26 or 13)
 
             -- 点击 = 选中（加点在右栏详情里的按钮上，防误点）
             local btn = node:AddChild(ImageButton("images/global.xml", "square.tex"))

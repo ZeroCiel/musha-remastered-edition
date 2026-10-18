@@ -273,6 +273,11 @@ local Musha_Profession_Component = Class(function(self, inst)
         advance_crest_used = nil,     -- 已用掉的绑定 ID（用掉一枚后记下；另一枚靠校验作废）
         advance_choice_pending = false, -- 已发徽记、还没选方向（面板显示两棵树打锁）
         learned_skills = {}, -- 学习过的技能
+        -- ★ 2026-09-29 用户处方：技能书解锁技的**独立「读过书没有」变量**（新档必须有验证）
+        --   false/nil = 没学过 → 整个节点锁死（服务端不能加点 + 面板画锁）；读了书才 true
+        --   ⚠️ 不再只看 current_level==0 —— 旧档/异常路径把等级抬到 ≥1 也照样算"没学过"
+        book_learned = {},     -- { slash_qi = true/false }
+        book_lock_armed = {},  -- { saber = true } 该树已上锁，防转职赠礼被调两次再清一遍
     }
 
     self.exp_table = {0, 5, 12, 20, 30, 45, 60, 80, 100, 125, 155, 190, 230, 275, 325, 380, 440, 505, 575, 650, 730, 820, 920, 1030, 1150, 1280, 1420, 1570, 1730, 1900}
@@ -803,11 +808,57 @@ function Musha_Profession_Component:SetCarrerBase(carrer)
     return true
 end
 
+-- ★ 2026-09-29 作者调试开关（**只认 SteamID**，用户 09-29 拍板）—— 详见 scripts/musha_dev_mode.lua
+--   开了 = 0 级就能测（放开技能等级门槛）+ 全制造（modmain 那侧给）+ 可自由切职业
+local ok_devmode, MUSHA_DEV = pcall(require, "musha_dev_mode")
+if not ok_devmode then MUSHA_DEV = nil end
+local function DevOn()
+    return MUSHA_DEV ~= nil and type(MUSHA_DEV.Enabled) == "function"
+       and MUSHA_DEV.Enabled() == true
+end
+
 -- ★ 2026-09-17 用户：「剑士的剑气斩改为技能书解锁，但二转后赠送（唯一例外）——其实是将 0 级设置为 1 级」
 --   → 下表 = 各职业"可由技能书解锁"的主动技能；二转时把该技能 0 级直接置 1 级（省去第 1 级加点）
 local BOOK_UNLOCK_SKILL = {
     saber = "slash_qi",     -- 剑气斩
 }
+
+-- ★★ 2026-09-29 用户处方（"需要先加变量条件判断，如果 false 没学习过 就 lock，
+--   然后学习才能解锁，重新检验"）——技能书解锁技一律看 userdata.book_learned：
+--     false → 锁（服务端 CanUpgradeSkill 拒绝加点 + 面板画锁）
+--     true  → 解锁（读技能书那条路把它置 true）
+--   旧存档没有这个字段 → OnLoad 末尾跑一次 MigrateBookUnlock()
+function Musha_Profession_Component:HasBookLearned(skill_id)
+    return type(self.userdata.book_learned) == "table"
+       and self.userdata.book_learned[skill_id] == true
+end
+
+function Musha_Profession_Component:SetBookLearned(skill_id, learned)
+    if not skill_id then return end
+    if type(self.userdata.book_learned) ~= "table" then
+        self.userdata.book_learned = {}
+    end
+    self.userdata.book_learned[skill_id] = learned and true or false
+end
+
+-- 转职时给本职业的"技能书解锁技"上锁（**一次性**，靠 book_lock_armed 记账）：
+--   ① 等级清 0 ② book_learned=false ③ 已经读过书的不回收（防止把人家会的技能删了）
+--   → 直接修用户实测的"剑士没发放技能书、技能却直接可用"
+function Musha_Profession_Component:ArmBookLock(tree)
+    local sid = BOOK_UNLOCK_SKILL[tree]
+    if not sid then return false end
+    if type(self.userdata.book_lock_armed) ~= "table" then
+        self.userdata.book_lock_armed = {}
+    end
+    if self.userdata.book_lock_armed[tree] then return false end
+    self.userdata.book_lock_armed[tree] = true
+    if self:HasBookLearned(sid) then return false end
+    local t = self[tree] and self[tree][sid]
+    if t then t.current_level = 0 end
+    self:SetBookLearned(sid, false)
+    print(string.format("[Musha] 技能书锁已上：%s.%s → Lv0 + 未解锁（转职赠书）", tostring(tree), tostring(sid)))
+    return true
+end
 
 -- ================================================================
 -- ★ 2026-09-20 技能树布局（横排树 + 竖线前置）
@@ -954,17 +1005,19 @@ function Musha_Profession_Component:CanUpgradeSkill(skill_tree, skill_name)
         end
     end
 
-    -- ★★ 2026-09-18 技能书锁（补漏）：0 级的"技能书解锁技"**不能用技能点买**
-    --   原来只锁了面板显示（画小锁），服务端这道没写 → 花 1 点也能学 → 用户看到的
-    --   "没有技能书学习，我也能直接看到这个技能（已解锁）"。判定必须放服务端（客户端改包绕不过）。
-    if (skill.current_level or 0) == 0 and BOOK_UNLOCK_SKILL[skill_tree] == skill_name then
+    -- ★★ 2026-09-18 技能书锁（补漏）+ 2026-09-29 改判据：
+    --   原来只看 current_level == 0 → 等级被别的路径抬上去就绕过去了（用户实测"没发书却直接获得"）。
+    --   改成看**独立变量 book_learned**：没读过书一律锁，等级多少都一样。
+    --   判定必须放服务端（客户端改包绕不过）。
+    if BOOK_UNLOCK_SKILL[skill_tree] == skill_name and not self:HasBookLearned(skill_name) then
         return false, "需要一本技能书才能解锁"
     end
 
     local next_level = skill.current_level + 1
 
-    -- 检查等级要求
-    if skill.unlock_requirements and skill.unlock_requirements[next_level] then
+    -- 检查等级要求（★ 2026-09-29 作者调试开关开着 → 0 级也能学，方便测内容）
+    if skill.unlock_requirements and skill.unlock_requirements[next_level]
+        and not DevOn() then
         if self.userdata.level < skill.unlock_requirements[next_level] then
             return false, string.format("需要等级%d才能学习", skill.unlock_requirements[next_level])
         end
@@ -1056,7 +1109,8 @@ function Musha_Profession_Component:GetSkillInfo(skill_tree, skill_name)
         end
 
         -- 是否可以升级
-        info.can_upgrade = self.userdata.skill_points > 0 and self.userdata.level >= info.requirement
+        info.can_upgrade = self.userdata.skill_points > 0
+            and (DevOn() or self.userdata.level >= info.requirement)   -- ★ 09-29 调试开关跳过等级门槛
     end
 
     return info
@@ -1181,6 +1235,10 @@ function Musha_Profession_Component:UnlockSkillByBook()
     if not skill_id then
         return false, "noskill"
     end
+    -- ★ 2026-09-29：**先把变量置 true（= 读过书、解锁）**，再把等级提到 1 级。
+    --   顺序不能反：等级若已被别的路径抬到 ≥1，GrantSkillLevel1 会返回 false，
+    --   那样变量永远是 false → 锁解不开。
+    self:SetBookLearned(skill_id, true)
     if self:GrantSkillLevel1(spec, skill_id) then
         return true, "unlocked"
     end
@@ -1216,7 +1274,8 @@ function Musha_Profession_Component:UnlockSkillWithItem(skill_tree, skill_name)
     if BOOK_UNLOCK_SKILL[skill_tree] ~= skill_name then
         return false, "这个技能不用技能书，直接加点就行"
     end
-    if (skill.current_level or 0) >= 1 then
+    -- ★ 2026-09-29 改判据：用 book_learned 判"解锁过了没有"（等级 ≥1 但没读过书 → 还是没解锁）
+    if self:HasBookLearned(skill_name) then
         return false, "已经解锁过了"
     end
 
@@ -1225,9 +1284,9 @@ function Musha_Profession_Component:UnlockSkillWithItem(skill_tree, skill_name)
         return false, "需要一本技能书（背包里没有）"
     end
 
-    if not self:GrantSkillLevel1(skill_tree, skill_name) then
-        return false, "解锁失败"
-    end
+    -- 先置变量（解锁），再提等级；两者任一成功就算解锁成功
+    self:SetBookLearned(skill_name, true)
+    self:GrantSkillLevel1(skill_tree, skill_name)
     -- 消耗一本（堆叠就只减 1）
     if book.components.stackable and book.components.stackable:StackSize() > 1 then
         book.components.stackable:Get(1):Remove()
@@ -1280,8 +1339,15 @@ end
 function Musha_Profession_Component:GrantAdvanceGift(career)
     local free_skill = BOOK_UNLOCK_SKILL[career]
     if not free_skill then return false end
+    -- ★ 2026-09-29（用户实测"剑士没发放技能书、技能直接可用"）：
+    --   发书**之前**先把这棵树锁上（等级清 0 + book_learned=false，一次性记账），
+    --   保证"必须读了书才解锁"。已在下面的分支里给书。
+    self:ArmBookLock(career)
     if ADVANCE_GIFT_MODE == "level" then
-        return self:GrantSkillLevel1(career, free_skill)
+        -- "level" 模式 = 不发书、直接给 1 级 → 视为"已学会"，否则刚上的锁解不开
+        local ok = self:GrantSkillLevel1(career, free_skill)
+        if ok then self:SetBookLearned(free_skill, true) end
+        return ok
     end
     if ADVANCE_GIFT_MODE == "scroll" then
         local ok = self:GiveSkillScroll()
@@ -1460,9 +1526,14 @@ function Musha_Profession_Component:GetSkillView()
     local trees = {}
     local base = self.userdata.carrer_base
     local spec = self.userdata.carrer_special
-    -- ★ 2026-09-28「英文全做」：非中文界面 → 技能名/说明/效果文案取 SKILL_UI 的 *_en 字段
-    --   （TUNING 在 modmain 里按界面语言算；单机/房主 = 本人语言 ✓。没配 _en 的条目自动退回中文）
-    local UI_EN = (TUNING and TUNING.MUSHA_UI_LANG and TUNING.MUSHA_UI_LANG ~= "zh")
+    -- ★ 2026-09-29 英文第二批 · 修 backlog 记的**关键坑**：
+    --   技能文案在这里（服务端）组装，`TUNING.MUSHA_UI_LANG` 读的是**服务端**的语言：
+    --     · 专用服务器 Profile=nil → 落到英文 → 中文玩家看到英文技能
+    --     · 房主开房间 → 全车人都跟着房主的语言走
+    --   正解是"服务端只发 key + 数值、客户端本地格式化"，但 fmt 是函数（过不了 json）、
+    --   SKILL_UI 也在组件内客户端取不到 → 退一步：**中英两份都算出来发下去**，
+    --   由客户端按自己的语言挑（musha_panel_screen.lua 的 LocalizeSkills）。
+    --   效果等同"语言跟人走"，且服务端零语言判断。
 
     -- ★ 2026-09-28 修（用户："技能面板只查看了没有学习，直接表示我学习完了"）：
     --   原来这里只按 `self[base]` 认**原始键**，存档里的键跟已知技能树键对不上时
@@ -1518,17 +1589,21 @@ function Musha_Profession_Component:GetSkillView()
                     local nxt = cur + 1
                     local d = defs and defs[key] or nil
                     local maxlv = skill.max_level or 0
-                    -- 英文文案：有 *_en 就用，没有退回中文（fmt 是函数 → effect/nextfx 都走这一条）
-                    local fmt = d and ((UI_EN and d.fmt_en) or d.fmt) or nil
+                    -- ★ 09-29：中英两份都算（fmt 是函数，只能在服务端调用 → 两份结果都发下去）
+                    local fmt_zh = d and d.fmt or nil
+                    local fmt_en = d and d.fmt_en or fmt_zh
+                    local vc = skill.level_effects and skill.level_effects[cur] or 0
+                    local vn = skill.level_effects and skill.level_effects[nxt] or 0
 
                     local cost = 1
                     if skill.skill_point_cost and skill.skill_point_cost[nxt] then
                         cost = skill.skill_point_cost[nxt]
                     end
 
-                    -- ★ 2026-09-17 技能书锁（用户）：本职业"技能书解锁技"（剑士=剑气斩）在 0 级时**不能**用技能点买，
-                    --   要 1 本技能书解锁 → 面板上画小锁 + 悬停显示"需要 1 本技能书才能解锁"
-                    local book_need = (BOOK_UNLOCK_SKILL[tree] == key and cur == 0) and 1 or 0
+                    -- ★ 2026-09-17 技能书锁（用户）：本职业"技能书解锁技"（剑士=剑气斩）**没读过书**时
+                    --   不能用技能点买 → 面板上画小锁 + 悬停显示"需要 1 本技能书才能解锁"
+                    --   ★ 2026-09-29 改判据：不再看 cur==0，改看独立变量 book_learned（同服务端）
+                    local book_need = (BOOK_UNLOCK_SKILL[tree] == key and not self:HasBookLearned(key)) and 1 or 0
 
                     local entry = {
                         id     = tree .. "_" .. key,
@@ -1536,8 +1611,10 @@ function Musha_Profession_Component:GetSkillView()
                         kind   = t.kind,                        -- base / special
                         tree_name = TreeNodeName(tree),         -- 显示用（战士 / 剑士 …）
                         key    = key,
-                        name   = (UI_EN and d and d.name_en) or (d and d.name) or key,
-                        tip    = (UI_EN and d and d.tip_en) or (d and d.tip) or nil,
+                        name    = (d and d.name) or key,
+                        name_en = (d and d.name_en) or ((d and d.name) or key),
+                        tip     = (d and d.tip) or nil,
+                        tip_en  = (d and d.tip_en) or ((d and d.tip) or nil),
                         cur    = cur,
                         max    = maxlv,
                         maxed  = cur >= maxlv,
@@ -1545,8 +1622,10 @@ function Musha_Profession_Component:GetSkillView()
                         cost   = cost,
                         points = self.userdata.skill_points or 0,
                         lv     = self.userdata.level or 0,
-                        effect = fmt and fmt(skill.level_effects and skill.level_effects[cur] or 0) or "",
-                        nextfx = fmt and fmt(skill.level_effects and skill.level_effects[nxt] or 0) or "",
+                        effect    = fmt_zh and fmt_zh(vc) or "",
+                        effect_en = fmt_en and fmt_en(vc) or "",
+                        nextfx    = fmt_zh and fmt_zh(vn) or "",
+                        nextfx_en = fmt_en and fmt_en(vn) or "",
                         book_lock = book_need,     -- >0 = 需要这么多本技能书才能解锁（客户端画锁 + 提示）
                     }
                     -- ★ 2026-09-20 技能树：格坐标 + 前置状态（客户端画连线、判灰亮都读这两样）
@@ -1563,7 +1642,8 @@ function Musha_Profession_Component:GetSkillView()
                                 local pdef = defs and defs[pkey]
                                 table.insert(entry.pre, {
                                     key  = pkey,
-                                    name = (UI_EN and pdef and pdef.name_en) or (pdef and pdef.name) or pkey,
+                                    name = (pdef and pdef.name) or pkey,
+                                    name_en = (pdef and pdef.name_en) or ((pdef and pdef.name) or pkey),
                                     need = need,
                                     cur  = pcur,
                                 })
@@ -1802,6 +1882,160 @@ function Musha_Profession_Component:UseSkillPoint()
     return true
 end
 
+-- ★★ 2026-09-29 测试用：职业重置（用户："出一个物品 重置职业用的"）
+--   入口：scripts/prefabs/musha_job_reset.lua 右键 → 本函数（服务端权威）
+--   口径：职业清空 + 等级/经验/技能点/技能树全归 0 + 技能书锁状态归零 = **从 0 级重新开始**
+--   ⚠️ 不碰信箱（ud.mail）、不碰已学的通用技能（learned_skills 只清职业技能点那套）
+function Musha_Profession_Component:ResetJobForTest()
+    local ud = self.userdata
+    if type(ud) ~= "table" then return false end
+
+    -- ① 职业与转职状态全清
+    ud.carrer_base = nil
+    ud.carrer_special = nil
+    ud.has_advanced = false
+    ud.advance_round = nil
+    ud.current_advance_target = nil
+    ud.advance_crest_bind = nil
+    ud.advance_crest_used = nil
+    ud.advance_choice_pending = false
+    ud.quests_for_advance = {}
+    ud.quests_for_advance_done = {}
+
+    -- ② 等级 / 经验 / 技能点 → 必须从 0 级开始
+    ud.level = 0
+    ud.exp = 0
+    ud.exp_to_next = (self.exp_table and self.exp_table[2]) or 5
+    ud.total_exp = 0
+    ud.skill_points = 0
+
+    -- ③ 技能书锁状态归零（回到"没读过书"，读了才解锁）
+    ud.book_learned = {}
+    ud.book_lock_armed = {}
+
+    -- ④ 所有技能树等级归 0（四张已知树 + SKILL_ORDER 里的其余树，去重）
+    local trees = { "warrior", "saber", "guardian", "rogue" }
+    if type(SKILL_ORDER) == "table" then
+        for k in pairs(SKILL_ORDER) do trees[#trees + 1] = k end
+    end
+    local seen = {}
+    for _, t in ipairs(trees) do
+        if not seen[t] then
+            seen[t] = true
+            local tree = self[t]
+            if type(tree) == "table" then
+                for _, v in pairs(tree) do
+                    if type(v) == "table" and v.current_level ~= nil then
+                        v.current_level = 0
+                    end
+                end
+            end
+        end
+    end
+
+    -- ⑤ 职业特性 / 冷却归零
+    if type(self.class_traits) == "table" and type(self.class_traits.saber) == "table" then
+        self.class_traits.saber.current_hunt_bonus = 0
+    end
+    self.last_stand_cd = nil
+
+    -- ⑥ 重新应用 + 推给客户端面板
+    pcall(function() self:ApplyProfessionData() end)
+    pcall(function() self:UpdateCharacterStats() end)
+    pcall(function() self:PushSettings() end)
+    print("[Musha] 职业重置（测试）：职业清空、等级/技能点/技能树全归 0")
+    return true
+end
+
+-- ★★ 2026-09-29 旧存档迁移（用户拍板："旧档 slash_qi 当前等级 >2 才保留；否则重新锁定、
+--   赠送解锁的技能书、而且必须从 0 级开始" + "职业相符而变量过去没有 → 处理，不相符 → 忽略，
+--   新存档必须有验证"）
+--   · 触发条件 = 档里没有 book_learned 字段（= 这个字段上线前的老档），跑一次就没了
+--   · 新档：构造函数里 book_learned = {} 已经在，永远不会走这里 → 天然带验证
+--   · 补书延后 2 秒：OnLoad 期间背包/SpawnPrefab 时机不稳，晚一点再给
+function Musha_Profession_Component:MigrateBookUnlock()
+    if type(self.userdata.book_learned) == "table" then return end   -- 新档 / 已迁移过
+    self.userdata.book_learned = {}
+    if type(self.userdata.book_lock_armed) ~= "table" then
+        self.userdata.book_lock_armed = {}
+    end
+    local spec = self.userdata.carrer_special
+    for tree, sid in pairs(BOOK_UNLOCK_SKILL) do
+        self.userdata.book_learned[sid] = false          -- 默认：没读过书 → 锁
+        if spec == tree then                             -- 职业相符才处理；不符就忽略
+            local t = self[tree] and self[tree][sid]
+            local lv = (t and t.current_level) or 0
+            if lv > 2 then
+                -- 练满了 → 算人家本来就会：保留等级、直接解锁
+                self.userdata.book_learned[sid] = true
+                print(string.format("[Musha] 旧档迁移：%s.%s Lv%d > 2 → 保留并解锁", tostring(tree), tostring(sid), lv))
+            else
+                if t then t.current_level = 0 end         -- 必须从 0 级开始
+                self.userdata.book_lock_armed[tree] = true
+                print(string.format("[Musha] 旧档迁移：%s.%s Lv%d → 清 0 重新锁定，补发技能书", tostring(tree), tostring(sid), lv))
+                local tree_key, sid_key = tree, sid
+                self.inst:DoTaskInTime(2, function()
+                    if not (self.inst and self.inst:IsValid()) then return end
+                    if self.userdata.carrer_special ~= tree_key then return end
+                    if self:HasBookLearned(sid_key) then return end   -- 中途读过书就不再补
+                    self:GiveCareerBook(tree_key)
+                end)
+            end
+        end
+    end
+end
+
+-- ================================================================
+-- ★ 2026-10-12 补锁迁移（用户拍板：走补锁迁移）
+--
+--   为什么需要：MigrateBookUnlock 的守卫是 `type(book_learned) == "table" 就 return`，
+--   而构造函数默认值里就带 book_learned = {}。OnSave 存的是整张 userdata，
+--   所以只要档里存过一次，这个守卫恒成立 —— 老档迁移被烧掉，永不再跑。
+--   结果 = 用户实测的异常态：book_learned = false（没读过书）却 current_level >= 1（技能可用）。
+--   CanUpgradeSkill 只拦「再加点」，拦不住「已经 >= 1 级所以能放」。
+--
+--   与 MigrateBookUnlock 的区别：那个是**一次性**（会被守卫拦死），这个是
+--   **每次读档校验不变式**，天然幂等（修好后 level=0 或 book=true 就不触发）。
+--
+--   处置口径与既有代码 MigrateBookUnlock 的 ">2 保留" 保持一致：
+--     · lv > 2（练满了） → 算人家本来就会：保留等级、直接解锁
+--     · 0 < lv <= 2      → 清 0 + 上闩 + 延时补发技能书
+--   只在 carrer_special == tree 时才动（保证一定补得回那本书，不会把技能清没了没得恢复）。
+-- ================================================================
+function Musha_Profession_Component:ReLockBookUnlock()
+    if type(self.userdata.book_learned) ~= "table" then
+        self.userdata.book_learned = {}
+    end
+    if type(self.userdata.book_lock_armed) ~= "table" then
+        self.userdata.book_lock_armed = {}
+    end
+    local spec = self.userdata.carrer_special
+    for tree, sid in pairs(BOOK_UNLOCK_SKILL) do
+        if spec == tree and self.userdata.book_learned[sid] ~= true then
+            local t = self[tree] and self[tree][sid]
+            local lv = (t and t.current_level) or 0
+            if lv > 2 then
+                self.userdata.book_learned[sid] = true
+                print(string.format("[Musha] 补锁迁移：%s.%s Lv%d > 2 -> 算已学会，保留并解锁",
+                    tostring(tree), tostring(sid), lv))
+            elseif lv > 0 then
+                if t then t.current_level = 0 end
+                self.userdata.book_lock_armed[tree] = true
+                self.userdata.book_learned[sid] = false
+                print(string.format("[Musha] 补锁迁移：%s.%s Lv%d(书未读) -> 清 0 重新上锁，补发技能书",
+                    tostring(tree), tostring(sid), lv))
+                local tree_key, sid_key = tree, sid
+                self.inst:DoTaskInTime(2, function()
+                    if not (self.inst and self.inst:IsValid()) then return end
+                    if self.userdata.carrer_special ~= tree_key then return end
+                    if self:HasBookLearned(sid_key) then return end   -- 中途读过书就不再补
+                    self:GiveCareerBook(tree_key)
+                end)
+            end
+        end
+    end
+end
+
 function Musha_Profession_Component:OnSave()
     return {
         userdata = self.userdata,
@@ -1912,6 +2146,11 @@ function Musha_Profession_Component:OnLoad(data)
     if TheWorld ~= nil and TheWorld.ismastersim and self.inst ~= nil and self.inst:IsValid() then
         self.inst:PushEvent("musha_skill_changed", { tree = "saber", name = "load", level = 0 })
     end
+
+    -- ★ 2026-09-29 技能书锁：老档（没有 book_learned 字段）在这里做一次性迁移，
+    --   必须放在所有 data.* 还原之后（等级要读准了才能判 ">2 保留"）
+    pcall(function() self:MigrateBookUnlock() end)
+    pcall(function() self:ReLockBookUnlock() end)
 end
 
 function Musha_Profession_Component:OnRemoveFromEntity()

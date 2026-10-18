@@ -27,8 +27,8 @@ local Image      = require "widgets/image"
 local Text       = require "widgets/text"
 local ImageButton = require "widgets/imagebutton"
 
-local BOARD_W, BOARD_H = 350, 590
-local BOARD_OFFSET     = -361    -- 右缘锚点下的中心 x；★ 09-28 用户「右边的左移 170」：-191-170=-361（原 16px 边距 → 186px）
+local BOARD_W, BOARD_H = 350, 640   -- ★ 09-29 用户「面板拉长 50」：590 → 640（木框图 350x590 等比拉高，行坐标按 BOARD_H 锚点走）
+local BOARD_OFFSET     = -441    -- 右缘锚点下的中心 x；09-28「右边的左移 170」：-191-170=-361；★ 09-29 用户「左移 80」：-361-80=-441
 local ROW_W            = 310     -- 行底片宽
 local ROW_H            = 56
 local AVAIL_Y0, AVAIL_DY = 150, 62 -- 可接委托 4 行
@@ -36,12 +36,12 @@ local AVAIL_MAX        = 4
 local ACT_Y0, ACT_DY   = -130, 38 -- 进行中最多列 3 条
 local ACT_MAX          = 3
 
--- 品质四档（颜色只在客户端上，档位判定在服务端）
+-- 品质四档（颜色只在客户端上，档位判定在服务端；label 走 STRINGS.MUSHA_PANEL）
 local TIER = {
-    [1] = { label = "普通", chip = { 0.55, 0.55, 0.55, 1 }, row = { 0.86, 0.86, 0.86, 0.93 } },
-    [2] = { label = "白",   chip = { 0.99, 0.99, 0.99, 1 }, row = { 0.99, 0.99, 0.99, 0.93 } },
-    [3] = { label = "银",   chip = { 0.74, 0.78, 0.85, 1 }, row = { 0.88, 0.91, 0.95, 0.93 } },
-    [4] = { label = "金",   chip = { 0.95, 0.76, 0.22, 1 }, row = { 1.00, 0.94, 0.74, 0.96 } },
+    [1] = { label_key = "Q_COMMON", chip = { 0.55, 0.55, 0.55, 1 }, row = { 0.86, 0.86, 0.86, 0.93 } },
+    [2] = { label_key = "Q_WHITE",  chip = { 0.99, 0.99, 0.99, 1 }, row = { 0.99, 0.99, 0.99, 0.93 } },
+    [3] = { label_key = "Q_SILVER", chip = { 0.74, 0.78, 0.85, 1 }, row = { 0.88, 0.91, 0.95, 0.93 } },
+    [4] = { label_key = "Q_GOLD",   chip = { 0.95, 0.76, 0.22, 1 }, row = { 1.00, 0.94, 0.74, 0.96 } },
 }
 local function Tier(t)
     return TIER[tonumber(t) or 1] or TIER[1]
@@ -60,6 +60,40 @@ local function TrimCN(s, maxchars)
         out[#out + 1] = ch
     end
     return table.concat(out)
+end
+
+-- ★ 2026-09-29 英文第二批：本机语言（同面板屏，modmain 按 Profile 语言加载语言文件）
+local function UIIsEN()
+    local ok, v = pcall(function() return TUNING.MUSHA_UI_LANG end)
+    return ok and v ~= nil and v ~= "zh"
+end
+
+local function GetGlobalSTRINGS()
+    local ok, s = pcall(function() return rawget(_G, "STRINGS") end)
+    if ok and s then return s end
+    return STRINGS
+end
+
+local function MP(key)
+    local S = GetGlobalSTRINGS()
+    local t = S and S.MUSHA_PANEL
+    if type(t) == "table" then return t[key] end
+    return nil
+end
+
+-- 任务名：**客户端本地表优先**（语言跟人走）；服务端 q.n 只作未知 id 的回退。
+-- （服务端模板 quest_id 1~13 与 STRINGS.MUSHA_PANEL.QUEST_NAMES 同源同 id）
+local function QuestNameOf(q)
+    if type(q) ~= "table" then return nil end
+    local t = MP("QUEST_NAMES")
+    local n = t and t[q.id]
+    if n and n ~= "" then return n end
+    return q.n
+end
+
+-- 英文是拉丁字母，同样像素宽度下能塞下约两倍字符数 → 截断上限按语言放一倍
+local function TrimQ(s, zh_max)
+    return TrimCN(s, UIIsEN() and (zh_max * 2) or zh_max)
 end
 
 -- 「接取」按钮：照礼包页 MakeGiftButton 的做法（square.tex 分层做立体，不依赖美术）
@@ -153,26 +187,26 @@ local MushaTavernBoard = Class(Widget, function(self, owner)
 
     -- 标题
     self.title = self:AddChild(Text(UIFONT, 30))
-    self.title:SetString("酒馆委托")
+    self.title:SetString(MP("TAVERN_TITLE") or "酒馆委托")
     self.title:SetColour(0.30, 0.22, 0.13, 1)
     self.title:SetPosition(0, BOARD_H / 2 - 56)
     self.title:SetClickable(false)
 
     self.sub = self:AddChild(Text(UIFONT, 16))
-    self.sub:SetString("点「接取」才开始计进度")
+    self.sub:SetString(MP("TAVERN_SUB") or "点「接取」才开始计进度")
     self.sub:SetColour(0.46, 0.40, 0.32, 1)
     self.sub:SetPosition(0, BOARD_H / 2 - 84)
     self.sub:SetClickable(false)
 
     -- 分区标题
     self.head_avail = self:AddChild(Text(UIFONT, 20))
-    self.head_avail:SetString("可接委托")
+    self.head_avail:SetString(MP("TAVERN_HEAD_AVAIL") or "可接委托")
     self.head_avail:SetColour(0.60, 0.42, 0.08, 1)
     self.head_avail:SetPosition(0, AVAIL_Y0 + 36)
     self.head_avail:SetClickable(false)
 
     self.head_act = self:AddChild(Text(UIFONT, 20))
-    self.head_act:SetString("进行中")
+    self.head_act:SetString(MP("TAVERN_HEAD_ACT") or "进行中")
     self.head_act:SetColour(0.60, 0.42, 0.08, 1)
     self.head_act:SetPosition(0, ACT_Y0 + 30)
     self.head_act:SetClickable(false)
@@ -182,7 +216,7 @@ local MushaTavernBoard = Class(Widget, function(self, owner)
     self.rows:SetPosition(0, 0)
 
     self.foot = self:AddChild(Text(UIFONT, 14))
-    self.foot:SetString("再右键酒馆或点 × 关闭")
+    self.foot:SetString(MP("TAVERN_FOOT") or "再右键酒馆或点 × 关闭")
     self.foot:SetColour(0.50, 0.45, 0.38, 1)
     self.foot:SetPosition(0, -BOARD_H / 2 + 26)
     self.foot:SetClickable(false)
@@ -223,7 +257,7 @@ function MushaTavernBoard:Rebuild()
 
     if #avail == 0 then
         local t = self.rows:AddChild(Text(UIFONT, 17))
-        t:SetString("今天的委托都接完了")
+        t:SetString(MP("TAVERN_EMPTY_AVAIL") or "今天的委托都接完了")
         t:SetColour(0.52, 0.46, 0.38, 1)
         t:SetPosition(0, AVAIL_Y0 - 10)
         t:SetClickable(false)
@@ -255,22 +289,26 @@ function MushaTavernBoard:Rebuild()
 
         -- 名称（深墨字，白色档也能看清）
         local name = self.rows:AddChild(Text(UIFONT, 16))
-        name:SetString(TrimCN(q.n or ("任务" .. tostring(q.id)), 10))
+        name:SetString(TrimQ(QuestNameOf(q)
+                or string.format(MP("QUEST_DEFAULT_FMT") or "任务%s", tostring(q.id)), 10))
         name:SetColour(0.24, 0.19, 0.13, 1)
         name:SetPosition(-45, y + 9)
         name:SetClickable(false)
 
         -- 奖励预览（"现在发不起奖励" → 只写职业经验，数值走服务端 q.exp，不改）
+        --   ★ 0.7.13 批：行尾带 "n/3"（服务端 q.tk = 该委托已同时接取人数，上限 3）
         local rw = self.rows:AddChild(Text(UIFONT, 13))
         local expn = tonumber(q.exp) or 0
-        rw:SetString(string.format("%s · 经验 +%d", tr.label, expn))
+        local tk = tonumber(q.tk) or 0
+        rw:SetString(string.format(MP("REWARD_ROW_FMT") or "%s · 经验 +%s · %s/3",
+                MP(tr.label_key) or "?", tostring(expn), tostring(tk)))
         rw:SetColour(0.55, 0.42, 0.14, 1)
         rw:SetPosition(-45, y - 13)
         rw:SetClickable(false)
 
         -- 接取（礼包页「领取」同款）
         local qid = q.id
-        local btn = MakeGiftButton(self.rows, 74, 30, "接取", function()
+        local btn = MakeGiftButton(self.rows, 74, 30, MP("ACCEPT") or "接取", function()
             SendAcceptQuest(qid)
         end)
         btn:SetPosition(100, y)
@@ -279,7 +317,7 @@ function MushaTavernBoard:Rebuild()
     -- 进行中（只读：接取后才出现）
     if #active == 0 then
         local t = self.rows:AddChild(Text(UIFONT, 16))
-        t:SetString("还没有接取的委托")
+        t:SetString(MP("TAVERN_EMPTY_ACT") or "还没有接取的委托")
         t:SetColour(0.52, 0.46, 0.38, 1)
         t:SetPosition(0, ACT_Y0)
         t:SetClickable(false)
@@ -295,7 +333,7 @@ function MushaTavernBoard:Rebuild()
 
             local t = self.rows:AddChild(Text(UIFONT, 15))
             local flag = q.done and "✓ " or ""
-            t:SetString(string.format("%s%s [%d/%d]", flag, TrimCN(q.n or "?", 9),
+            t:SetString(string.format("%s%s [%d/%d]", flag, TrimQ(QuestNameOf(q) or "?", 9),
                 tonumber(q.p) or 0, tonumber(q.t) or 1))
             t:SetColour(q.done and 0.30 or 0.26, q.done and 0.55 or 0.21,
                         q.done and 0.30 or 0.15, 1)
@@ -304,7 +342,7 @@ function MushaTavernBoard:Rebuild()
         end
         if #active > ACT_MAX then
             local t = self.rows:AddChild(Text(UIFONT, 14))
-            t:SetString(string.format("…还有 %d 个", #active - ACT_MAX))
+            t:SetString(string.format(MP("TAVERN_MORE_FMT") or "…还有 %d 个", #active - ACT_MAX))
             t:SetColour(0.50, 0.45, 0.38, 1)
             t:SetPosition(0, ACT_Y0 - ACT_MAX * ACT_DY + 6)
             t:SetClickable(false)

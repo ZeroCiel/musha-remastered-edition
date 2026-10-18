@@ -22,8 +22,54 @@ local function GetGlobalSTRINGS()
     return STRINGS
 end
 
+-- ★ 2026-09-29 英文第二批：面板 UI 文案统一走 STRINGS.MUSHA_PANEL
+--   机制：modmain 按本机 Profile 语言 modimport languages/chinese.lua 或 english.lua
+--        → 每个客户端拿到自己的语言（语言跟人走）；两份表 key 必须一一对应。
+--   兜底：缺 key 时退回中文原文（保证漏译也只是显示中文，不报错）。
+local function MP(key)
+    local S = GetGlobalSTRINGS()
+    local t = S and S.MUSHA_PANEL
+    if type(t) == "table" then return t[key] end
+    return nil
+end
+
+-- 内容数据（礼包名/说明这类"内容"而非 UI 标签）沿用 *_en 字段双语，
+-- 和 musha_changelog.lua 的 lines_en 同一约定（数据放数据文件，UI 标签才进 STRINGS）。
+local function PickLang(t, field)
+    if type(t) ~= "table" then return nil end
+    local en = (TUNING ~= nil and TUNING.MUSHA_UI_LANG ~= nil and TUNING.MUSHA_UI_LANG ~= "zh")
+    if en and t[field .. "_en"] ~= nil then return t[field .. "_en"] end
+    return t[field]
+end
+
+local function UIIsEN()
+    local ok, v = pcall(function() return TUNING.MUSHA_UI_LANG end)
+    return ok and v ~= nil and v ~= "zh"
+end
+
+-- ★ 2026-09-29：技能文案在**服务端** GetSkillView 组装，服务端读不到玩家语言
+--   （专用服务器 Profile=nil → 英文；房主开房 → 全车跟房主）。
+--   改法见 musha_profession_component.lua 同日注释：服务端中英两份都发，
+--   这里按本机语言挑一份 → 技能行 / 详情页 / 横排技能树拿到的都是自己的语言。
+--   （只覆写 *_en 存在的字段，没配英文的条目自动留中文；重复调用幂等）
+local function LocalizeSkills(skills)
+    if type(skills) ~= "table" or not UIIsEN() then return skills end
+    for _, s in ipairs(skills) do
+        if type(s) == "table" then
+            if s.name_en   ~= nil then s.name   = s.name_en   end
+            if s.tip_en    ~= nil then s.tip    = s.tip_en    end
+            if s.effect_en ~= nil then s.effect = s.effect_en end
+            if s.nextfx_en ~= nil then s.nextfx = s.nextfx_en end
+            for _, p in ipairs(s.pre or {}) do
+                if type(p) == "table" and p.name_en ~= nil then p.name = p.name_en end
+            end
+        end
+    end
+    return skills
+end
+
 local function JobName(key)
-    if not key or key == "" then return "无职业" end
+    if not key or key == "" then return MP("NO_JOB") or "无职业" end
     local S = GetGlobalSTRINGS()
     local name = S["MUSHA_JOB_" .. string.upper(key)]
     if name and name ~= "" then return name end
@@ -31,41 +77,28 @@ local function JobName(key)
 end
 
 -- 任务名称表（面板不用再查全局 GetQuestName）
-local QUEST_NAMES = {
-    [1] = "见到龙蝇",
-    [2] = "击杀20只蜘蛛",
-    [3] = "存活5天",
-    [4] = "找到格罗姆",
-    [5] = "获得七个噩梦燃料",
-    [6] = "收集三色宝石",
-    [7] = "制造20个物品",
-    [8] = "收获五次烹饪锅",
-    [9] = "击败野猪x8",
-    [10] = "击败五只火猎犬",
-    [11] = "找到海象营地",
-    [12] = "使用回复技能达到5次",
-    [13] = "建造一个科学机器",
-}
+-- ★ 2026-09-29 英文第二批：表搬进 STRINGS.MUSHA_PANEL.QUEST_NAMES。
+--   服务端模板名也随 q.n / a.n 下发（中文），但服务端 quest_id 1~13 与本表同源同 id
+--   （components/musha_quest.lua:18-31）→ 显示时**本表优先**，语言跟人走；
+--   服务端字段只作"未知 id"的回退，服务端零改动。
+local function QuestNameLocal(quest_id)
+    local t = MP("QUEST_NAMES")
+    local n = t and t[quest_id]
+    if n and n ~= "" then return n end
+    return nil
+end
 
 local function QuestName(quest_id)
-    return QUEST_NAMES[quest_id] or "未知任务"
+    return QuestNameLocal(quest_id) or MP("UNKNOWN_QUEST") or "未知任务"
 end
 
 -- ★ 2026-09-27 用户："任务栏展开 —— 可以看到是什么任务、需要什么"
---   "需要什么"文案表（ty 由服务端 SyncToPanel 下发，与服务端 QDEFS.type 同源，不抄数值）
-local QUEST_REQ_TEXT = {
-    discover       = "前往发现目标",
-    kill_spider    = "击杀蜘蛛",
-    survive        = "存活天数",
-    collect        = "收集噩梦燃料",
-    collect_gems   = "收集三色宝石（红/绿/蓝）",
-    craft          = "制造任意物品",
-    cookpot        = "收获烹饪锅",
-    kill_pig       = "击杀猪人",
-    kill_firehound = "击杀火猎犬",
-    heal_skill     = "使用回复技能",
-    craft_science  = "制造科学机器",
-}
+--   "需要什么"文案（ty 由服务端 SyncToPanel 下发，与服务端 QDEFS.type 同源，不抄数值）
+--   ★ 2026-09-29 英文第二批：文案搬进 STRINGS.MUSHA_PANEL.QUEST_REQ
+local function QuestReqText(ty)
+    local t = MP("QUEST_REQ")
+    return (t and t[ty]) or MP("QUEST_REQ_DEFAULT") or "完成任务目标"
+end
 
 -- ★ 2026-09-22 底图比例修正（用户已拍板：面板保持原版大小，底图那 5% 横向拉伸保持原样）
 --   panel_bg.png 的 tex 是 2048×1024，UV 框住的有效内容 1197.84×768（比例 1.559375）。
@@ -138,16 +171,16 @@ end
 -- 局内设置页：显示表（默认值/档位要和 components/musha_*_settings.lua 的 SPEC 对齐）
 -- ================================================================
 local SETTINGS_UI = {
-    { scope = "world",  key = "monster_spawn_enabled", label = "怪物生成",   kind = "bool",   default = true },
-    { scope = "world",  key = "monster_spawn_mult",    label = "生成倍率",   kind = "choice", default = 1, choices = { 0, 0.5, 1, 2, 3 } },
-    { scope = "world",  key = "daily_quest_count",     label = "每日任务数", kind = "number", default = 4, min = 1, max = 10, step = 1 },
-    { scope = "world",  key = "exp_mult",              label = "经验倍率",   kind = "choice", default = 1, choices = { 0.5, 1, 2, 3 } },
+    { scope = "world",  key = "monster_spawn_enabled", label = "SET_MONSTER_SPAWN",   kind = "bool",   default = true },
+    { scope = "world",  key = "monster_spawn_mult",    label = "SET_SPAWN_MULT",   kind = "choice", default = 1, choices = { 0, 0.5, 1, 2, 3 } },
+    { scope = "world",  key = "daily_quest_count",     label = "SET_DAILY_COUNT", kind = "number", default = 4, min = 1, max = 10, step = 1 },
+    { scope = "world",  key = "exp_mult",              label = "SET_EXP_MULT",   kind = "choice", default = 1, choices = { 0.5, 1, 2, 3 } },
     -- 生命恢复 hp_regen_mult 已于 2026-09-17 删除（用户：「移除生命恢复」）
     --   原因同 mp_regen_mult：全项目 0 个消费方（class_traits.health_regen 没接过它），纯空转
     --   旧存档里存过的这个键由 OnLoad 按 SPEC 过滤自动丢弃，不会报错
     -- 能量恢复 mp_regen_mult 已于 2026-09-12 删除（用户：没有开放能量恢复的设定就删除）
     --   原因：MP/能量系统整体不存在（全项目无 MP 组件/字段），该设置是纯空转
-    { scope = "player", key = "show_debug",            label = "调试信息",   kind = "bool",   default = false },
+    { scope = "player", key = "show_debug",            label = "SET_DEBUG",   kind = "bool",   default = false },
 }
 
 -- ================================================================
@@ -261,7 +294,7 @@ if type(MUSHA_GIFTS) ~= "table" then MUSHA_GIFTS = {} end
 
 local function FmtSetting(def, v)
     if def.kind == "bool" then
-        return v and "开" or "关"
+        return v and (MP("BOOL_ON") or "开") or (MP("BOOL_OFF") or "关")
     elseif def.kind == "number" then
         return tostring(v)
     end
@@ -373,6 +406,7 @@ local function MakeGiftButton(parent, w, h, str, onclick)
     local face = b:AddChild(Image("images/global.xml", "square.tex"))
     face:SetSize(w, h)
     face:SetTint(0.90, 0.62, 0.26, 0.99)                 -- 暖橙主色（去灰）
+    b._face = face                                       -- ★ 09-29 留个引用：破坏性按钮（放弃）改色用
 
     -- 高光（上 + 左）
     for _, ln in ipairs({ { 0, h / 2 - 2, w, 3 }, { -(w / 2 - 2), 0, 3, h } }) do
@@ -615,6 +649,34 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     --   close_btn 坐标随 09-26 贴叉重算（旧 panel_bg.* 已删，备份 _art_backup/panel_bg_old_20260926）；nav / content 不动
     self.bg = self.content:AddChild(Image("images/panel_bg_alt.xml", "panel_bg_alt.tex"))
     self.bg:SetSize(1285.1, 887.2)
+
+    -- ★ 2026-09-28 用户：主页分上下两个框（白色底 bg + 圆角框线，"白底的bg附加椭圆框"）
+    --   · ★ 09-29 用户「上下两框铺满上下面板」→ 两框统一贴到**内纸**（实测 images/panel_bg_alt.png：
+    --     content x -408..575、y +369.5..-350.5、中心 +83.5/+9.5，与文档"内纸 -408..575 / 下沿 -351"对上）：
+    --     上框 983x308 @(83.5,215)（x -408..575、y 61..369）；下框 983x420 @(83.5,-158)（x -408..575、y -368..52）
+    --     缝仍 9px（52..61，经验条底 77 / 徽标底 80 / 分隔线 82 都不动）；旧 760x224@(65,173)、780x462@(122,-179)
+    --     两框左右缘各差 47/67px = 「对不上参考稿」的根子 → 弃（旧图备份 exported/_tools/_art_backup）
+    --   · 下框下沿 -368：任务滚槽底 = 中心 -176 - 5*72/2 - 10 = **-366**，压进框内留 2px；
+    --     比内纸下沿 -350.5 低 17px（落在底图黄边带上，原来是低 60px）
+    --   · ★ 09-28 修重叠：旧 724x228/780x546 两框重叠 79px（下框顶边横穿经验条）；
+    --     按实测坐标收口（分隔线 82、经验条 y 77..153 右 413.5、徽标底 80）→ 760x224/780x462，
+    --     上框加宽到 760 让经验条右下角躲开 r=50 圆角；QLIST_Y 同步 -140→-176 下移
+    --   · 形状说明：纯椭圆会削掉任务行四角 → 用大圆角矩形（r=50）实现椭圆观感
+    --   · 生成：exported/_tools/gen_home_frames.py（白身+棕描边，纯 stdlib）
+    --     → 图片/home_frame_*.png → art_update.py publish → images/home_frame_*
+    --   · 透明度 0.6 同任务行胶囊口径（★ 09-28 用户："alpha 底板透明度设置 0.6"，0.7→0.6；
+    --     下个版本重画底板——"透明度不够"时再动图；改 SetTint 即可，不用重转 tex）
+    --   · z 序：紧贴 bg 之后创建 → 后建的所有内容压在框上；入 pages.home 组随主页显隐
+    self.home_frame_top = self.content:AddChild(Image("images/home_frame_top.xml", "home_frame_top.tex"))
+    -- ★ 09-29「铺满上下面板」：983x308 @(83.5,215)（x -408..575、y 61..369）；图已按此尺寸重生成（gen_home_frames.py）
+    self.home_frame_top:SetSize(983, 308)
+    self.home_frame_top:SetPosition(83.5, 215)
+    self.home_frame_top:SetTint(1, 1, 1, 0.6)
+    self.home_frame_bottom = self.content:AddChild(Image("images/home_frame_bottom.xml", "home_frame_bottom.tex"))
+    -- ★ 09-29「铺满上下面板」：983x420 @(83.5,-158)（x -408..575、y -368..52，下沿盖住任务滚槽 -366）
+    self.home_frame_bottom:SetSize(983, 420)
+    self.home_frame_bottom:SetPosition(83.5, -158)
+    self.home_frame_bottom:SetTint(1, 1, 1, 0.6)
 
     -- ★ 关闭按钮：2026-09-26 用户指示贴新叉（images/close_button_red.png 抠白底）
     --   · 底图层：叉叉已烤进 panel_bg_alt（make_close_x_20260926.py：金星实测
@@ -1052,7 +1114,8 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     self.exp_fill:SetTint(0.72, 0.72, 0.72, 1)    -- ★ 09-27 用户："经验条跳到0.8透明度"（0.95→0.8）
 
     self.exp_text = self.content:AddChild(Text(UIFONT, 26))
-    self.exp_text:SetString("职业经验 0/100")
+    -- ★ 09-29 英文第二批：文案走 STRINGS.MUSHA_PANEL（语言跟人走）
+    self.exp_text:SetString(string.format(MP("EXP_FMT") or "职业经验 %s/%s", "0", "100"))
     self.exp_text:SetColour(0.55, 0.48, 0.38, 1)  -- ★ 09-27 同上：整条（框+填充+文字）统一 0.8；无职业/空经验的暗态(0.45/0.4/0.6)不动
     self.exp_text:SetPosition(163.2, 115)   -- 槽心（×1.3 后）
     self.exp_text:SetHAlign(ANCHOR_MIDDLE)
@@ -1081,14 +1144,14 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     -- 空状态
     -- ★ 2026-09-22：跟着任务列表（中心 -73）摆，两行字上下排
     self.quest_empty = self.content:AddChild(Text(UIFONT, 48))
-    self.quest_empty:SetString("暂无任务")
+    self.quest_empty:SetString(MP("EMPTY_TITLE") or "暂无任务")
     self.quest_empty:SetColour(0.62, 0.62, 0.62, 1)
-    self.quest_empty:SetPosition(-20, -40)
+    self.quest_empty:SetPosition(122, -157)   -- ★ 09-28 修重叠随框下移（框 780x462 @(122,-179)，相对中心 -22）
 
     self.quest_hint = self.content:AddChild(Text(UIFONT, 26))
-    self.quest_hint:SetString("完成转职条件后开启任务")
+    self.quest_hint:SetString(MP("EMPTY_HINT") or "完成转职条件后开启任务")
     self.quest_hint:SetColour(0.45, 0.45, 0.45, 0.5)
-    self.quest_hint:SetPosition(-20, -160)
+    self.quest_hint:SetPosition(122, -217)   -- ★ 09-28 修重叠随框下移（主句下方 60，框底 -410 内）
     -- ★ 09-28 用户拍板「只隐藏空状态两行字」：构造即藏（否则 Refresh 之前会先露一下）
     self.quest_empty:Hide()
     self.quest_hint:Hide()
@@ -1098,7 +1161,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     -- ================================================================
     local FT = 4
     local FOFF = 4
-    local QLIST_X, QLIST_Y = 122, -140   -- 列表中心：底图/框/列表共用一处，改位只动这里（-160→-140，5 行后往上收，框 [52,-332] 全在内纸内：下沿 -351、主纸右缘 ≈+576、经验条底 77）
+    local QLIST_X, QLIST_Y = 122, -176   -- 列表中心：底图/框/列表共用一处，改位只动这里（★ 09-28 修重叠 -140→-176：视口 40..-392，下框 780x462 @(122,-179) 内留 12/18；主纸右缘 ≈+576、经验条底 77）
 
     -- ★ 09-27 用户二改（推翻当天早先的换底）："技能书做底框不太对，外面不应该加蓝框 → 都不要，任务区回原样"
     --   技能书底图 + 深蓝外框一起撤（原设计=粉书0.6 + FrameLines 4px；实测框比书大一圈、还压出内纸下沿）
@@ -1215,6 +1278,26 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         w.hound:SetPosition(-(ROW_W / 2) + 44, -2)
         w.hound:Hide()
 
+        -- ★ 2026-09-29 用户「任务面板的任务加上放弃」：详情子行右端「放弃」按钮
+        --   必须在 w.clicker **之后**加 → z 序压在它上面，点按钮只走按钮自己（不会顺手把行收起）
+        --   只在"展开的每日任务行"显示（转职行/完成行不给丢）→ 想丢先展开，两步才丢、不会手滑
+        w.drop = MakeGiftButton(w, 116, 34, MP("ABANDON") or "放弃", function()
+            local screen = context.screen
+            if not screen or not w._qid then return end
+            local ok, rpc = pcall(function() return GetModRPC("musha", "musha_abandon_quest") end)
+            if ok and rpc ~= nil then
+                pcall(function() SendModRPCToServer(rpc, w._qid) end)
+            end
+            -- 丢掉后立刻收起这行并重画（服务端 SyncToPanel 也会推一份过来，这里先自己收干净）
+            if screen.quest_open then screen.quest_open[w._qkey] = nil end
+            if screen._quest_md then
+                screen.list:SetItemsData(screen:BuildQuestItems(screen._quest_md))
+            end
+        end)
+        w.drop:SetPosition(ROW_W / 2 - 74, 0)
+        if w.drop._face then w.drop._face:SetTint(0.74, 0.26, 0.18, 0.99) end   -- 红脸 = 破坏性操作
+        w.drop:Hide()
+
         return w
     end
 
@@ -1250,6 +1333,13 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             else
                 w.hound:Hide()
             end
+            -- ★ 09-29「放弃」按钮：只给每日任务的详情行（转职行 adv / 已完成 done 不给丢）
+            w._qid = (data.id ~= nil and not data.adv and not data.done) and data.id or nil
+            if w._qid ~= nil then
+                w.drop:Show()
+            else
+                w.drop:Hide()
+            end
             w:Show()
             return
         end
@@ -1258,6 +1348,8 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         w.req:Hide()
         w.rwd:Hide()
         w.hound:Hide()
+        w.drop:Hide()
+        w._qid = nil
         w.caret:SetString(data.open and "▼" or "◀")
         w.caret:Show()
 
@@ -1290,7 +1382,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         w.div:SetTint(done and 0.3 or 0.45, done and 0.5 or 0.36, done and 0.32 or 0.24, 0.30)
 
         if done then
-            w.stat:SetString("✓ 完成")
+            w.stat:SetString(MP("QUEST_DONE") or "✓ 完成")
             w.label:SetColour(0.4, 0.8, 0.4, 1)
             w.stat:SetColour(0.3, 0.8, 0.3, 1)
             w.bg:SetTint(1, 1, 1, 0.7)   -- ★ 09-28 完成态也显示胶囊底（2026-09-24 曾不着色底板 alpha=0）
@@ -1348,6 +1440,9 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     self.list.RefreshView = function(list, ...)
         base_refresh(list, ...)
         list.scroll_bar_container:Show()
+        -- ★ 2026-09-28 用户拍板（甲："不显示竖条"）→ 每次刷新把竖轨藏回去
+        --   （原生 RefreshView 可能重新 Show 它；滑块/滚轮/拖拽不受影响）
+        if list.scroll_bar_line then list.scroll_bar_line:Hide() end
         if list.end_pos <= 1 then
             list.position_marker:SetPosition(0, list:GetSlideStart())
         end
@@ -1375,10 +1470,12 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             list.scroll_bar_container:SetPosition(px + 25.3, py + 5.3, pz)
         end
 
-        -- 3. 竖条（长条）：淡黄/浅淡黄，柔和（书页底 + 孩童风）
+        -- 3. 竖条（长条）：★ 2026-09-28 用户拍板（甲："不显示竖条"）→ 整根隐藏
+        --   滑块（握把）保留上下滚，滚轮/拖拽照常；想恢复竖轨删掉下面这行 Hide 即可
         if list.scroll_bar_line then
             list.scroll_bar_line:ScaleToSize(SB_W, list.scrollbar_height)
             list.scroll_bar_line:SetTint(0.98, 0.91, 0.64, 0.95)
+            list.scroll_bar_line:Hide()
         end
 
         -- 4. 拉动的显示条（握把）：本体透明(不盖) + 上下两条蜡黄框(等长) + 中间 5 道白杠
@@ -1498,7 +1595,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             savebtn:ForceImageSize(120,28); savebtn:SetPosition(-340, ey - 10)
             savebtn:SetImageNormalColour(0.2,0.5,0.9,0.8)
             local st = savebtn:AddChild(Text(UIFONT, 20))
-            st:SetString("保存日志"); st:SetColour(1,1,1,1); st:SetPosition(0,0)
+            st:SetString(MP("SAVE_LOG") or "保存日志"); st:SetColour(1,1,1,1); st:SetPosition(0,0)
             savebtn:SetOnClick(function()
                 local _sok, _res, _loc = pcall(function() return EditMode.save() end)
                 if _sok and _res then
@@ -1524,7 +1621,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
     self.edit_toggle_btn:SetImageNormalColour(0.08, 0.08, 0.08, 0.55)
     self.edit_toggle_btn:SetImageFocusColour(0.16, 0.16, 0.16, 0.75)
     self.edit_toggle_label = self.edit_toggle_btn:AddChild(Text(UIFONT, 26))
-    self.edit_toggle_label:SetString("编辑")
+    self.edit_toggle_label:SetString(MP("EDIT") or "编辑")
     self.edit_toggle_label:SetColour(1, 1, 1, 1)
     self.edit_toggle_label:SetPosition(0, 0)
     self.edit_toggle_btn:SetOnClick(function()
@@ -1533,10 +1630,10 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         if self.edit_mode then self.edit_panel:Show() else self.edit_panel:Hide() end
         if self.edit_mode then
             self.edit_toggle_btn:SetImageNormalColour(0.55, 0.30, 0.08, 0.80)
-            self.edit_toggle_label:SetString("编辑中")
+            self.edit_toggle_label:SetString(MP("EDITING") or "编辑中")
         else
             self.edit_toggle_btn:SetImageNormalColour(0.08, 0.08, 0.08, 0.55)
-            self.edit_toggle_label:SetString("编辑")
+            self.edit_toggle_label:SetString(MP("EDIT") or "编辑")
         end
         -- ★ 09-25：进出编辑模式都重断言天使/荷包/热区显隐
         --   （进：编辑中全露好摆位；出：非主页要把天使收回去）
@@ -1573,14 +1670,15 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
 
     self.pages = {}
     self.pages.home = {
+        self.home_frame_top, self.home_frame_bottom,  -- ★ 09-28 晚：主页上下两框（随主页显隐）
         self.job_icon,
         self.job_text, self.job_star, self.level_text,
         self.home_divider,
         self.exp_bg, self.exp_fill, self.exp_text,
-        -- ★ 09-28 用户拍板「只隐藏空状态两行字」（任务列表本身保留）：
-        --   quest_empty / quest_hint 从主页组里**摘掉** —— 表里有的话 SetActivePage(:3465)
-        --   切回主页会整组 Show，光在 Refresh 里 Hide 会被顶回来。
-        --   要恢复：把这两件加回这个表 + 把 Refresh 末尾的两行 Hide 改回 Show。
+        -- ★ 09-28 早用户拍板「只隐藏空状态两行字」→ 晚间推翻（空任务要显示酒馆接任务引导）：
+        --   按原注释的恢复法：quest_empty / quest_hint 加回本表（SetActivePage 切主页整组 Show）
+        --   + Refresh 末尾空状态分支改回 Show。
+        self.quest_empty, self.quest_hint,
         self.list,   -- 09-27 二改：quest_bg/quest_bg_frame 撤（任务区回原样），别再往这表里塞
     }
 
@@ -1619,7 +1717,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         --     （同 礼包/图鉴/信箱 标题一致：09-27b 统一右移居中到内纸中心 +61）
         self.skill_head = root:AddChild(Text(UIFONT, 32))
         self.skill_head:SetColour(0.28, 0.22, 0.15, 1)
-        self.skill_head:SetString("技能")
+        self.skill_head:SetString(MP("SKILL_HEAD") or "技能")
         -- ★ 09-28 用户「技能 上方的面板 上移动 4 像素」→ y -46 → -42（上移 = +4）
         self.skill_head:SetPosition(61, PAGE_H / 2 - 42)
 
@@ -1630,8 +1728,8 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         do
             local TAB_W, TAB_H, TAB_GAP, TAB_Y = 150, 36, 20, 200
             local TABS = {
-                { key = "unlearned", label = "未学习" },
-                { key = "learned",   label = "已学习" },
+                { key = "unlearned", label = "TAB_UNLEARNED" },
+                { key = "learned",   label = "TAB_LEARNED" },
             }
             for i, def in ipairs(TABS) do
                 local b = root:AddChild(ImageButton("images/global.xml", "square.tex"))
@@ -1643,7 +1741,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                 FrameLines(b, TAB_W, TAB_H, 0, 2, 0.80, 0.78, 0.73, 0.90)
 
                 local t = b:AddChild(Text(UIFONT, 26))
-                t:SetString(def.label)
+                t:SetString(MP(def.label) or def.label)
 
                 -- 选中态下划线（未选中时 Hide）
                 local ul = b:AddChild(Image("images/global.xml", "square.tex"))
@@ -1740,27 +1838,29 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
 
             if cur > 0 then
                 -- 已学习：等级 / 当前效果 / 下一级（满级写"已满级"）
-                row.t_l1:SetString(string.format("%s等级 %d / %d", tag, cur, data.max or 0))
+                row.t_l1:SetString(string.format(MP("SKILL_LVL_FMT") or "%s等级 %d / %d", tag, cur, data.max or 0))
                 row.t_l1:SetColour(0.40, 0.34, 0.26, 1)
-                row.t_l2:SetString("当前：" .. (data.effect or ""))
+                row.t_l2:SetString((MP("LBL_CURRENT") or "当前：") .. (data.effect or ""))
                 row.t_l2:SetColour(0.30, 0.24, 0.16, 1)
                 row._l3 = "next"                    -- ★ 只记该显哪一行，真显不显看悬停
-                row.t_l3_next:SetString(data.maxed and "已满级" or ("下一级：" .. (data.nextfx or "")))
+                row.t_l3_next:SetString(data.maxed
+                    and (MP("LBL_MAXED") or "已满级")
+                     or ((MP("LBL_NEXT") or "下一级：") .. (data.nextfx or "")))
             else
                 -- 未学习：需求等级 / 消耗 / 学完后的效果（有 tip 就补一句灰字）
                 local parts = {}
                 if (data.req or 0) > 0 then
-                    table.insert(parts, string.format("需要 Lv.%d", data.req))
+                    table.insert(parts, string.format(MP("NEED_LEVEL_FMT") or "需要 Lv.%d", data.req))
                 end
                 if (data.book_lock or 0) > 0 then
                     -- ★ 2026-09-17 技能书锁：这条不能用技能点买，要书
-                    table.insert(parts, string.format("需要 %d 本技能书解锁", data.book_lock))
+                    table.insert(parts, string.format(MP("NEED_BOOK_FMT") or "需要 %d 本技能书解锁", data.book_lock))
                 else
-                    table.insert(parts, string.format("消耗 %d 技能点", data.cost or 1))
+                    table.insert(parts, string.format(MP("NEED_SP_FMT") or "消耗 %d 技能点", data.cost or 1))
                 end
                 row.t_l1:SetString(tag .. table.concat(parts, "　·　"))
                 row.t_l1:SetColour(0.40, 0.34, 0.26, 1)
-                row.t_l2:SetString("学完后：" .. (data.nextfx or ""))
+                row.t_l2:SetString((MP("LBL_AFTER") or "学完后：") .. (data.nextfx or ""))
                 row.t_l2:SetColour(0.30, 0.24, 0.16, 1)
                 row._l3 = "tip"                     -- ★ 同上：只记该显哪一行
                 row.t_l3_tip:SetString(data.tip or "")
@@ -1800,7 +1900,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                             function(over)
                                 if over then
                                     row.t_lock_tip:SetString(string.format(
-                                        "点这里（或 +）用背包里的技能书解锁 · 需要 %d 本", needn))
+                                        MP("UNLOCK_HINT_FMT") or "点这里（或 +）用背包里的技能书解锁 · 需要 %d 本", needn))
                                     row.t_lock_tip:Show()
                                 else
                                     row.t_lock_tip:Hide()
@@ -1850,7 +1950,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         -- ⑥ 底部提示
         local foot = root:AddChild(Text(UIFONT, 20))
         foot:SetColour(0.46, 0.40, 0.32, 1)
-        foot:SetString("技能书学习的技能 · 后续开放")
+        foot:SetString(MP("SKILL_FOOT") or "技能书学习的技能 · 后续开放")
         foot:SetPosition(0, -PAGE_H / 2 + 34)
         self.skill_foot = foot
 
@@ -1894,7 +1994,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
             -- 加点 / 用技能书解锁（同一颗按钮，按数据决定干啥；满级直接隐藏）
             -- ★ 09-28 用户：「加点改成粉红色按钮 参考领取那个怎么做的」→ MakePinkSquareButton（四层做法）
             --   同日用户「改120x70」→ 84×84 正方 → **120×70 长方**（DW=232 放得下，见定义处算账）
-            self.skill_detail_btn = MakePinkSquareButton(self.skill_detail, 120, 70, "加点", function()
+            self.skill_detail_btn = MakePinkSquareButton(self.skill_detail, 120, 70, MP("BTN_UPGRADE") or "加点", function()
                 local e = self.skill_sel
                 if not e then return end
                 if (e.book_lock or 0) > 0 then
@@ -1957,13 +2057,13 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
 
         self.gift_head = root:AddChild(Text(UIFONT, 32))
         self.gift_head:SetColour(0.28, 0.22, 0.15, 1)
-        self.gift_head:SetString("礼包")
+        self.gift_head:SetString(MP("GIFT_HEAD") or "礼包")
         -- 2026-09-13 用户：先 -12 像素，再左移 3 像素；2026-09-14：再左移 220 → 再左移 40 / 上移 12
         self.gift_head:SetPosition(GIFT_HEAD_X, GIFT_HEAD_Y)
 
         self.gift_hint = root:AddChild(Text(UIFONT, 20))
         self.gift_hint:SetColour(0.46, 0.40, 0.32, 1)
-        self.gift_hint:SetString("节日活动期间发放 · 有活动时礼包会出现在这里")
+        self.gift_hint:SetString(MP("GIFT_HINT_EVENT") or "节日活动期间发放 · 有活动时礼包会出现在这里")
         -- 2026-09-13 用户：右移 -39（= 左移 39）、上移 15 → 再右移 200 → 净 x = +161
         -- 2026-09-14 用户：跟随标题（右下角 -15,-15），再额外右移 120 → (-263+32-15+120, 254-16-15) = (-126, 223)
         self.gift_hint:SetPosition(GIFT_HEAD_X + HEAD_HALF_W - HINT_GAP + HINT_EXTRA_X,
@@ -2115,7 +2215,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
 
         -- ★ 2026-09-16 用户「上面根本没排」：PageTip 自带位置是 (0,0)（= 页面正中），
         --   原来标题被压在卡片后面 → 这里挪到页面上方；列表也跟着上移（见下面 SetPosition）
-        local dex_title = PageTip(root, "图鉴", 40)
+        local dex_title = PageTip(root, MP("DEX_TITLE") or "图鉴", 40)
         dex_title:SetPosition(84, 248)   -- ★ 09-27c 对齐实测内纸中心+83.5（原61按旧白框推的，偏左22.5）   -- ★ 09-27b 用户：图鉴右移居中（内纸中心=+61）
 
         -- ★ 2026-09-16 用户「图鉴再改一下 太大」：卡片收窄（840 → 760）、可见行 4 → 3
@@ -2203,11 +2303,14 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
                 w.icon:Hide()
             end
 
-            w.title:SetString(tostring(data.name or "?"))
-            w.tag:SetString(tostring(data.tag or ""))
+            -- ★ 09-29 英文第二批：图鉴是**内容数据**（同礼包/更新日志）→ *_en 字段双语，按本机语言挑
+            w.title:SetString(tostring(PickLang(data, "name") or "?"))
+            w.tag:SetString(tostring(PickLang(data, "tag") or ""))
+            local dlines = data.lines
+            if UIIsEN() and data.lines_en ~= nil then dlines = data.lines_en end
             for i = 1, 3 do
                 local t = w.rows[i]
-                local s = data.lines and data.lines[i]
+                local s = dlines and dlines[i]
                 if s then
                     t:SetString("· " .. tostring(s))
                     t:Show()
@@ -2244,7 +2347,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         self.dex_list:SetPosition(84, -20)
 
         local tip2 = root:AddChild(Text(UIFONT, 22))
-        tip2:SetString("（图鉴按上架顺序排列；新内容会陆续补进来）")
+        tip2:SetString(MP("DEX_TIP") or "（图鉴按上架顺序排列；新内容会陆续补进来）")
         tip2:SetColour(0.62, 0.56, 0.46, 0.9)
         tip2:SetPosition(84, -262)
     end
@@ -2279,7 +2382,7 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         row:SetPosition(0, ROW_Y0 - (i - 1) * ROW_GAP)
 
         local name = row:AddChild(Text(UIFONT, 30))
-        name:SetString(def.label)
+        name:SetString(MP(def.label) or def.label)
         name:SetColour(0.30, 0.24, 0.16, 1)        -- 深墨字（压橙灰底 → 4.9:1；原橙字仅 1.9:1）
         name:SetPosition(-330, 0)
         name:SetHAlign(ANCHOR_LEFT)
@@ -2292,14 +2395,15 @@ local MushaPanelScreen = Class(Screen, function(self, owner)
         FrameLines(tag_chip, 80, 32, 1, 2, 1, 1, 1, 0.9)
 
         local tag = row:AddChild(Text(UIFONT, 22))
-        tag:SetString(def.scope == "world" and "世界" or "个人")
+        tag:SetString(def.scope == "world" and (MP("DEX_SCOPE_WORLD") or "世界")
+                                            or (MP("DEX_SCOPE_PERSONAL") or "个人"))
         tag:SetColour(0.30, 0.24, 0.16, 0.95)      -- 深墨字（压暖黄底 → 7.6:1）
         tag:SetPosition(-95, 0)
 
         local entry = { def = def, row = row, name = name }
 
         if def.kind == "bool" then
-            local b = MakeTextButton(row, 100, 42, "关", function()
+            local b = MakeTextButton(row, 100, 42, MP("BOOL_OFF") or "关", function()
                 CommitSetting(def, CurrentSetting(def) and 0 or 1)
             end)
             b:SetPosition(240, 0)
@@ -2559,25 +2663,47 @@ function MushaPanelScreen:BuildQuestItems(md)
             key = key, ty = q.ty, exp = q.exp, open = open[key],
         })
         if open[key] then
-            local req = QUEST_REQ_TEXT[q.ty] or "完成任务目标"
+            local req = QuestReqText(q.ty)
             table.insert(items, {
                 detail = true, key = key,
-                req = "需要：" .. req .. "（" .. (q.p or 0) .. "/" .. (q.t or 1) .. "）",
+                -- ★ 09-29「放弃」按钮用：只有每日任务行带 id（转职行不带 → 详情行不画按钮）
+                id = (not adv) and q.id or nil,
+                done = q.done,
+                req = string.format(MP("NEED_FMT") or "需要：%s（%s/%s）",
+                        req, tostring(q.p or 0), tostring(q.t or 1)),
                 rwd = (type(q.exp) == "number" and q.exp > 0)
-                        and ("奖励：职业经验 +" .. q.exp)
-                         or "奖励：见任务完成提示",
+                        and string.format(MP("REWARD_EXP_FMT") or "奖励：职业经验 +%s", tostring(q.exp))
+                         or (MP("REWARD_HINT") or "奖励：见任务完成提示"),
                 req_icon = (q.ty == "kill_firehound") and "hound" or nil,
                 hound_build = (q.ty == "kill_firehound") and "hound_red" or nil,
             })
         end
     end
     for _, q in ipairs(md.daily_quests or {}) do
-        push(q, false, "d" .. tostring(q.id), q.n or QuestName(q.id))
+        -- ★ 09-29 英文第二批：客户端本地表优先（语言跟人走），服务端 q.n 只作未知 id 回退
+        push(q, false, "d" .. tostring(q.id),
+            QuestNameLocal(q.id) or q.n or QuestName(q.id))
     end
     if md.advance_quest then
         local a = md.advance_quest
+        local aname
+        if a.id == "ceremony" and a.nkey == "CEREMONY_CHOICE" then
+            -- ★ 09-29：服务端只发职业 key 列表（ck）→ 客户端本地查职业名拼句
+            local S = GetGlobalSTRINGS()
+            local names = {}
+            for _, k in ipairs(a.ck or {}) do
+                local n = S and S["MUSHA_JOB_" .. string.upper(tostring(k))]
+                names[#names + 1] = n or tostring(k)
+            end
+            aname = string.format(MP("CEREMONY_CHOICE_FMT") or "选定方向：用掉手里的徽记（%s）",
+                    table.concat(names, " / "))
+        elseif a.id == "ceremony" and a.nkey then
+            aname = MP(a.nkey) or a.n
+        else
+            aname = QuestNameLocal(a.id) or a.n or QuestName(a.id)
+        end
         push(a, true, "adv",
-            "【转职" .. (md.advance_round or 1) .. "/3】" .. (a.n or QuestName(a.id)))
+            string.format(MP("ADVANCE_FMT") or "【转职%s/3】", tostring(md.advance_round or 1)) .. aname)
     end
     return items
 end
@@ -2768,7 +2894,7 @@ local has_job = md.carrer_base ~= nil and md.carrer_base ~= ""
     -- 以前直接拿 exp_to_next 当分母，于是显示出 "40/5" 这种怪数字。
     local exp_next = exp + (md.exp_to_next or 0)
     self.level_text:SetString("Lv." .. lv)
-    self.exp_text:SetString("职业经验 " .. exp .. "/" .. exp_next)
+    self.exp_text:SetString(string.format(MP("EXP_FMT") or "职业经验 %s/%s", tostring(exp), tostring(exp_next)))
     local pct = exp_next > 0 and math.min(exp / exp_next, 1) or 0
     -- ★ 2026-09-26 装饰框化：fill 在暗槽内铺开（左缘 -0.3、最大宽 279.9、高 10、槽心 y115）
     --   ★ 09-26 二调：拉长40%+右移180 → 199.9→279.9、左缘 -144.5→-0.3、半宽 99.95→139.95
@@ -2795,21 +2921,22 @@ local has_job = md.carrer_base ~= nil and md.carrer_base ~= ""
     self:RefreshSkills(md)
 
     -- 空状态
-    -- ★ 09-28 用户拍板「只隐藏空状态两行字」：任务列表照常，这两行字不再显示
-    --   （每日任务已全搬到酒馆板，主页这句提示没有落点了）。两支都 Hide。
+    -- ★ 09-28 晚用户拍板（推翻早间"两行都藏"）：没有任务时显示去酒馆接任务的引导 ——
+    --   同日拍板"每日不批发任务"（服务端 GrantNewDayQuests = 只补酒馆可接列表）→
+    --   主页列表默认空，这句是唯一落点；quest_empty/quest_hint 已加回 pages.home 组（不盖别页）。
     if #items > 0 then
         self.quest_empty:Hide()
         self.quest_hint:Hide()
     else
-        self.quest_empty:Hide()
-        self.quest_hint:Hide()
         if has_job then
-            self.quest_empty:SetString("暂无任务")
-            self.quest_hint:SetString("每日任务明日自动发放 · 转职任务去酒馆接取")
+            self.quest_empty:SetString(MP("EMPTY_TAVERN_TITLE") or "请去酒馆接受相关任务 》")
+            self.quest_hint:SetString(MP("EMPTY_TAVERN_HINT") or "每日委托在酒馆接取 · 转职任务从酒馆取卷轴")
         else
-            self.quest_empty:SetString("暂无职业")
-            self.quest_hint:SetString("使用职业书开启职业之路")
+            self.quest_empty:SetString(MP("EMPTY_NOJOB_TITLE") or "暂无职业")
+            self.quest_hint:SetString(MP("EMPTY_NOJOB_HINT") or "使用职业书开启职业之路")
         end
+        self.quest_empty:Show()
+        self.quest_hint:Show()
     end
 
     -- ★★ 2026-09-26 修（用户实测：技能页点「加点」，天使（=职业头像 job_warrior 是
@@ -2849,7 +2976,7 @@ function MushaPanelScreen:RefreshSettings(md)
 
         if def.kind == "bool" then
             if entry.btn and entry.btn._label then
-                entry.btn._label:SetString(v and "开" or "关")
+                entry.btn._label:SetString(v and (MP("BOOL_ON") or "开") or (MP("BOOL_OFF") or "关"))
             end
         elseif entry.value_text then
             entry.value_text:SetString(FmtSetting(def, v))
@@ -2937,6 +3064,8 @@ function MushaPanelScreen:RefreshSkills(md)
         self.skill_md = ok and d or nil
     end
     local data = self.skill_md
+    -- ★ 09-29：技能快照按本机语言挑一份（服务端中英两份都发下来了）
+    if data and data.skills then LocalizeSkills(data.skills) end
 
     -- ★ 2026-09-28：技能数据为空时**打一行诊断 + 补拉一次**（用户报"直接表示我学习完了"）
     --   树喂的就是 data.skills；这里空 = 树整棵空白。打清楚是哪一层空的（下次重启看
@@ -2981,9 +3110,10 @@ function MushaPanelScreen:RefreshSkills(md)
             if spec and spec ~= "" then
                 title = JobName(spec)
             end
-            self.skill_head:SetString(string.format("%s · 等级 %d · 可用技能点 %d", title, lv, sp))
+            self.skill_head:SetString(string.format(
+                MP("SKILL_HEAD_FMT") or "%s · 等级 %d · 可用技能点 %d", title, lv, sp))
         else
-            self.skill_head:SetString("技能")
+            self.skill_head:SetString(MP("SKILL_HEAD") or "技能")
         end
     end
 
@@ -3009,11 +3139,11 @@ function MushaPanelScreen:RefreshSkills(md)
                 self.skill_empty:Hide()
             else
                 if not job then
-                    self.skill_empty:SetString("还没有职业")
+                    self.skill_empty:SetString(MP("SKILL_EMPTY_NOJOB") or "还没有职业")
                 elseif tab == "learned" then
-                    self.skill_empty:SetString("还没有学习任何技能")
+                    self.skill_empty:SetString(MP("SKILL_EMPTY_NONE") or "还没有学习任何技能")
                 else
-                    self.skill_empty:SetString("该职业的技能已全部学习")
+                    self.skill_empty:SetString(MP("SKILL_EMPTY_ALL") or "该职业的技能已全部学习")
                 end
                 self.skill_empty:Show()
             end
@@ -3440,7 +3570,7 @@ local function GiftLockText(g)
         local need = g.day or 0
         local cy = CurrentCycles()
         if cy < need then
-            return string.format("第 %d 天可领（还差 %d 天）", need, need - cy)
+            return string.format(MP("GIFT_DAY_FMT") or "第 %d 天可领（还差 %d 天）", need, need - cy)
         end
     end
     return nil
@@ -3461,11 +3591,11 @@ function MushaPanelScreen:RefreshGift(md)
 
     if self.gift_hint then
         if #rows == 0 then
-            self.gift_hint:SetString("当前没有可领取的礼包 · 节日活动期间会出现在这里")
+            self.gift_hint:SetString(MP("GIFT_HINT_EMPTY") or "当前没有可领取的礼包 · 节日活动期间会出现在这里")
         elseif has_cycle then
-            self.gift_hint:SetString("按游戏内天数开放 · 每个只能领一次")
+            self.gift_hint:SetString(MP("GIFT_HINT_DAY") or "按游戏内天数开放 · 每个只能领一次")
         else
-            self.gift_hint:SetString("活动礼包 · 每个只能领一次")
+            self.gift_hint:SetString(MP("GIFT_HINT_EVENT2") or "活动礼包 · 每个只能领一次")
         end
     end
     if #rows == 0 then return end
@@ -3487,7 +3617,7 @@ function MushaPanelScreen:RefreshGift(md)
         -- 名字（左对齐：SetRegionSize + ANCHOR_LEFT，位置 = 区域中心）
         local TXT_W = GIFT_ROW_W - 320
         local nm = row:AddChild(Text(UIFONT, 26))
-        nm:SetString(g.name or g.id or "礼包")
+        nm:SetString(PickLang(g, "name") or g.id or (MP("GIFT_DEFAULT") or "礼包"))
         nm:SetColour(0.22, 0.17, 0.11, 1)
         nm:SetRegionSize(TXT_W, 30)
         nm:SetHAlign(ANCHOR_LEFT)
@@ -3495,7 +3625,7 @@ function MushaPanelScreen:RefreshGift(md)
 
         -- 说明（左对齐、灰）
         local ds = row:AddChild(Text(UIFONT, 18))
-        ds:SetString(g.desc or "")
+        ds:SetString(PickLang(g, "desc") or "")
         ds:SetColour(0.46, 0.40, 0.32, 1)
         ds:SetRegionSize(TXT_W, 24)
         ds:SetHAlign(ANCHOR_LEFT)
@@ -3504,7 +3634,7 @@ function MushaPanelScreen:RefreshGift(md)
         -- 状态 / 领取按钮（2026-09-14：多一档「没到时间」的锁态）
         if claimed[g.id] ~= nil then
             local done = row:AddChild(Text(UIFONT, 22))
-            done:SetString("已领取")
+            done:SetString(MP("CLAIMED") or "已领取")
             done:SetColour(0.52, 0.46, 0.38, 1)
             done:SetPosition(GIFT_ROW_W / 2 - 80, 0)
         else
@@ -3518,7 +3648,7 @@ function MushaPanelScreen:RefreshGift(md)
                 lk:SetHAlign(ANCHOR_MIDDLE)
                 lk:SetPosition(GIFT_ROW_W / 2 - 120, 0)
             else
-                local b = MakeGiftButton(row, 120, 44, "领取", function()
+                local b = MakeGiftButton(row, 120, 44, MP("CLAIM") or "领取", function()
                     SendClaimGift(g.id)
                 end)
                 b:SetPosition(GIFT_ROW_W / 2 - 80, 0)
