@@ -2305,3 +2305,97 @@ close_button_red / wechat_qr）。但 `images/ui_elements.tex` **从来没被转
 - luac5.1：modmain.lua + musha_fairy.lua + musha_fairy_silhouette.lua 全过；语法套件口径 75→**78**（+fairy 本体 +剪影表）
 - **验收点**（完全重启 DST，非重进世界）：①登场/重生后 1~2 秒出现光点汇聚、拼出「圆头+薄翼+光尾」小精灵 ②精灵飘到身边 2~3 格停住、夜里发光 ③新手期冒字打招呼（青白色小字）④冲近它它会后缩 ⑤老档老玩家只问候不打引导词 ⑥改 `MUSHA_FAIRY_ENABLED=false` 重启后不再出场
 - 未定稿美术零打包：本次**未动 anim/、images/**；后续想把精灵换成实体卡通形象（自绘动画）再走定稿打包流程
+
+---
+
+## ㉘ 2026-09-29 → 10-04 四批（英文批 / 日语批 / 发布信息 / 文档校正）— 10-04 补记
+
+> 本节 10-04 补写：09-28（㉗）之后的四批此前**没有流水**（账本漂了 6 天）。下面按批只记**实测事实**，不写没验收的结论；进度仍以本文件为准。
+
+### 批 1 · 09-29（未 commit）
+- **改动面**（`git status` 实测）：18 个已跟踪文件 modified —— `modmain.lua`、`scripts/components/musha_quest.lua`、`scripts/components/musha_profession_component.lua`、`scripts/screens/musha_panel_screen.lua`、`scripts/screens/musha_tavern_screen.lua`、`scripts/screens/musha_edit_mode.lua`、`scripts/widgets/musha_skill_tree.lua`、`scripts/musha_dex.lua`、`scripts/musha_gifts.lua`、`scripts/rpcs/musha_rpcs.lua`、`scripts/musha_changelog.lua`、`scripts/languages/chinese.lua`、`scripts/languages/english.lua`、`scripts/actions/musha_actions.lua`、`README.md`、`modinfo.lua`、`musha-backlog.md`、`bigportraits/musha_none.xml`；新增未跟踪 `scripts/prefabs/musha_job_reset.lua`、`scripts/musha_dev_mode.lua`
+- **职业重置石**：`musha_job_reset.lua`（INVENTORY 右键 `ACTIONS.MUSHA_RESET_JOB`，动作挂点 `musha_actions.lua:224/271/369`）；权限在 prefab 判（作者 SteamID / 测试安全员 / 本地房主），配方不开放
+- **作者调试开关**：`scripts/musha_dev_mode.lua`（按 SteamID 判定 → 全制造 / 放开等级门槛；文件头写死两个坑：`TheNet:GetUserID()` 返回的是 Klei ID 不是 SteamID64；SteamID64≈7.66e16 超 double 安全整数需容差比）
+- **0.7.13 更新日志** 4 条 + `lines_en` 4 条已写入 `scripts/musha_changelog.lua`（date 2026-09-28）：酒馆委托板底图 / 每日委托同任务 3 人各自记进度 / 主页两框改版 + 无任务提示 + 滚动条竖轨隐藏 / 英文酒馆名直译 Hotel + 任务调试日志关闭
+- **验收点**（等完全重启）：主页两框、技能树连线、酒馆委托板、任务放弃按钮、发书→锁→读书、`c_musha_job`、重置石、月牙斩
+
+### 批 2 · 09-30 英文第二批（未 commit）
+- 5 个文件走 `*_en` 双语字段；`PickLang` / `UIIsEN` 两个助手进 `musha_panel_screen.lua`
+- 技能文案改「**服务端中英两份都发、客户端按本机语言挑**」（`LocalizeSkills`，面板 :141 区）—— 起因：`GetSkillView` 在**服务端**跑，读的是服务端 `TUNING.MUSHA_UI_LANG`（专用服务器 Profile=nil → 落 en；房主开房 → 全车跟房主）
+- **已知缺口**：任务名走 `SyncToPanel` 仍是**服务端语言**（英文批⑧ 之一），10-04 Wolfar 反馈「看到日语」疑似即此（判定法见批 3）
+
+### 批 3 · 10-02 日语批（未 commit）
+- 新增 `scripts/languages/japanese.lua`；**三份界面文件 key 一一对应 = 225/225/225**（已验）
+- 口径：技能正文 / 导航横幅 / 礼包 / 更新日志走**英文回退**；信箱兜底日志**中文不动**；赞助页**整段保持中文**
+- 路由：`modmain.lua:1011-1022` → 21/22/23=zh、20=ja、其余=en；台词 `speech_musha_{zh,en,ko,ru,jp}` 挂载 :1029-1039；语言 id 16=俄 19=韩 20=日 21/22/23=中
+- **判定法**：只看日志行 `[Musha] 语言文件已加载 (language id=N)`（modmain:1022）+ 在自己房还是别人房
+
+### 批 4 · 10-04 发布信息（未 commit）
+- `README.md:173` 版本行 0.7.9 半 → **0.7.13**
+- `modinfo.lua:3` description 扩写（中文 + 支持中/EN/日本語 + 全部玩法免费）；**没查实的数字一律不写**（`profession_meta` / `musha_row2_tree` grep 无命中 → 去掉「11 职业 / 4 技能树」）
+- 备份：`README.md.bak_20261004`、`modinfo.lua.bak_20261004`
+- 校验：dsmod `--verify` 贴图 **69/69 PASS**、大头像 PASS、0 失败；Lua 项因 WSL `spawnSync ETIMEDOUT` SKIP → 单独补 `luac5.1 -p modinfo.lua` exit=0
+
+### 文档校正（10-04 同日 · 本次）
+- `星图集成.md`：`verified_on` → 2026-10-04；`sys.panel` 五页→**六页**（`musha_panel_screen.lua:1669` `page_order`，`equip` :1668 注释）；`sys.l10n` 补 `japanese.lua`；`sys.modinfo` 对比实录3 了结；新增 4 星 `doc.alice-mod` / `sys.job-reset` / `sys.dev-mode` / `col.backup`；mermaid 星群计数改 23/21/9；JSON 重解析通过
+- `AGENTS.md:12` 版本行 0.7.9 → **0.7.13**
+- `musha-panel-tabs-and-settings-design.md:3/:6` 状态改「已实现」+ 页数校正为 **6 页（主页/技能/信箱/设置/礼包/图鉴，无装备页）**；下文 09-10 定稿的「5 页」字样保留为历史
+- `.mobius/project_knowledge.md`：版本 / 页数 / 语言刷新，「当前阶段」「近期任务」改为指向本文件的指针，「待决策」3 条标已定（每日任务数 4 / 图鉴手写表 / 更新日志=musha_changelog）
+- 各文件改前备份 `.bak_20261004`（共 7 份）
+
+### 版本 · 状态 · 卡在哪
+- 版本 **0.7.10 → 0.7.13**；git 本地 `494b687` 领先 `origin/master=b317e4d` 1 个提交，**09-29/09-30/10-02/10-04 四批全部未 commit、未 push**（等用户验收）
+- **元素精灵已关闭（10-12 用户「关闭元素精灵 我去测试」）**：`modmain.lua:504 MUSHA_FAIRY_ENABLED = false`（10-04 曾改回 true 放出场；要恢复改回 true）。关闭后 Lua 语法检查 82 文件全过
+- **待用户进游戏验收**：09-29 全批 / 月牙斩 / 英文批五页 / 日语批 / 放弃按钮 / 发书→锁→读书 / `c_musha_job` / 重置石 / 英文 8 条 / alice_plan 首测 / **元素精灵登场**（㉗ 验收点 6 条）
+- **待点头**：backlog 登记本批、Hermes 网关 restart、信箱 `musha_mail_x` 图集补注册（2 行）、`GetOpenSlotForItem`→`GetSpecificSlotForItem`（2 处死代码）；`MUSHA_FAIRY_ENABLED`：10-04 改回 true，**10-12 用户测试期间改 false 关闭**（要恢复改回 true）
+- **Wolfar 三样未回**：红框报错原文、指哪种信箱、`language id=` 日志行
+
+### 2026-10-05 拍板（任务线裁剪，本次只记账）
+- **0.7.13 更新日志「加」元素精灵**：scripts/musha_changelog.lua 0.7.13 条 lines / lines_en 各 +1 行（中文「★ 元素精灵登场：青白色光灵由光点汇聚成形…」/ EN「★ The Element Fairy arrives: a moonlit blue-white wisp…」，中英 5/5 行数对齐）；备份 musha_changelog.lua.bak_20261005_fairylog；0.7.12「经费不足，延误出场。」**原文未动**（行号 44→46 为加行自然顺移）。本机无 luac/lua 运行时（luac/lupa 全无），以读回结构核验代替语法过检；随四批一并进「完全重启 DST」验收。
+- **hermes 整合①（进程托管）= 做**：排独立批（工作台侧），不混进待部署三批。
+- **Wolfar 三样 = 放弃**（红框报错原文 / 信箱种类 / language id= 日志行）：没有收获，关账。
+- **LoRA 云平台注册人 = 闲置**：暂时没啦。
+- **DOTS_API_KEY = 小红书**：免费但不好使；钥匙留档，备将来分析用途，**不接线不删**。
+
+---
+
+## ㉙ 2026-10-14 新增任务：**UI 独立 exe**（用户口述「加一个任务」，登记未开工）
+
+- 任务原文：「musha 需要增加一个任务，能让 UI 被输出显示到现实的 exe，可以编辑重新排版」
+- 拆解：① UI 渲染到现实（游戏外独立 Windows exe，不进 DST）② 控件可编辑 ③ 布局可重新排版、可保存/导出
+- 候选路线（网页复刻打包 / 解析面板 lua 坐标表 / 底图上拖摆导坐标，**均未拍板，开工前先让用户选**）→ 明细登记在 `musha-backlog.md` 2026-10-14 节
+- 本条只动 md 两份：**未碰 .lua（无需语法检查）、未打包任何美术（铁律 2 不涉）**
+
+---
+
+## ㉚ 2026-10-18 收尾批（opencode 执行：「跑一遍 musha 的工作，把上次没做完的做完」+「加个闹钟，你和它通用的」
+
+### 1. 结论先行
+1. **积压全部入库**：09-28 晚主页两框 + 批1(09-29) + 批2(09-30 英文) + 批3(10-02 日语) + 批4(10-04 发布信息) + 文档校正(10-04) + 精灵日志(10-05) + 精灵开关回关(10-12) + ㉙登记(10-14) → 分 **4 个提交**（代码 / 资产 / 文档 / 账本），**推送等用户点头**（AGENTS 联网先问）。
+2. **「待点头」清单两处代码项已修**（§2），改后 WSL `lua-syntax-check` **82 文件全过**。
+3. **10-10 导航图标换图**（此前无流水）随资产批入库，本节补记。
+4. **通用闹钟上线**（§4）；**bigportraits 改名存疑未入库**、垃圾未动（§3）。
+
+### 2. 两处死代码修复（原「待点头」项落地）
+- `GetOpenSlotForItem` ×2（`musha_actions.lua` MUSHA_PUT_MAILBOX / `musha_mail.lua` PutItemToMailbox）：
+  - 实锤：原版 `data/databundles/scripts` 全树 **0 命中** → 调到即 `attempt to call method 'GetOpenSlotForItem' (a nil value)`。
+  - 原拟换 `GetSpecificSlotForItem` **不成立**：`container.lua:299` 有 `usespecificslotsforitems` 门，信箱 params（`musha_containers.lua:104`）没开 → 恒返回 nil（换了 = 静默失效）。
+  - 实际修法 = 手写等价循环：`1..math.min(unlocked or 3, GetNumSlots())` 找第一个空格 → `GiveItem(item, i)` 显式带槽（itemtestfn 锁格照常生效、不落未解锁格、无 fallthrough 绕锁）。
+- 信箱 `musha_mail_x` 图集补注册 2 行（`modmain.lua` 照 tavern_frame 先例；文件三件本就在仓，原靠 mailbox_shadow prefab 的 FileOK 条件注册兜着）。
+
+### 3. 入库 / 未入库清单
+- 4 提交：①功能代码批（scripts/** + modmain + untracked 三 lua）②资产批（home_frame 六件、nav 六对 png+tex、exported/_tools 生成器×4）③文档批（README/modinfo/AGENTS/.mobius×2/设计稿/星图集成/爱丽丝计划）④账本批（本文件 + backlog）。
+- **刻意未入库**：
+  - `bigportraits/musha_none.xml`：工作树把元素名 `musha_none.tex` → `musha_none_oval.tex`；全仓无消费方、按 `<prefab>_<skin>.tex` 引擎约定提交即断角色选择大头像 → 保持 modified，**等用户拍板**（改回 or 说清意图）。
+  - `anim/musha_v2_gaiguo210x216.zip`（铁律 3 v2 不进 anim/）、`images/8030e666-*` UUID 垃圾×6、`release/` 打包产物、`_vibex交接/` 他线文档 → 未跟踪原样留（前两类建议删，按铁律等点头）。
+
+### 4. 通用闹钟（新增跨线机制，用户 10-18 口述「加个闹钟 你和它通用的 做完了闹钟叫我」）
+- **共享文件** = `%APPDATA%\app\hermes-alarms.json`（工作台 userData，与 workspace-store.json 同目录，无 BOM UTF-8）；schema：`{version, alarms:[{id,title,note,at,done,state,source,createdAt,firedAt}]}`。
+- **触发规则（两端一致）**：`state=armed` 且（`done=true` 或 `at<=now`）→ 响 → 置 `state=fired` 写回。
+- 三方通用：opencode 直写文件；hermes 可写；工作台走新 IPC（工作台仓 REQ-049）。旧构建不识别该文件 → opencode 侧另有独立响铃器进程兜底（警报音×6 + 弹窗；日志 `Temp\opencode\alarm-watcher.log`，单实例锁）。
+- 本批完成信号 = 闹钟 `al_musha_done_1018` 置 `done:true`（到点兜底 70 分钟、可滑动）。
+
+### 5. 仍未做 / 等用户
+- **四批进游戏验收**（完全重启 DST）：批1 重置石/调试开关/放弃按钮/书锁迁移、批2 英文五页、批3 日语路由、批4 发布信息、元素精灵关闭态；月牙斩实测提醒照旧。
+- 等拍板：`hp_regen_mult` 留/删、㉙ UI exe 路线 a/b/c、bigportraits 改名、垃圾清理、**推送**。
+- **Hermes 网关 restart** 归工作台线（非本仓动作）。

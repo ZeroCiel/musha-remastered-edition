@@ -1,5 +1,163 @@
 # Musha backlog（2026-09-10 深夜更新）
 
+## 🧹 2026-10-18 收尾批（opencode 执行「把上次没做完的做完」+ 加通用闹钟）
+
+- [x] **积压全部入库（4 提交：代码/资产/文档/账本）**：09-28 晚两框 + 批1(09-29) + 批2(09-30 英文) + 批3(10-02 日语) + 批4(10-04 发布) + 10-04 文档校正 + 10-05 精灵日志 + 10-12 精灵开关回关 + 10-14 ㉙登记。
+- [x] **`GetOpenSlotForItem` 2 处死代码已修**（musha_actions / musha_mail）——原拟换 `GetSpecificSlotForItem` 因 `usespecificslotsforitems=false` 恒 nil，改手写「第一个已解锁空格」循环（state ㉚.2；82 文件过检）。
+- [x] **musha_mail_x 图集补注册 2 行**（modmain）。
+- [x] **10-10 导航图标换图补记**（nav 六对 png+tex、equip 未换、xml 图集未动）随资产批入库。
+- [x] **通用闹钟上线**：共享文件 `%APPDATA%\app\hermes-alarms.json`（opencode/工作台/hermes 三方可读写），`state=armed` 且（`done:true` 或到点）响、响完置 `fired`；工作台侧 = 其仓 REQ-049，opencode 侧 = 独立响铃器进程兜底。
+- [ ] **bigportraits/musha_none.xml 改名 `musha_none_oval` 等拍板**：全仓无消费方、按引擎约定会断大头像 → 未入库（保持 modified）。改回 or 说明意图，用户定。
+- [ ] **建议清理（铁律：删除先问，未动）**：`anim/musha_v2_gaiguo210x216.zip`、`images/8030e666-*` UUID 垃圾×6、`release/` 打包产物。
+- [ ] **推送等点头**（AGENTS 联网先问）；进游戏验收清单照旧（完全重启 DST）。
+- 遗留不变：㉙ UI exe 路线 a/b/c 待选；月牙斩实测提醒；`hp_regen_mult` 留/删待拍板。
+
+## 🔨 2026-10-14 新增任务：**UI 独立 exe（输出到现实显示 + 可编辑重新排版）**（用户口述加任务，未开工）
+
+- [ ] **把 musha 的 UI 做成一个真实可运行的 Windows exe**（用户原话：「能让 UI 被输出显示到现实的 exe，可以编辑重新排版」）
+  - 目标：**不进 DST** 就能在 Windows 上双击打开 exe，看到面板 UI 的真实显示效果
+  - 要求 ① **显示**：UI 渲染到现实（exe 独立运行，不依赖游戏）
+  - 要求 ② **可编辑**：控件能改（文字 / 尺寸 / 开关等）
+  - 要求 ③ **可重新排版**：布局可拖拽 / 重排，调整结果能保存下来
+  - 候选路线（**均未拍板，开工前先让用户选路线**——按项目习惯先定路线再动手）：
+    a. 网页复刻：HTML/CSS 按面板坐标表排版 → WebView2 / Electron / Tauri 打包 exe（编辑器最省事）
+    b. 解析面板 lua 的坐标 / 控件表自动生成可编辑视图（数据真源，但 DST widget API 只能模拟）
+    c. 图上摆位：以面板底图（panel_bg / page_bg）为画布，控件以图片层拖放，导出坐标回填 lua
+  - 验收：exe 双击即开、显示与游戏内一致；控件可编辑；布局可重排并**保存 / 导出**
+  - 关联：面板 = Screen + ScrollingGrid、导航 6 页（主页/技能/信箱/设置/礼包/图鉴）；UI 底图不压暗（AGENTS 铁律 5 例外）；不动 `anim/`、不打包任何美术（铁律 2）
+
+## 🔧 2026-09-29 用户口头批（面板修复 + 转职锁 + 若干决策，未落地）
+- ⚠️ **提醒：月牙斩（剑气斩 slash_qi）还没实测** —— 用户原话"提醒我 月牙斩没测试"；
+  特效 `scripts/prefabs/musha_slash_qi_fx.lua`（L143 `USE_ENGINE_FACING`）+ 施法
+  `scripts/musha_weapon_skill.lua`（`musha_sword → slash_qi`）**都要完全重启 DST 后实测**
+- [x] **09-29 第二批 · 月牙斩「发出去看不见」→ 根因 + 修法** ✅：
+  根因 = **常量与 zip 不配对** —— `USE_ENGINE_FACING=false`（代码点名播 `slash_dir0..7`），
+  但 `anim/crescent_cyan8.zip` 是**官方名包**（md5 `D8AAF5F2…`，anim.bin 里只有
+  `slash` / `slash_down` / `slash_upright`…，**没有 slash_dir\***）→ 名字对不上 = 黑屏。
+  正是该文件头 :125 自己写的坑（09-27 把 true 改 false 时漏换包）。
+  修法（用户拍板"**先只改代码试官方名**"）：按两份 scml 的 file id 逐条对齐，
+  `ART.cyan8` 的 `dirs/pre/fly/hit` → `slash_downright / down / downleft / left / upleft / up / upright / right`；
+  方向源仍是 `DirIndexFromRotation`，选图语义不变。
+  回退 = 改回 `slash_dir*` + 把 `anim/_bak_crescent_cyan8_点名_20260926.zip` 拷回来（**必须成对**）；
+  仍黑屏 → 换"重出点名包"路线（改 scml 动画名 → DST Mod Tools 导出，工具在
+  `C:\Program Files (x86)\Steam\steamapps\common\Don't Starve Mod Tools\mod_tools`）。
+- [x] **09-29 第二批 · 技能树节点连线太长** ✅：`musha_skill_tree.lua` `COL_DX 168 → 132`
+  （同行横线 = COL_DX−NODE：92 → **56**，与跨行竖线 56 等长）；只动列距，行距/图标格不碰。
+  顺带记一笔未修的隐患：跨行前置画横线用 `(x2-NODE/2)-x1`，同列时算出 **-38 负宽**（被节点卡盖住看不出）
+- [x] **09-29 第二批 · 主页两框「铺满上下面板」** ✅：量 `images/panel_bg_alt.png`（stdlib 手解 PNG）
+  得内纸 = content **x -408..575、y +369.5..-350.5**（与文档"内纸 -408..575 / 下沿 -351"对上）→
+  上框 **983x308 @(83.5,215)**（y 61..369）、下框 **983x420 @(83.5,-158)**（y -368..52）；
+  两框同宽同左右缘、缝仍 9px；下沿盖住任务滚槽 -366。
+  图按新尺寸重生成：`exported/_tools/gen_home_frames.py` FRAMES 改 → `art_update.py publish`
+  （旧图已备份 `exported/_tools/_art_backup/home_frame_*_20260929_*`），tex 已转码 → 要完全重启
+- [x] **09-29 第二批 · 酒馆板「拉长50 左移80」** ✅：`musha_tavern_screen.lua`
+  `BOARD_H 590 → 640`、`BOARD_OFFSET -361 → -441`；只拉框不动行坐标（用户拍板）
+- ❌ **09-29 答复 · 近卫「嘲讽」没做**：全 mod `嘲讽/taunt/仇恨/aggro` 0 实现
+  （`musha-职业估期与排期.md:23` 也标 ❌）；近卫现有 = 钢铁意志 + 生命偷取 + MP 盾（非技能）。
+  技能全表见本轮答复（4 棵树：战士/刺客/剑士/近卫；法师·游侠·药剂师·元素法师·吟游诗人·月影猎手**无技能树**）
+- [x] **任务行加「放弃」（用户 09-29：「请给任务面板的任务加上 放弃喵」）** ✅ 已落地：
+  只在**展开的每日任务详情子行**右端出红色「放弃」按钮（转职行/已完成不给丢，两步才丢不手滑）。
+  服务端 `MUSHA_QUEST:AbandonQuest`（`musha_quest.lua` AcceptQuest 之后）= 从进行中删除 +
+  **插回酒馆可接列表最前**（进度清零、可立刻重接、`AVAIL_MAX=4` 不会被挤掉）+ `SyncToPanel`；
+  RPC `musha_abandon_quest`（`musha_rpcs.lua` 接取 handler 之后，talker 回话）；
+  面板 `musha_panel_screen.lua` ctor `w.drop`（**加在 `w.clicker` 之后**，z 序压住它才不会顺手收起行）
+  + `BuildQuestItems` 详情行带 `id`；文案 key `ABANDON`（中英各 1，key 数仍一一对应）。
+  酒馆板「进行中」那栏**还没加**（用户只点了"任务面板"）→ 要的话再补
+- [x] **调试开关（作者 SteamID 判定）**：命中 → 开发模式 = 0 级就能测、可自由切换职业、
+  进游戏自带**全制造**（`builder:GiveAllRecipes()`）；口径"**（启动本地）的时候都属于这个模式**"
+  = 房主/本地 listen server 一律开；作者 SteamID64 已在库内
+  `scripts/musha_crash_bridge.lua:28 SID_FALLBACK = "76561198220617051"`（兜底同值）
+  ✅ **09-29 已落地**（用户拍板"对，但只认 SteamID"→ 不按本地房主自动开）：
+  `scripts/musha_dev_mode.lua`（新）+ `modmain` 尾部全制造钩子 + `GLOBAL.c_musha_job`
+  控制台切职业 + 组件 `DevOn()` 放开 `unlock_requirements` 等级门槛（`:1011` / `:1102`）。
+  ⚠️ 两个坑写在文件头：`TheNet:GetUserID()` 是 **Klei ID** 不是 SteamID64；
+  SteamID64 ≈7.66e16 **超 double 安全整数**（2^56 附近 ulp=16）→ 引擎值要带容差比，
+  同时认 SteamID3 账号 ID `260351323`；读不到就当没命中，**绝不回退常量**（否则别人机器全开）
+- [ ] **兔子洞（爱丽丝穿洞去地下，不走路程入口）** —— 结论**能实现**，走现成跨 shard 迁移：
+  `TheWorld:PushEvent("ms_playerdespawnandmigrate", {player=..., portalid=..., worldid=...})`
+  （引擎样板 `data/databundles/scripts/consolecommands.lua:1366 c_migrateto`；
+  落点判定 `scripts/components/playerspawner.lua:243` worldid ≠ 当前世界 → 走迁移出生）。
+  **前提**：世界必须开着洞穴 shard（没开洞穴就没有 Caves shard → 不可用，得有兜底）；
+  要指定"兔子洞出口"落点 → 洞穴侧放自定义 worldmigrator（mod 双 shard 都加载，可行）；
+  迁移有几秒 despawn/spawn，战斗/骑乘中状态要处理
+- [x] **剑士转职 bug（用户处方）**：战士→剑士 **没发放技能书、技能直接可用**。
+  现状链路 `CompleteAdvance:1774` / `SetCarrerSpecial:851` → `GrantAdvanceGift:1280` →
+  `GiveCareerBook:1256`（`CAREER_BOOK.saber = "musha_skillbook_saber"` `:1253`，资源/PrefabFiles:439 都在）；
+  真因**待复现**：`CanUpgradeSkill` 只查 `req`/`unlock_requirements`/技能点，
+  **没查"读过书没有"** → 剑士可直接花技能点把 slash_qi 0→1，书形同虚设。
+  处方：加 learned 变量 → **false（没学过）就 lock** → 读了书才解锁 → 重新检验
+  ✅ **09-29 已落地**：`userdata.book_learned` / `book_lock_armed` 两个变量；
+  `CanUpgradeSkill`（原 `:960` 只看 `cur==0`，等级被别的路径抬上去就绕过 → 改看变量）、
+  `GetSkillView` `book_need` 同步改判据、`UnlockSkillByBook` **先置变量再提等级**（顺序反了锁解不开）、
+  `UnlockSkillWithItem` 同理；`GrantAdvanceGift` 发书**前**先 `ArmBookLock()`（清 0 + 上锁，一次性记账）
+- [x] **旧存档迁移规则（用户口述，含糊处待确认）**：更新时玩家职业相符但**旧档没有该变量** → ?
+  ；职业相符但其它不符 → **忽略**；**新存档必须有验证**；"条件必须超过等级 2，否则重新锁定、
+  **赠送解锁的技能书**、而且必须从 0 级开始"
+  ✅ **09-29 已按拍板落地**（问题1答"旧档 slash_qi 当前等级>2 才保留"）：
+  `MigrateBookUnlock()` 在 `OnLoad` 末尾跑**一次**（`book_learned` 是 table = 新档/已迁移 → 直接 return，
+  构造函数里 `book_learned = {}` 就是"新档验证"）；职业相符：`lv>2` → 保留解锁；
+  否则 **清 0 + 重新锁定 + 延后 2 秒补发剑士技能书**；职业不符 → 只置默认锁、不补书、不动点数
+- ✅ **更新日志可以中文**："白马非马"**找不出对应准确翻译 → 保持中文不硬翻**；
+  且"**兼容可以作为功能去说明**——兼容玩家双方的语言特点"→ 混排是卖点，写进工坊介绍
+- [x] **创意工坊介绍要补**：现有装备/物品**没有说明，人家不知道玩什么**；
+  口径"不需要写太复杂或没用的东西，**只介绍特色**"
+  ✅ **09-29 已起草**（`README.md` 两处）：① 新增 `## 装备与物品` 节（武器 / 道具 / 建筑三组，
+  只写特色、数值与图鉴 16 条对齐）② 新增 `### 工坊描述 · 玩法版（复制即用）` 可粘贴块
+  （一句话 → 职业 → 装备物品 → 图鉴入口 → **双语兼容当特性** → 免费声明）。
+  **对外发布仍须你点头**（逐批问的老规矩）。
+  顺手修：`## 支持语言` 原写 한국어/日本語/Русский 已支持，与实际"借英文"不符、
+  也和新块里的"其余语言暂用英文"打架 → 改成"暂用英文显示（日文汉化进行中）"。
+  ⏳ 另发现：`README.md` 版本行仍写 **0.7.9 半**（modinfo 已 0.7.13），**未动**，等你说改不改。
+- [ ] **日语做**；**装备页跳过**（维持）；**删除「装备页移到右侧面板计划」** —— 用户：
+  "不打开技能就能看到，但要求**等经费**，我现在不想去测试那个东西" → 从计划里销掉
+- [x] **新物品：重置职业用**，**不开放任何制作条件**（= 不可制作，获取方式待定）
+  ✅ **09-29 已落地**（用户答"我测试需要用到，仅作者用，本地模式/使用者属于测试安全员都允许使用"）：
+  `scripts/prefabs/musha_job_reset.lua`（新，**不加配方**，美术借原版 gems.zip + 回城石图标占位）+
+  动作 `MUSHA_RESET_JOB`（`musha_actions.lua` 新增 AddAction/ComponentAction/Stategraph 三处）+
+  组件 `ResetJobForTest()`（职业清空 + 等级/经验/技能点/技能树全归 0 + 技能书锁归零，
+  **不碰 ud.mail 信箱**）+ 中英 `S.NAMES.MUSHA_JOB_RESET` / `S.ACTIONS.MUSHA_RESET_JOB` / DESCRIBE。
+  权限在 prefab 服务端判：`musha_dev_mode.CanUseTestItem()` = 作者 / 测试安全员白名单 / 本地房主模式；
+  获取 = 控制台 `c_give("musha_job_reset")`
+
+## 🧪 0.7.13 批（2026-09-28 用户拍板"这条更新写入 0.7.13"）
+- [x] **酒馆委托板底图 = 木框花**：modmain 注册 tavern_frame atlas（09-27 已 publish 未注册
+  → 开板报 Invalid resource handle，本轮修）；"接任务的底图用这个"（用户贴图 = 木框花同款）
+- [x] **同一委托最多 3 人同时接取**：`AcceptQuest` 加 `CountQuestTakers` 校验（返回 takers_full）；
+  RPC talker 报"该委托已被 3 人同时接取"；`SyncToPanel` 推 `tk` → 板上奖励行显示 "n/3"；
+  进度每人一份组件数据 → 天然独立不共享
+- [ ] **金色任务共享** —— 用户："后面会尝试让金色任务共享，现在先**暂停**" → 挂起（0.7.14+ 再议）
+- [x] modinfo name/version → **0.7.13**；changelog 新增 0.7.13 节（中英 4+4 行）
+- [x] **两框重叠 79px 已修**（09-28 用户回「修」）：按实测坐标收口（分隔线 y=82、经验条
+  y 77..153 右 413.5、徽标底 80）→ 上框 **760×224 @(65,173)**（y 61..285、x -310..440，
+  加宽到 760 让经验条右下角躲开 r=50 圆角；早先口头方案 724×199 会让经验条戳出框底，已弃）、
+  下框 **780×462 @(122,-179)**（y -410..52、与上框缝 9）、`QLIST_Y` -140→**-176**（视口
+  40..-392，框内留 12/18）、空文案 -115/-175 → **-157/-217**；2 图重生成 + publish ✓。
+  已知小瑕疵：滚动条滑块贴到视口最顶端时，右上角可能越出下框 r=50 圆角 ~10px（半透明白，
+  不显眼；要根治得动滑块轨位或圆角，未动）
+- [ ] **下个版本重画主页两框底板** —— 用户 09-28："alpha 底板透明度设置 0.6，下个版本重画这个，
+  大概是透明度不够" → 本轮已把 tint 0.7 → **0.6** 临时压；重画 = 图本身带半透明质感
+  （毛玻璃/花纹），不再全靠 SetTint 整体压
+
+## ✅ 2026-09-28 晚落地（用户拍板：甲 / 每日不批发 / 英文直译 hotel / DEBUG 关）
+- [x] **主页上下两框**（"白底的bg附加椭圆框"）：`home_frame_top` 724×228 @(52,171)、
+  `home_frame_bottom` 780×546 @(122,-137) —— `exported/_tools/gen_home_frames.py`
+  （白身+棕描边，r=50 大圆角=椭圆观感；纯椭圆会削任务行四角）→ publish → modmain 注册 →
+  panel 创建入 `pages.home` 组，`SetTint(1,1,1,0.7)` 同任务行胶囊
+- [x] **空任务引导恢复**（09-28 早"两行都藏"被晚间推翻）：空列表 →
+  「请去酒馆接受相关任务 》」+ hint「每日委托在酒馆接取 · 转职任务从酒馆取卷轴」；
+  无职业分支保留（暂无职业/使用职业书）；`quest_empty/quest_hint` 加回 pages.home 组、
+  位置移入下框中心 (122,-115)/(122,-175)
+- [x] **任务列表滚动条**（甲："不显示竖条"）：`scroll_bar_line` 构造段 + RefreshView 覆写双处 Hide；
+  滑块（握把）/滚轮/拖拽保留
+- [x] **酒馆英文名 Tavern→Hotel 直译**（用户："英文直译 hotel，中文就这么写"）：
+  english.lua NAMES/DESCRIBE×2/ACTION 共 4 处 + musha_changelog `lines_en` 3 处；
+  中文「酒馆」全部不动；代码标识符（musha_open_tavern_panel 等）不动
+- [x] **DEBUG_QUEST = false**（musha_quest.lua:15，release blocker 销一项）
+- [x] **每日不批发口径核实**：服务端 09-28 已合规（`GrantNewDayQuests` = 只补酒馆可接列表，
+  `AddDailyQuests` 无调用方）；面板过时文案"每日任务明日自动发放"已清除
+- [ ] 参考图《面板底框_参考图重绘》接线 → **用户 09-28 拍板：留 0.8.0**
+- ⚠️ 变更须**完全重启 DST**（2 tex 新增 + 多 lua）
+
 ## 🗓 2026-10-02 开工：英文第二批（全部翻完）+ 文案迁 STRINGS（用户 09-28 拍板）
 - 范围（"英文下批全部翻了"）：**面板剩余中文全翻** —— 主页任务空状态提示、任务名 / 每日委托文案（服务端下发）、
   设置页、礼包页、图鉴页、信箱兜底日志**保持中文不动**（`musha_panel_screen.lua:169-183`）
@@ -19,7 +177,7 @@
 - 之后接：日文（`*_jp`，和 tavern_frame 同批，见下一节）
 
 ## 🎯 2026-09-28 用户拍板：这两件归入 0.8.0（0.7.12 这批先不动）
-- [ ] **tavern_frame（木框花 350×590）下个版本用上**
+- [x] ~~**tavern_frame（木框花 350×590）下个版本用上**~~ ✅ 0.7.13 批已做（modmain 注册 atlas + 直接作为委托板底图上场）
   - 现状：`images/tavern_frame.{png,tex,xml}` 已 publish（09-27），但 `modmain.lua` 里**没注册**这个 atlas
     → `musha_tavern_screen.lua:136` 开酒馆时 client_log 实测报（09-28 00:02:30）：
     `Invalid resource handle for atlas '../mods/musha/images/tavern_frame.xml'`
