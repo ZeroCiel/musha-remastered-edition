@@ -7,10 +7,10 @@
 - [x] **musha_mail_x 图集补注册 2 行**（modmain）。
 - [x] **10-10 导航图标换图补记**（nav 六对 png+tex、equip 未换、xml 图集未动）随资产批入库。
 - [x] **通用闹钟上线**：共享文件 `%APPDATA%\app\hermes-alarms.json`（opencode/工作台/hermes 三方可读写），`state=armed` 且（`done:true` 或到点）响、响完置 `fired`；工作台侧 = 其仓 REQ-049，opencode 侧 = 独立响铃器进程兜底。
-- [ ] **bigportraits/musha_none.xml 改名 `musha_none_oval` 等拍板**：全仓无消费方、按引擎约定会断大头像 → 未入库（保持 modified）。改回 or 说明意图，用户定。
-- [ ] **建议清理（铁律：删除先问，未动）**：`anim/musha_v2_gaiguo210x216.zip`、`images/8030e666-*` UUID 垃圾×6、`release/` 打包产物。
-- [ ] **推送等点头**（AGENTS 联网先问）；进游戏验收清单照旧（完全重启 DST）。
-- 遗留不变：㉙ UI exe 路线 a/b/c 待选；月牙斩实测提醒；`hp_regen_mult` 留/删待拍板。
+- [x] **bigportraits 拍板 = 先放着**（2026-10-18）：保持 modified 不入库、不改回，等有接线打算再说。
+- [x] **垃圾三类已清**（2026-10-18 拍板「清掉三类」）：`anim/musha_v2_gaiguo210x216.zip`、`images/8030e666-*` UUID×6、`release/` 全删；`_vibex交接/` 不在三类内 → 保留。
+- [x] **推送点头已给**（2026-10-18）：四批 + 本补记共 5 提交推 Gitee；进游戏验收清单照旧（完全重启 DST）⚠ 仍待做。
+- 遗留：㉙ UI exe **路线 b（解析面板 lua 坐标表）已拍板（2026-10-18），待用户说开工**；月牙斩实测提醒；`hp_regen_mult` 留/删待拍板。
 
 ## 🔨 2026-10-14 新增任务：**UI 独立 exe（输出到现实显示 + 可编辑重新排版）**（用户口述加任务，未开工）
 
